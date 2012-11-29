@@ -1,0 +1,6 @@
+echo "Zero and salt drive"
+date
+sudo ./salt $1
+echo "Start act"
+date
+sudo ./act $2 > $3
