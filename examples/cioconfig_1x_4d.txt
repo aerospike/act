@@ -1,0 +1,30 @@
+#
+# cio config file for testing 4 devices at normal load
+#
+
+# comma-separated list:
+device-names: /dev/sdc?, /dev/sdd?, /dev/sde?, /dev/sdf?
+
+# yes|no - default is no:
+queue-per-device: no
+
+# mandatory non-zero, ignored if queue-per-device is yes:
+num-queues: 8
+
+# mandatory non-zero:
+threads-per-queue: 8
+test-duration-sec: 86400
+report-interval-sec: 1
+read-reqs-per-sec: 8000
+large-block-ops-per-sec: 94
+read-req-num-512-blocks: 3
+large-block-op-kbytes: 128
+
+# yes|no - default is no:
+use-valloc: no
+
+# if 0, will write all zeros every time:
+num-write-buffers: 256
+
+# noop|cfq - default is noop
+scheduler-mode: noop
