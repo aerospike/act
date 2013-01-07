@@ -1,5 +1,5 @@
 #
-# cio config file for testing 1 device at normal load
+# act config file for testing 1 device at normal load
 #
 
 # comma-separated list:
