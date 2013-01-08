@@ -1,3 +1,16 @@
+Getting started
+---------------
+
+git clone git@github.com:aerospike/act.git
+cd act
+make
+make -f Makesalt
+
+This will create 2 binaries, act and actprep
+
+* actprep:This executable will basically zero’s out the drives and fills it up with random data(Salting). Basically to reproduce a normal production state.
+* act: The primary executable.
+
 Test Process Overview
 ---------------------
 

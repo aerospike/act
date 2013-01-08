@@ -4,7 +4,7 @@ DIR_OBJECT = .
 DIR_TARGET = .
 
 SOURCES = salt.c
-TARGET = salt
+TARGET = actprep
 
 CC = gcc
 #CFLAGS = -g -O3 -fno-common -std=gnu99 -Wall -D_REENTRANT
