@@ -106,6 +106,10 @@ For ease of use, this package includes five example configuration files:
 
  - actconfig_6x.txt    - run a 6 times normal load test on one device
 
+ - actconfig_12x.txt   - run a 12 times normal load test on one device
+
+ - actconfig_24x.txt   - run a 24 times normal load test on one device
+
  - actconfig_1x_2d.txt - run a normal load test on two devices at a time
 
  - actconfig_1x_4d.txt - run a normal load test test on four devices at a time
@@ -171,12 +175,14 @@ in seconds.
 
 read-reqs-per-sec
 The value is a non-zero integer.  This is the total read transaction rate.  Note
-that it is not per device, or per read transaction queue.
+that it is not per device, or per read transaction queue. e.g. For 2 times (2x)
+the normal load, value would be 2*2000 = 4000. Formula: n x 2000
 
 large-block-ops-per-sec
 The value is a non-zero integer.  This is the total rate used for both
 large-block write and large-block read operations.  Note that it is not per
-device.
+device. e.g. For 2 times (2x) the normal load, value would be 2*23.5 = 47
+(rounded up) Formula: n x 23.5
 
 read-req-num-512-blocks
 The value is a non-zero integer.  This is the size read in each read
@@ -258,7 +264,7 @@ Device Pass/Fail Criteria
 To deploy a device in production, Aerospike expects it to be able to perform
 consistently as follows:
 
-In any one-hour period, we must find that:
+In any one-hour period for normal load , we must find that:
 
  - fewer than 5% of transactions exceed 1 ms
  - fewer than 1% of transactions exceed 8 ms
