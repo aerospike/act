@@ -1,4 +1,0 @@
-#!/bin/bash
-sudo tail -$4 $1 > fooraw.log
-sudo head -$3 fooraw.log > foo.log
-./cf_latency.sh foo.log $2 0
