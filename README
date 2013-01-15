@@ -58,8 +58,13 @@ This package contains actprep, an executable that may be used to clean and salt
 a device.  actprep takes a device name as its only command-line parameter.  For
 a typical 240GB SSD, actprep takes a little over an hour to run.
 
-Example - to clean and salt device /dev/sdc:
+Example - to clean and salt device /dev/sdc: (If Over-Provisioned using hdparm)
 	$ sudo ./actprep /dev/sdc
+
+If Over-Provisioned using fdisk, make sure you specify the partition and not raw
+device, if raw device(sdc) is used then it will wipe out the partition table.
+
+        $ sudo ./actprep /dev/sdc1
 
 
 act Overview
