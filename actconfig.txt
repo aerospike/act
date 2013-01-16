@@ -1,9 +1,9 @@
 #
-# act config file
+# act config file for testing 1 device at normal load
 #
 
 # comma-separated list:
-device-names: /dev/sdc
+device-names: /dev/sdc?
 
 # yes|no - default is no:
 queue-per-device: no
@@ -24,7 +24,7 @@ large-block-op-kbytes: 128
 use-valloc: no
 
 # if 0, will write all zeros every time:
-num-write-buffers: 1024
+num-write-buffers: 256
 
 # noop|cfq - default is noop
 scheduler-mode: noop
