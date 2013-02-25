@@ -30,6 +30,7 @@ class RunCommand(cmd.Cmd):
 		use_valloc= 'no'
 		num_write_buffers = 256
 		scheduler_mode = 'noop'
+		use_standard = True
 		
 		## TODO: Allow user to do simple configuration and advanced configuration, i.e. allow to
 		## change num_queues, threads_per_queue and read/write ratio.
@@ -47,10 +48,11 @@ class RunCommand(cmd.Cmd):
 			
 			device_list = ''
 			
+			print 'Enter either raw device if over-provisioned using hdparm or partition if over-provisioned using fdisk'
+			
 			for device in range(1,no_of_devices + 1):
 				response = ''
 				while response == '':
-					print 'Enter either raw device if over-provisioned using hdparm or partition if over-provisioned using fdisk'
 					response = raw_input('Enter device name # '+str(device)+'(e.g. /dev/sdb or /sev/sdb1): ')
 					if not response == '':
 						device_list += response
@@ -58,21 +60,73 @@ class RunCommand(cmd.Cmd):
 						device_list += ','
 			
 			device_names = device_list
-			response = 'x'
 			
-			while (not response.isdigit()):
-				print ' "1x" load is  2000 reads per sec and 1000 writes per sec'
-				response = raw_input('Enter the load you want to test the devices ( e.g. enter 1 for 1x test):')
-				if response == '':
-					continue
+			response = raw_input('Use advanced mode for configuration ? (y/N) ')
+			if 'y' == response or 'Y' == response:
 				
-			device_load = int(response)
-			
-			
-			read_reqs_per_sec = device_load * 2000
-			
-			large_block_ops_per_sec = int(round(device_load * 23.5))
+				rwops= raw_input('Configure read/writes ops per sec (y/N) :')
+				
+				if 'y' == rwops or 'Y' == rwops:
+					response = 'x'	
+					while (not response.isdigit()):
+						response = raw_input('Enter Read ops per second: ')
+						if response == '':
+							continue
+					read_reqs_per_sec = response
+					
+					response = 'x'	
+					while (not response.isdigit()):
+						response = raw_input('Enter write ops per second: ')
+						if response == '':
+							continue
 
+					large_block_ops_per_sec = int(round((response * 23.5) /1000))
+					
+					if large_block_ops_per_sec and read_reqs_per_sec:
+						use_standard = False
+				
+				numq= raw_input('Change num-queues default :'+str(num_queues) +' ? (y/N) :')
+				if 'y' == numq or 'Y' == numq:
+					response = 'x'
+					while (not response.isdigit()):
+						response = raw_input('Enter num-queues value: ')
+						if response == '':
+							continue
+					num_queues = response
+					
+				tpq= raw_input('Change threads-per-queue default :'+str(threads_per_queue) +' ? (y/N) :')
+				if 'y' == tpq or 'Y' == tpq:
+					response = 'x'
+					while (not response.isdigit()):
+						response = raw_input('Enter threads_per_queue value: ')
+						if response == '':
+							continue
+					threads_per_queue = response
+									
+				
+			if use_standard:
+				response = 'x'	
+				while (not response.isdigit()):
+					print ' "1x" load is  2000 reads per sec and 1000 writes per sec'
+					response = raw_input('Enter the load you want to test the devices ( e.g. enter 1 for 1x test):')
+					if response == '':
+						continue
+
+				device_load = int(response)
+				read_reqs_per_sec = device_load * 2000
+				large_block_ops_per_sec = int(round(device_load * 23.5))
+				
+			print 'Duration for the test (default :'+str(test_duration_sec/3600) +' hours)'	
+			td = raw_input('Configure test duration ? (N for using default) (y/N) :')
+			if 'y' == td or 'Y' == td:
+				response = 'x'
+				while (not response.isdigit()):
+					response = raw_input('Enter the test duration in hours: ')
+					if response == '':
+						continue
+				tds = int(response)
+				test_duration_sec = tds*3600
+									
 			response = ''
 			while response == '':
 				response = raw_input('Do you want to Create the config: (y/N) ')
@@ -98,6 +152,8 @@ class RunCommand(cmd.Cmd):
 						act_file_fd.write('num-write-buffers: %s \n' % str(num_write_buffers))
 						act_file_fd.write('scheduler-mode: %s \n' % str(scheduler_mode))
 						act_file_fd.close()
+						print 'Config File '+ str(actfile) + ' successfully created'
+						
 					except Exception, i:
 						print "What Happened here!",i
 
@@ -107,7 +163,6 @@ class RunCommand(cmd.Cmd):
 			print '\n Got Exception.',i
 
 if __name__ == '__main__':
-	
 	try:
 		
 		RunCommand().onecmd('createconfig')
@@ -115,4 +170,3 @@ if __name__ == '__main__':
 		
 	except (KeyboardInterrupt, SystemExit):
 		print "getting error"
-##  TODO: Comment and cleanup.
