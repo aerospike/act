@@ -97,6 +97,17 @@ defragmentation process.  They occur at a specified rate, executed from one
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
+Create Configuration file
+-------------------------
+
+The repo contains act_config_helper.py which can create configuration file you can
+use to run act, When yoy run this program it will ask you basic questions on test
+you want to run and generate config file at the end of the questions
+
+        $ python act_config_helper.py
+        ### Answer the questions asked in command line.
+
+Alternately you can create config file manually based on instructions below.
 
 Using act
 ---------

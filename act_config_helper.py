@@ -9,7 +9,7 @@ import os
 class RunCommand(cmd.Cmd):
 	__VERSION__ = "0.0.1"
 	prompt = "ACT> "
-	name = "Aerospike ACT creator"
+	name = "Aerospike ACT config creator"
 
 
 	def do_EOF(self, line):
@@ -32,9 +32,6 @@ class RunCommand(cmd.Cmd):
 		scheduler_mode = 'noop'
 		use_standard = True
 		
-		## TODO: Allow user to do simple configuration and advanced configuration, i.e. allow to
-		## change num_queues, threads_per_queue and read/write ratio.
-		
 		try:
 			response = ''
 			### Ask for details ###
@@ -53,34 +50,45 @@ class RunCommand(cmd.Cmd):
 			for device in range(1,no_of_devices + 1):
 				response = ''
 				while response == '':
-					response = raw_input('Enter device name # '+str(device)+'(e.g. /dev/sdb or /sev/sdb1): ')
+					response = raw_input('Enter device name # '+str(device)+'(e.g. /dev/sdb or /dev/sdb1): ')
 					if not response == '':
 						device_list += response
 					if device != no_of_devices:
 						device_list += ','
 			
 			device_names = device_list
+
+			print 'Duration for the test (default :'+str(test_duration_sec/3600) +' hours)'	
+			td = raw_input('Configure test duration ? (N for using default) (y/N) :')
+			if 'y' == td or 'Y' == td:
+				response = 'x'
+				while (not response.isdigit()):
+					response = raw_input('Enter the test duration in hours: ')
+					if response == '':
+						continue
+				tds = int(response)
+				test_duration_sec = tds * 3600
 			
 			response = raw_input('Use advanced mode for configuration ? (y/N) ')
 			if 'y' == response or 'Y' == response:
 				
-				rwops= raw_input('Configure read/writes ops per sec (y/N) :')
+				rwops= raw_input('Configure read/writes ops per sec(y/N) :')
 				
 				if 'y' == rwops or 'Y' == rwops:
 					response = 'x'	
 					while (not response.isdigit()):
-						response = raw_input('Enter Read ops per second: ')
+						response = raw_input('Enter Read ops per second for each device: ')
 						if response == '':
 							continue
-					read_reqs_per_sec = response
+					read_reqs_per_sec = response * no_of_devices
 					
 					response = 'x'	
 					while (not response.isdigit()):
-						response = raw_input('Enter write ops per second: ')
+						response = raw_input('Enter write ops per second for each device: ')
 						if response == '':
 							continue
 
-					large_block_ops_per_sec = int(round((response * 23.5) /1000))
+					large_block_ops_per_sec = int(round((no_of_devices * response * 23.5) /1000))
 					
 					if large_block_ops_per_sec and read_reqs_per_sec:
 						use_standard = False
@@ -107,29 +115,18 @@ class RunCommand(cmd.Cmd):
 			if use_standard:
 				response = 'x'	
 				while (not response.isdigit()):
-					print ' "1x" load is  2000 reads per sec and 1000 writes per sec'
+					print '"1x" load is  2000 reads per sec and 1000 writes per sec'
 					response = raw_input('Enter the load you want to test the devices ( e.g. enter 1 for 1x test):')
 					if response == '':
 						continue
 
 				device_load = int(response)
-				read_reqs_per_sec = device_load * 2000
-				large_block_ops_per_sec = int(round(device_load * 23.5))
-				
-			print 'Duration for the test (default :'+str(test_duration_sec/3600) +' hours)'	
-			td = raw_input('Configure test duration ? (N for using default) (y/N) :')
-			if 'y' == td or 'Y' == td:
-				response = 'x'
-				while (not response.isdigit()):
-					response = raw_input('Enter the test duration in hours: ')
-					if response == '':
-						continue
-				tds = int(response)
-				test_duration_sec = tds*3600
-									
+				read_reqs_per_sec = no_of_devices * device_load * 2000
+				large_block_ops_per_sec = int(round(no_of_devices * device_load * 23.5))
+													
 			response = ''
 			while response == '':
-				response = raw_input('Do you want to Create the config: (y/N) ')
+				response = raw_input('Do you want to Create the config (Save to a file) ? : (y/N) ')
 				if 'y' == response or 'Y' == response:
 					actfile= 'actconfig_'+str(device_load)+ 'x_'+str(no_of_devices)+'d.txt'
 					try:
@@ -139,34 +136,34 @@ class RunCommand(cmd.Cmd):
 						act_file_fd.write('########## \n\n')
 						act_file_fd.write('# comma-separated list \n')
 						act_file_fd.write('device-names: %s \n\n' % str(device_names))
+						act_file_fd.write('# yes|no - default is no: \n') 
 						act_file_fd.write('queue-per-device: %s \n' % str(queue_per_device))
+						act_file_fd.write('# mandatory non-zero, ignored if queue-per-device is yes: \n')
 						act_file_fd.write('num-queues: %s \n\n' % str(num_queues))
-						act_file_fd.write('threads-per-queue: %s \n' % str(threads_per_queue))
+						act_file_fd.write('# mandatory non-zero:\n')
+						act_file_fd.write('threads-per-queue: %s \n\n' % str(threads_per_queue))
 						act_file_fd.write('test-duration-sec:  %s \n' % str(test_duration_sec))
 						act_file_fd.write('report-interval-sec:  %s \n' % str(report_interval_sec))
 						act_file_fd.write('read-reqs-per-sec: %s \n' % str(read_reqs_per_sec))
 						act_file_fd.write('large-block-ops-per-sec: %s \n' % str(large_block_ops_per_sec))
 						act_file_fd.write('read-req-num-512-blocks: %s \n' % str(read_req_num_512_blocks))
 						act_file_fd.write('large-block-op-kbytes: %s \n' % str(large_block_op_kbytes))
-						act_file_fd.write('use-valloc: %s \n' % str(use_valloc))
-						act_file_fd.write('num-write-buffers: %s \n' % str(num_write_buffers))
+						act_file_fd.write('# yes|no - default is no:')
+						act_file_fd.write('use-valloc: %s \n\n' % str(use_valloc))
+						act_file_fd.write('# if 0, will write all zeros every time:')
+						act_file_fd.write('num-write-buffers: %s \n\n' % str(num_write_buffers))
+						act_file_fd.write('# noop|cfq - default is noop')
 						act_file_fd.write('scheduler-mode: %s \n' % str(scheduler_mode))
 						act_file_fd.close()
 						print 'Config File '+ str(actfile) + ' successfully created'
 						
 					except Exception, i:
-						print "What Happened here!",i
-
-	
+						print "Exception : ",i
 		except Exception, i:
-			
 			print '\n Got Exception.',i
 
 if __name__ == '__main__':
 	try:
-		
 		RunCommand().onecmd('createconfig')
-		
-		
 	except (KeyboardInterrupt, SystemExit):
 		print "getting error"
