@@ -12,7 +12,7 @@ CFLAGS = -g -fno-common -std=gnu99 -Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64
 CFLAGS += -MMD
 LDFLAGS = $(CFLAGS)
 INCLUDES = $(DIR_INCLUDE:%=-I%) -I/usr/include
-LIBRARIES = -lpthread -lrt -lssl -lz
+LIBRARIES = -lpthread -lrt -lcrypto -lssl -lz
 
 OBJECTS = $(SOURCES:%.c=$(DIR_OBJECT)/%.o)
 DEPENDENCIES = $(OBJECTS:%.o=%.d)
