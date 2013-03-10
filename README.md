@@ -1,4 +1,4 @@
-### ACT ( Aerospike Certification Test )
+### ACT ( Aerospike Certification Tool )
 
 ### Getting started
 --------------------
