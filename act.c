@@ -73,7 +73,7 @@ const char TAG_USE_VALLOC[]					= "use-valloc";
 const char TAG_NUM_WRITE_BUFFERS[]			= "num-write-buffers";
 const char TAG_SCHEDULER_MODE[]				= "scheduler-mode";
 
-#define MAX_NUM_DEVICES 16
+#define MAX_NUM_DEVICES 32
 #define MAX_DEVICE_NAME_SIZE 64
 #define WHITE_SPACE " \t\n\r"
 
