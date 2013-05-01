@@ -140,50 +140,28 @@ This will create 2 binaries:
 ### THE TESTS DESTROY ALL DATA ON THE TEST DEVICES!
 -------
 
-
-
-When cleaning, initializing, and running tests, make sure the devices are
+When preparing devices and running tests, make sure the devices are
 specified by name correctly.
 
-Also make sure that the test devices are not mounted.
+Make sure the test device is not mounted.
 
-Run the command:
-```
-	$ mount
-```
-and examine the result.  e.g. the result:
-	/dev/sda1 on /boot type ext3 (rw)
-implies device /dev/sda1 is mounted.
-
-Also run the command:
-```
-	$ sudo /sbin/pvscan
-```
-and examine the result.  e.g. the result:
-	  PV /dev/sda2   VG VolGroup00   lvm2 [19.88 GB / 0    free]
-implies device /dev/sda2 is mounted.
-
-Unmount any intended test devices that are mounted.
-
-
-### Cleaning and Initializing Devices
+#### Preparing Devices
 ---------------------------------
 
-For consistency, and to obtain test results that model the long-time
-equilibrium condition expected in Aerospike production servers, it is best to
+The first step of the test is to 
 prepare storage devices by first cleaning them (writing zeros everywhere) and
 then "salting" them (writing random data everywhere).
 
-This package contains actprep, an executable that may be used to clean and salt
+The actprep program cleans and salts
 a device.  actprep takes a device name as its only command-line parameter.  For
 a typical 240GB SSD, actprep takes a little over an hour to run.
 
-Example - to clean and salt device /dev/sdc: (If Over-Provisioned using hdparm)
+For example, to clean and salt device /dev/sdc: (over-provisioned using hdparm)
 ```
         $ sudo ./actprep /dev/sdc
 ```
-If Over-Provisioned using fdisk, make sure you specify the partition and not raw
-device, if raw device(sdc) is used then it will wipe out the partition table.
+If over-provisioned using fdisk, make sure you specify the partition and not the raw
+device. If the raw device(sdc) is used then ACT will wipe out the partition table.
 ```
         $ sudo ./actprep /dev/sdc1
 ```
