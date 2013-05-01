@@ -4,7 +4,7 @@
 ------------
 
 ACT is a program for certifying flash/SSD devices' performance for
-Aerospike Database (both SATA and PCIE connectors).
+Aerospike Database (both SATA and PCIe connectors).
 
 Not all SSDs can handle the high volume of transactions required by high 
 performance NOSQL databases like Aerospike Database.  Many SSDs are rated 
