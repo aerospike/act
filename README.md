@@ -132,6 +132,7 @@ This will create 2 binaries:
 ---------------------
 
 To run ACT, you must:
+
 1. Prepare the storage device(s) using actprep.
 2. Create the config file for your test.
 3. Run the ACT certification, sending the results to a log file.
