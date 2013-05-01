@@ -1,5 +1,38 @@
 ### ACT ( Aerospike Certification Tool )
 
+### Overview
+------------
+
+ACT is a program for testing flash/SSD devices for drive performance.
+
+Not all SSDs can handle the high volume of transactions required by high performance NOSQL databases like Aerospike Database.  Many SSDs are rated for 100K+ reads/writes per second, but in production the actual load it can withstand for sustained loads is generally much different.  Aerospike has tested many common SSDs in high-throughput tests and the results are shown below.  We have also developed a certification tool that you can use to test/certify an SSD for yourself.
+We have found performance – especially latency – of SSDs to be highly dependent on the write load the SSD is subjected to. Over the first few hours, performance can still be excellent, but past the 4 to 10 hour mark (depending on the drive), performance can suffer.
+
+ACT is a program for testing storage device IO.  Its primary purpose is to
+measure the latency of small read transactions while modeling the Aerospike
+server's device IO pattern as closely as practical.
+
+These IO patterns will be very similar to many databases focused on real-time
+performance. Databases of this type will constantly read and write from
+disk, without allowing the drive time to rest. This tool very easily shows
+latency responses under write load.
+
+Three types of IO operations occur during a test run:
+
+1. Small (~2 Kbyte) read operations, typically several thousand per second.
+2. Large-block (~128 Kbyte) read operations, typically a few tens per second.
+3. Large-block write operations, same size and rate as large-block reads.
+
+The small read operations model client transaction requests.  They occur at a
+specified rate.  Requests are added at this rate to a specified number of
+read transaction queues, each of which is serviced by a specified number of
+threads.
+
+The large-block read and write operations model the Aerospike server's
+defragmentation process.  They occur at a specified rate, executed from one
+dedicated large-block read thread and one dedicated large-block write thread per
+device.
+
 ### Getting started
 --------------------
 
@@ -75,33 +108,7 @@ device, if raw device(sdc) is used then it will wipe out the partition table.
         $ sudo ./actprep /dev/sdc1
 ```
 
-### ACT Overview
-------------
 
-ACT is a program for testing storage device IO.  Its primary purpose is to
-measure the latency of small read transactions while modeling the Aerospike
-server's device IO pattern as closely as practical.
-
-These IO patterns will be very similar to many databases focused on real-time
-performance. Databases of this type will constantly read and write from
-disk, without allowing the drive time to rest. This tool very easily shows
-latency responses under write load.
-
-Three types of IO operations occur during a test run:
-
-1. Small (~2 Kbyte) read operations, typically several thousand per second.
-2. Large-block (~128 Kbyte) read operations, typically a few tens per second.
-3. Large-block write operations, same size and rate as large-block reads.
-
-The small read operations model client transaction requests.  They occur at a
-specified rate.  Requests are added at this rate to a specified number of
-read transaction queues, each of which is serviced by a specified number of
-threads.
-
-The large-block read and write operations model the Aerospike server's
-defragmentation process.  They occur at a specified rate, executed from one
-dedicated large-block read thread and one dedicated large-block write thread per
-device.
 
 ### Create Configuration file
 -------------------------
