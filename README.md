@@ -160,8 +160,9 @@ For example, to clean and salt device /dev/sdc: (over-provisioned using hdparm)
 ```
         $ sudo ./actprep /dev/sdc
 ```
-If over-provisioned using fdisk, make sure you specify the partition and not the raw
-device. If the raw device(sdc) is used then ACT will wipe out the partition table.
+If you are using a RAID controller / over-provisioned using fdisk, make sure you specify the partition and not the raw
+device. If the raw device is used then ACT will wipe out the partition table and this will
+invalidate the test.
 ```
         $ sudo ./actprep /dev/sdc1
 ```
