@@ -26,7 +26,7 @@ pattern as closely as practical.
 #### How to Certify a Drive with ACT
 ------------------------------------
 
-The first stage is to certify a single drive, to test the drive itself and the
+##### The first stage is to certify a single drive, to test the drive itself and the
 connection.
 
 Step 1: Test under normal/high loads
