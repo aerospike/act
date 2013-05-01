@@ -123,24 +123,24 @@ $ make
 $ make -f Makesalt
 ```
 
-This will create 2 binaries, act and actprep
+This will create 2 binaries:
 
-* ***actprep***:This executable will basically zero’s out the drives and fills it up with random data(Salting). Basically to reproduce a normal production state.
-* ***act***: The primary executable.
+* ***actprep***: This executable prepares a drive for the test by writing zeroes on every sector of the disk and then filling it up with random data (salting). This simulates a normal production state.
+* ***act***: The ACT tool executable.
 
 ### Test Process Overview
 ---------------------
 
 
-1. Clean and initialize the storage device(s).
-2. Run the act executable.
-3. Analyze act's output using the act_latency.py script.
+1. Prepare the storage device(s) using actprep.
+2. Run the ACT certification, sending the results to a log file.
+3. Analyze log file output using the /latency_calc/act_latency.py script.
 
 
-### Caution
+### THE TESTS DESTROY ALL DATA ON THE TEST DEVICES!
 -------
 
-THE TESTS DESTROY ALL DATA ON THE TEST DEVICES!
+
 
 When cleaning, initializing, and running tests, make sure the devices are
 specified by name correctly.
