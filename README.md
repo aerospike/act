@@ -39,7 +39,7 @@ Step 2: Test under peak loads to ensure the server does not crash under high tra
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec)
 THe drive passes this step if it finishes the test in any way
 
-The second stage is to certify multiple drives, to make sure that the drives
+##### The second stage is to certify multiple drives, to make sure that the drives
 perform correctly in multi-drive configurations.
 
 Step 3: Repeat step 1, with all drives: Test under normal/high loads
