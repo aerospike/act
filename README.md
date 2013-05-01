@@ -128,7 +128,7 @@ This will create 2 binaries:
 * ***actprep***: This executable prepares a drive for the test by writing zeroes on every sector of the disk and then filling it up with random data (salting). This simulates a normal production state.
 * ***act***: The ACT tool executable.
 
-### Test Process Overview
+### The Test Process 
 ---------------------
 
 
@@ -147,7 +147,7 @@ specified by name correctly.
 
 Make sure the test device is not mounted.
 
-#### Prepare Devices
+#### 1. Prepare Devices
 ---------------------------------
 
 The first step of the test is to 
@@ -171,7 +171,7 @@ invalidate the test.
 
 
 
-#### Create Configuration file
+#### 2. Create a Configuration file
 -------------------------
 
 The ACT package includes act_config_helper.py which helps you create a configuration file you can
@@ -186,39 +186,12 @@ To run act_config_helper.py:
 Alternately you can create the config file manually by copying one of the sample config
 files in the /examples directory and modifying it, as described in the instructions below.
 
-#### Run your test with ACT
+#### 3. Run your test with ACT
 ---------
 
 Necessary files: act (the executable), plus a configuration text file.
 
-For ease of use, this package includes act_config_helper.py for creating config 
-files and also has five example configuration files:
 
-* actconfig_1x.txt    - run a normal load test on one device
-* actconfig_3x.txt    - run a 3 times normal load test on one device
-* actconfig_6x.txt    - run a 6 times normal load test on one device
-* actconfig_12x.txt   - run a 12 times normal load test on one device
-* actconfig_24x.txt   - run a 24 times normal load test on one device
-* actconfig_1x_2d.txt - run a normal load test on two devices at a time
-* actconfig_1x_4d.txt - run a normal load test test on four devices at a time
-
-These configuration files must be modified to make sure the device-names field
-(see below) specifies exactly the device(s) to be tested.
-
-To modify the config file, you must change:
-
-1. the device name(s)
-2. the number of reads/writes to perform
-3. the number of large block operations to perform (large-block-ops-per-sec)
-
-For example, to run a 48x test, you would modify
-the actconfig_24x.txt file to specify the correct drive and the correct number of reads/writes.  For a
-test of 8 drives at 6x, you would modify the actconfig_1x_4d.txt file to specify all of your drives AND to specify the
-number of reads/writes to perform (6x rather than 1x).
-
-The other fields in the configuration files should not be changed without good
-reasons.  As they are, the files specify 24-hour tests with IO patterns and
-loads very similar to Aerospike production servers.
 
 Usage example:
 ```
@@ -237,7 +210,7 @@ transaction queues become extremely backed-up, act will halt before the
 configured test duration has elapsed.  act may also halt prematurely if it
 encounters unexpected drive I/O or system errors.
 
-#### Analyze ACT Output
+#### 4. Analyze ACT Output
 --------------------
 
 Run act_latency.py to process a act output file and tabulate data about
@@ -284,10 +257,10 @@ Example **act_latency.py** output (for a act output file yielding 12 slices):
    max     2.70   0.73   0.00     1.91   0.08   0.00
 ```
 
-#### Device Pass/Fail Criteria
+#### 5. Device(s) Pass/Fail Criteria
 -------------------------
 
-To deploy a device in production, Aerospike expects it to be able to perform
+To deploy a device(s) in production, Aerospike expects it to be able to perform
 consistently as follows:
 
 In any one-hour period for normal load , we must find that:
@@ -296,11 +269,39 @@ In any one-hour period for normal load , we must find that:
  - fewer than 1% of transactions exceed 8 ms
  - fewer than 0.1% of transactions exceed 64 ms
 
-A device which does not violate these thresholds for 48 hours is considered
+A single device which does not violate these thresholds for 48 hours is considered
 production-worthy.
 
 ## ACT Configuration File Reference
 ----------------------
+For ease of use, this package includes act_config_helper.py for creating config 
+files and also has five example configuration files:
+
+* actconfig_1x.txt    - run a normal load test on one device
+* actconfig_3x.txt    - run a 3 times normal load test on one device
+* actconfig_6x.txt    - run a 6 times normal load test on one device
+* actconfig_12x.txt   - run a 12 times normal load test on one device
+* actconfig_24x.txt   - run a 24 times normal load test on one device
+* actconfig_1x_2d.txt - run a normal load test on two devices at a time
+* actconfig_1x_4d.txt - run a normal load test test on four devices at a time
+
+These configuration files must be modified to make sure the device-names field
+(see below) specifies exactly the device(s) to be tested.
+
+To modify the config file, you must change:
+
+1. the device name(s)
+2. the number of reads/writes to perform
+3. the number of large block operations to perform (large-block-ops-per-sec)
+
+For example, to run a 48x test, you would modify
+the actconfig_24x.txt file to specify the correct drive and the correct number of reads/writes.  For a
+test of 8 drives at 6x, you would modify the actconfig_1x_4d.txt file to specify all of your drives AND to specify the
+number of reads/writes to perform (6x rather than 1x).
+
+The other fields in the configuration files should not be changed without good
+reasons.  As they are, the files specify 24-hour tests with IO patterns and
+loads very similar to Aerospike production servers.
 
 All fields use a "name-token: value" format, and must be on a single line.
 Field order in the file is unimportant.  Integer values must be in decimal.  To
