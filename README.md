@@ -51,8 +51,8 @@ defragmentation process.  They occur at a specified rate, executed from one
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
-#### How to Certify a Drive with ACT with Standard Load
--------------------------------------------------------
+#### How to Certify a Drive with ACT - High Load (3x)
+-----------------------------------------------------
 
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
@@ -83,19 +83,11 @@ The drives pass this step if ACT runs to completion.
 #### How to Certify a Drive with ACT with Higher Loads
 -------------------------------------------------------
 
+To certify a drive at higher levels of performance, do the test as described above, but use higher loads (12x, 24x, etc.).
+Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
 
+For example, if you test at 24x and less than 5% of operations failing to complete in 1 ms, run the test at 48x, etc.
 
-##### The first stage is to certify a single drive, to test the drive itself and the connection.
-
-Step 1: Test under high loads
-
-Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
-The drive passes this step if less than 5% of operations fail to complete in 1 ms or less.
-
-Step 2: Stress test to ensure the drive does not fail under excessive loads
-
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
-The drive passes this step if ACT runs to completion.
 
 ### Getting started
 --------------------
