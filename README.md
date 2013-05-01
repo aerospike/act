@@ -137,9 +137,7 @@ To run ACT, you must:
 3. Analyze log file output using the /latency_calc/act_latency.py script.
 4. Determine pass/fail for the test.
 
-
 ** THE TESTS DESTROY ALL DATA ON THE TEST DEVICES! **
--------
 
 When preparing devices and running tests, make sure the devices are
 specified by name correctly.
