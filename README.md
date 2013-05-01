@@ -23,8 +23,41 @@ This tool shows latency responses when you are reading from and writing to
 the database concurrently while modeling the Aerospike server's device IO 
 pattern as closely as practical.
 
-#### How to Certify a Drive with ACT
-------------------------------------
+#### What the ACT Tool Does
+---------------------------
+
+The tool assumes standard database read/write loads and generates twice as many read requests as write requests.
+
+You can can simulate:
+* 1x - normal load (2000 reads/sec and 1000 writes/sec)
+* 3x - high load
+* 6x - excessive
+* 12x - insanely high
+* etc.
+
+The results of the test show the results in multiple verification intervals.  The verification intervals are preset for 1, 2, 4, 8, 16, 32 and 64 ms intervals. That is, the results show the percentage
+of errors for requests that too the interval or more time to complete.  For example, you might see that 0.25% of requests
+failed to complete in 1 ms or less and 0.01% of requests failed to complete in 8 ms or less.
+
+
+Three types of IO operations occur during a test run:
+
+1. Small (1.5 Kbyte) read operations, typically several thousand per second.
+2. Large-block (128 Kbyte) read operations, typically a few tens per second.
+3. Large-block (128 Kbyte) write operations, typically a few tens per second.
+
+The small read operations model client transaction requests.  They occur at a
+specified rate.  Requests are added at this rate to a specified number of
+read transaction queues, each of which is serviced by a specified number of
+threads.
+
+The large-block read and write operations model the Aerospike server's
+defragmentation process.  They occur at a specified rate, executed from one
+dedicated large-block read thread and one dedicated large-block write thread per
+device.
+
+#### How to Certify a Drive with ACT with Standard Load
+-------------------------------------------------------
 
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
@@ -52,24 +85,22 @@ Step 4: Repeat step 2, with all drives: Stress test to ensure the drives do not 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
 The drives pass this step if ACT runs to completion.
 
-#### What the ACT Tool Does
----------------------------
+#### How to Certify a Drive with ACT with Higher Loads
+-------------------------------------------------------
 
-Three types of IO operations occur during a test run:
 
-1. Small (~2 Kbyte) read operations, typically several thousand per second.
-2. Large-block (~128 Kbyte) read operations, typically a few tens per second.
-3. Large-block write operations, same size and rate as large-block reads.
 
-The small read operations model client transaction requests.  They occur at a
-specified rate.  Requests are added at this rate to a specified number of
-read transaction queues, each of which is serviced by a specified number of
-threads.
+##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
-The large-block read and write operations model the Aerospike server's
-defragmentation process.  They occur at a specified rate, executed from one
-dedicated large-block read thread and one dedicated large-block write thread per
-device.
+Step 1: Test under high loads
+
+Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
+The drive passes this step if less than 5% of operations fail to complete in 1 ms or less.
+
+Step 2: Stress test to ensure the drive does not fail under excessive loads
+
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
+The drive passes this step if ACT runs to completion.
 
 ### Getting started
 --------------------
