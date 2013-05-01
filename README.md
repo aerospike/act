@@ -331,7 +331,9 @@ since in this case the number of queues is determined by the number of devices.
 
 **threads-per-queue**
 The value is a non-zero integer.  This is the number of threads per read
-transaction queue that execute the read transactions.
+transaction queue that execute the read transactions. If a drive is failing and
+there is a large discrepancy between transaction and device speeds from the ACT test
+you can try increasing the number of threads.
 
 **test-duration-sec**
 The value is a non-zero integer.  This is the duration of the test, in seconds.
