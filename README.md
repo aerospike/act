@@ -54,6 +54,14 @@ device.
 #### How to Certify a Drive with ACT - High Load (3x)
 -----------------------------------------------------
 
+The test has two stages:
+1. Test a single drive to determine performance using the hardware configuration and connectors. The single-disk certification will tell you what individual drive performance should be. 
+2. If you will be using multiple drives, you can then test multiple drives to see how 
+the results will be affected by the throughput of bus or RAID controller that is managing your drives.
+
+The test process with ACT is the same for both stages, but in the first stage you are testing a drive and
+in the second stage, you are testing the linearity/scalability of your connector.
+
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
 Step 1: Test under high loads
@@ -80,11 +88,14 @@ Step 4: Repeat step 2, with all drives: Stress test to ensure the drives do not 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
 The drives pass this step if ACT runs to completion.
 
-#### How to Certify a Drive with ACT with Higher Loads
+#### How to Certify a Drive(s) with ACT with Higher Loads
 -------------------------------------------------------
 
-To certify a drive at higher levels of performance, do the test as described above, but use higher loads (12x, 24x, etc.).
+To certify a drive(s) at higher levels of performance, do the test as described above, but use higher loads (12x, 24x, etc.).
 Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
+
+As before, test a single drive first, and then test with multiple drives to make sure that the
+performance scales linearly.
 
 For example, if you test at 24x and less than 5% of operations fail to complete in 1 ms, run the test at 48x, etc.  When the drive completes
 the test at a particular speed with more than 5% of operations failing to complete in 1 ms, then the drive is certified at the
