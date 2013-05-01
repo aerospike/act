@@ -190,10 +190,10 @@ From the installation directory, run:
 	$ sudo ./act actconfig.txt > ouput.txt &
 ```
 where:
-
+```
 * actconfig.txt - path/name for your config file name
 * output.txt    - path/name of your log file
-
+```
 If running ACT from a remote terminal, it is best to run it as a background
 process, or within a "screen".  To verify that ACT is running, tail the output
 text file with the -f option.
