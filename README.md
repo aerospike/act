@@ -205,8 +205,13 @@ files and also has five example configuration files:
 These configuration files must be modified to make sure the device-names field
 (see below) specifies exactly the device(s) to be tested.
 
-To modify the config file, you must change the device name(s) and make sure that the
-correct number of reads/writes are performed.  For example, to run a 48x test, you would modify
+To modify the config file, you must change:
+
+1. the device name(s)
+2. the number of reads/writes to perform
+3. the number of large block operations to perform (large-block-ops-per-sec)
+
+For example, to run a 48x test, you would modify
 the actconfig_24x.txt file to specify the correct drive and the correct number of reads/writes.  For a
 test of 8 drives at 6x, you would modify the actconfig_1x_4d.txt file to specify all of your drives AND to specify the
 number of reads/writes to perform (6x rather than 1x).
