@@ -86,7 +86,9 @@ The drives pass this step if ACT runs to completion.
 To certify a drive at higher levels of performance, do the test as described above, but use higher loads (12x, 24x, etc.).
 Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
 
-For example, if you test at 24x and less than 5% of operations failing to complete in 1 ms, run the test at 48x, etc.
+For example, if you test at 24x and less than 5% of operations fail to complete in 1 ms, run the test at 48x, etc.  When the drive completes
+the test at a particular speed with more than 5% of operations failing to complete in 1 ms, then the drive is certified at the
+next lower level where the drive DOES have fewer than 5% of errors in under 1 ms.
 
 
 ### Getting started
