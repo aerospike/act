@@ -286,6 +286,8 @@ speed may have degraded and performance may be much poorer than a new drive of t
 
 ## ACT Configuration Reference
 ----------------------
+#### Modifying the Config File
+-------------
 For ease of use, this package includes act_config_helper.py for creating config 
 files and also has five example configuration files:
 
@@ -314,6 +316,9 @@ number of reads/writes to perform (6x rather than 1x).
 The other fields in the configuration files should not be changed without good
 reasons.  As they are, the files specify 24-hour tests with IO patterns and
 loads very similar to Aerospike production servers.
+
+#### Format of Lines in the Config File
+-------------------
 
 All fields use a "name-token: value" format, and must be on a single line.
 Field order in the file is unimportant.  To
