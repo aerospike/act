@@ -4,15 +4,20 @@
 ------------
 
 ACT is a program for certifying flash/SSD devices' performance for
-Aerospike Database.
+Aerospike Database (both SATA and PCIE connectors).
 
 Not all SSDs can handle the high volume of transactions required by high 
 performance NOSQL databases like Aerospike Database.  Many SSDs are rated 
 for 100K+ reads/writes per second, but in production the actual load they 
-can withstand for sustained loads is generally much lower.  Aerospike 
-has tested many common SSDs in high-throughput tests and we have also 
-developed the ACT certification tool that you can use to test/certify an SSD for yourself.
-We have found performance – especially latency – of SSDs to be highly dependent on the write load the SSD is subjected to. Over the first few hours, performance can still be excellent, but past the 4 to 10 hour mark (depending on the drive), performance can suffer.
+can withstand for sustained periods of time is generally much lower.  
+Aerospike has tested many common SSDs in high-throughput tests and we have 
+also developed this certification tool that you can use to test/certify an 
+SSD for yourself.
+
+We have found performance – especially latency – of SSDs to be highly 
+dependent on the write load the SSD is subjected to. Over the first few hours, 
+performance can still be excellent, but past the 4 to 10 hour mark (depending 
+on the drive), performance can suffer.
 
 ACT is a program for testing storage device IO.  Its primary purpose is to
 measure the latency of small read transactions while modeling the Aerospike
