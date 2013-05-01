@@ -35,20 +35,22 @@ The drive passes this step if less than 5% of operations fail to complete in 1 m
 
 Step 2: Test under peak loads to ensure the server does not crash under high traffic loads
 
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec)
-THe drive passes this step if it finishes the test in any way
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
+The drive passes this step if it finishes the test in any way.
+
+*emphasis test*
 
 ##### The second stage is to certify multiple drives, to make sure that the drives perform correctly in multi-drive configurations.
 
 Step 3: Repeat step 1, with all drives: Test under normal/high loads
 
-Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec)
-The drives pass this step if less than 5% of operations fail to complete in 1 ms or less 
+Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
+The drives pass this step if less than 5% of operations fail to complete in 1 ms or less.
 
 Step 4: Repeat step 2, with all drives: Test under peak loads to ensure the server does not crash under high traffic loads
 
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec)
-THe drives pass this step if it finishes the test in any way
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
+The drives pass this step if it finishes the test in any way.
 
 #### What the ACT Tool Does
 ---------------------------
