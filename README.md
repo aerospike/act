@@ -107,9 +107,18 @@ performance scales linearly.
 ### Getting started
 --------------------
 
+Download the ACT package through git:
+
 ```
 $ git clone git@github.com:aerospike/act.git
-$ cd act
+```
+This creates a /act directory.  
+
+Alternately you can download the ZIP or TAR file from the links at the left.
+When you unpack/untar the file, it acreates a /aerospike-act-<version> directory.
+
+```
+$ cd act    OR    cd /aerospike-act-<version>
 $ make
 $ make -f Makesalt
 ```
