@@ -31,7 +31,7 @@ pattern as closely as practical.
 Step 1: Test under normal/high loads
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec)
-The drive passes this step if the results have less than 5% of operations fail to complete in 1 ms or less
+The drive passes this step if less than 5% of operations fail to complete in 1 ms or less
 
 Step 2: Test under peak loads to ensure the server does not crash under high traffic loads
 
@@ -43,7 +43,7 @@ THe drive passes this step if it finishes the test in any way
 Step 3: Repeat step 1, with all drives: Test under normal/high loads
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec)
-The drives pass this step if the results have less than 5% of operations fail to complete in 1 ms or less 
+The drives pass this step if less than 5% of operations fail to complete in 1 ms or less 
 
 Step 4: Repeat step 2, with all drives: Test under peak loads to ensure the server does not crash under high traffic loads
 
