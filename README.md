@@ -28,11 +28,9 @@ pattern as closely as practical.
 
 The tool assumes standard database read/write loads and generates twice as many read requests as write requests.
 
-You can can simulate:
+You can simulate:
 * 1x - normal load (2000 reads/sec and 1000 writes/sec)
-* 3x - high load
-* 6x 
-* 12x 
+* 3x - high load (6000 reads/sec and 3000 writes/sec)
 * etc.
 
 The test shows the results broken down by verification intervals.  The verification intervals are preset
