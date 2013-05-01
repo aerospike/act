@@ -9,8 +9,7 @@ Aerospike Database (with SATA, SAS and PCIe connectors).
 Not all SSDs can handle the high volume of transactions required by high 
 performance real-time databases like Aerospike Database.  Many SSDs are rated 
 for 100K+ reads/writes per second, but in production the actual load they 
-can withstand for sustained periods of time is generally much lower.  
-Aerospike has tested many common SSDs in high-throughput tests and we have 
+can withstand for sustained periods of time is generally much lower.  Aerospike has tested many common SSDs in high-throughput tests and we have 
 also developed this certification tool that you can use to test/certify an 
 SSD for yourself.
 
