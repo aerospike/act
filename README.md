@@ -234,7 +234,7 @@ transaction queues) and for the device IO portion of transactions.
 
 The example output below shows a 12-hour test (each slice is an hour).  The **trans** table
 shows transaction latency (end to end) and the **device** table at the right shows device latency.  So for 
-example, in the 5th hour, 1.68% of transactions failed to complet in under 1ms.
+example, in the 5th hour, 1.68% of transactions failed to complete in under 1ms.
 
 ```
          trans                  device
