@@ -31,12 +31,13 @@ The tool assumes standard database read/write loads and generates twice as many 
 You can can simulate:
 * 1x - normal load (2000 reads/sec and 1000 writes/sec)
 * 3x - high load
-* 6x - excessive
-* 12x - insanely high
+* 6x 
+* 12x 
 * etc.
 
-The results of the test show the results in multiple verification intervals.  The verification intervals are preset for 1, 2, 4, 8, 16, 32 and 64 ms intervals. That is, the results show the percentage
-of errors for requests that too the interval or more time to complete.  For example, you might see that 0.25% of requests
+The test shows the results in broken down by verification intervals.  The verification intervals are preset
+for 1, 2, 4, 8, 16, 32 and 64 ms intervals. That is, the results show the percentage
+of errors for requests that took the interval or more time to complete.  For example, you might see that 0.25% of requests
 failed to complete in 1 ms or less and 0.01% of requests failed to complete in 8 ms or less.
 
 
