@@ -278,7 +278,15 @@ exceed these values.
 A single device which does not violate these thresholds for 48 hours is considered
 production-worthy.
 
-## ACT Configuration File Reference
+## Tips and Tricks
+-----------------
+If a drive is failing or there is a large discrepancy between the device and transaction
+speeds, try to increase the number of threads in the config file (described below).
+
+If a drive has been used for some other purpose for a period of time before testing, then the
+speed may have degraded and performance may be much poorer than a new drive of the same model.
+
+## ACT Configuration Reference
 ----------------------
 For ease of use, this package includes act_config_helper.py for creating config 
 files and also has five example configuration files:
@@ -310,24 +318,31 @@ reasons.  As they are, the files specify 24-hour tests with IO patterns and
 loads very similar to Aerospike production servers.
 
 All fields use a "name-token: value" format, and must be on a single line.
-Field order in the file is unimportant.  Integer values must be in decimal.  To
-add comments, use '#' at the beginning of a line.  The fields are:
+Field order in the file is unimportant.  To
+add comments, use '#' at the beginning of a line.  
+
+### Fields that you must change:
 
 **device-names**
-The value is a comma-separated list of device names (full path), such as
-/dev/sdb.  Make absolutely sure the devices named are exactly the devices to be
+The value is a comma-separated list of device names (full path), such as:
+```
+/dev/sdb,/dev/sdc
+```
+Make absolutely sure the devices named are exactly the devices to be
 used in the test.
 
-**queue-per-device**
-The value is either yes or no.  If the field is left out, the default is no.
-This flag determines act's internal read transaction queue setup -- yes means
-each device is read by a single dedicated read transaction queue, no means each
-device is read by all read transaction queues.
+**read-reqs-per-sec**
+The value is a non-zero integer.  This is the total read transaction rate.  Note
+that it is not per device, or per read transaction queue. e.g. For 3 times (3x)
+the normal load, value would be 3*2000 = 6000. Formula: n x 2000
 
-**num-queues**
-The value is a non-zero integer.  This is the total number of read transaction
-queues.  However if queue-per-device is set to yes, this field is ignored,
-since in this case the number of queues is determined by the number of devices.
+**large-block-ops-per-sec**
+The value is a non-zero integer.  This is the total rate used for both
+large-block write and large-block read operations.  Note that it is not per
+device. e.g. For 3 times (3x) the normal load, value would be 3*23.5 = 71
+(rounded up) Formula: n x 23.5
+
+### Fields that you will sometimes change:
 
 **threads-per-queue**
 The value is a non-zero integer.  This is the number of threads per read
@@ -335,28 +350,31 @@ transaction queue that execute the read transactions. If a drive is failing and
 there is a large discrepancy between transaction and device speeds from the ACT test
 you can try increasing the number of threads.
 
+**read-req-num-512-blocks**
+The value is a non-zero integer.  This is the size read in each read
+transaction, in 512-byte blocks, e.g. for 1.5-Kbyte reads, use 3.
+
+### Fields that you will rarely or never change:
+
+**queue-per-device**
+The value is either yes or no.  If the field is left out, the default is no.
+This flag determines ACT's internal read transaction queue setup -- yes means
+each device is read by a single dedicated read transaction queue, no means each
+device is read by all read transaction queues.
+
+**num-queues**
+The value is a non-zero integer.  This is the total number of read transaction
+queued.  However if queue-per-device is set to yes, this field is ignored,
+since in this case the number of queues is determined by the number of devices.
+
 **test-duration-sec**
 The value is a non-zero integer.  This is the duration of the test, in seconds.
 Note that it has to be a single number, e.g. use 86400, not 60*60*24.
+The default is one day (24 hours).
 
 **report-interval-sec**
 The value is a non-zero integer.  This is the interval between metric reports,
 in seconds.
-
-**read-reqs-per-sec**
-The value is a non-zero integer.  This is the total read transaction rate.  Note
-that it is not per device, or per read transaction queue. e.g. For 2 times (2x)
-the normal load, value would be 2*2000 = 4000. Formula: n x 2000
-
-**large-block-ops-per-sec**
-The value is a non-zero integer.  This is the total rate used for both
-large-block write and large-block read operations.  Note that it is not per
-device. e.g. For 2 times (2x) the normal load, value would be 2*23.5 = 47
-(rounded up) Formula: n x 23.5
-
-**read-req-num-512-blocks**
-The value is a non-zero integer.  This is the size read in each read
-transaction, in 512-byte blocks, e.g. for 1.5-Kbyte reads, use 3.
 
 **large-block-op-kbytes**
 The value is a non-zero integer.  This is the size written and read in each
