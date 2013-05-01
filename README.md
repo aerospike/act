@@ -55,6 +55,7 @@ device.
 -----------------------------------------------------
 
 The test has two stages:
+
 1. Test a single drive to determine performance using the hardware configuration and connectors. The single-disk certification will tell you what individual drive performance should be. 
 2. If you will be using multiple drives, you can then test multiple drives to see how 
 the results will be affected by the throughput of bus or RAID controller that is managing your drives.
