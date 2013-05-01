@@ -3,6 +3,7 @@
 ### Overview
 ------------
 
+**bold**
 ACT is a program for certifying flash/SSD devices' performance for
 Aerospike Database (with SATA, SAS and PCIe connectors).
 
