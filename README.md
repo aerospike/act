@@ -28,21 +28,21 @@ pattern as closely as practical.
 
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
-Step 1: Test under normal/high loads
+Step 1: Test under high loads
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec)
 The drive passes this step if less than 5% of operations fail to complete in 1 ms or less
 
-Step 2: Test under peak loads to ensure the server does not crash under high traffic loads
+Step 2: Stress test to ensure the server does not crash under high traffic loads
 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
 The drive passes this step if it finishes the test in any way.
 
-*emphasis test*
+If you are only
 
 ##### The second stage is to certify multiple drives, to make sure that the drives perform correctly in multi-drive configurations.
 
-Step 3: Repeat step 1, with all drives: Test under normal/high loads
+Step 3: Repeat step 1, with all drives: Test under high loads
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
 The drives pass this step if less than 5% of operations fail to complete in 1 ms or less.
