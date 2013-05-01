@@ -36,21 +36,21 @@ The drive passes this step if less than 5% of operations fail to complete in 1 m
 Step 2: Stress test to ensure the drive does not fail under excessive loads
 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
-The drive passes this step if it finishes the test in any way.
+The drive passes this step if ACT runs to completion.
 
 If you are testing a single drive, then the drive is certified when it passes Step 1 and Step 2.
 
-##### The second stage is to certify multiple drives, to make sure that the drives perform correctly in multi-drive configurations.
+##### The second stage is to certify multiple drives, to make sure that performance scales linearly when you add drives.
 
 Step 3: Repeat step 1, with all drives: Test under high loads
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
 The drives pass this step if less than 5% of operations fail to complete in 1 ms or less.
 
-Step 4: Repeat step 2, with all drives: Stress test to ensure the drive does not fail under excessive loads
+Step 4: Repeat step 2, with all drives: Stress test to ensure the drives do not fail under excessive loads
 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
-The drives pass this step if it finishes the test in any way.
+The drives pass this step if ACT runs to completion.
 
 #### What the ACT Tool Does
 ---------------------------
