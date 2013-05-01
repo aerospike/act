@@ -3,7 +3,6 @@
 ### Overview
 ------------
 
-**bold**
 ACT is a program for certifying flash/SSD devices' performance for
 Aerospike Database (with SATA, SAS and PCIe connectors).
 
@@ -68,7 +67,7 @@ The single-drive test takes 48 hours.  The multi-drive test takes an additional 
 
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
-Step 1: Test under high loads
+**Step 1: Test under high loads**
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
 The drive passes this step if less than 5% of operations fail to complete in 1 ms or less.
