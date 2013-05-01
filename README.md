@@ -35,17 +35,11 @@ You can can simulate:
 * 12x 
 * etc.
 
-The test shows the results in broken down by verification intervals.  The verification intervals are preset
-for 1, 2, 4, 8, 16, 32 and 64 ms intervals. That is, the results show the percentage
-of errors for requests that took the interval or more time to complete.  For example, you might see that 0.25% of requests
+The test shows the results broken down by verification intervals.  The verification intervals are preset
+for 1, 2, 4, 8, 16, 32 and 64 ms intervals. For example, you might see that 0.25% of requests
 failed to complete in 1 ms or less and 0.01% of requests failed to complete in 8 ms or less.
 
-
-Three types of IO operations occur during a test run:
-
-1. Small (1.5 Kbyte) read operations, typically several thousand per second.
-2. Large-block (128 Kbyte) read operations, typically a few tens per second.
-3. Large-block (128 Kbyte) write operations, typically a few tens per second.
+The test performs a combination of large (128K) block reads and writes and small (1.5K) block reads.
 
 The small read operations model client transaction requests.  They occur at a
 specified rate.  Requests are added at this rate to a specified number of
