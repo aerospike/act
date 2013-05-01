@@ -52,14 +52,14 @@ device.
 #### How to Certify a Drive with ACT - High Load (3x)
 -----------------------------------------------------
 
-The test has two stages:
+The certification process has two stages:
 
-1. Test a single drive to determine performance using the hardware configuration and connectors. The single-disk certification will tell you what individual drive performance should be. 
+1. Test a single drive to determine performance using the hardware configuration and connectors. The single-disk certification will help you determine individual drive performance. 
 2. If you will be using multiple drives, you can then test multiple drives to see how 
-the results will be affected by the throughput of bus or RAID controller that is managing your drives.
+the results will be affected by the capacity of the bus or the throughput of the RAID controller that is managing your drives.
 
 The test process with ACT is the same for both stages, but in the first stage you are testing a drive and
-in the second stage, you are testing the linearity/scalability of your connector.
+in the second stage, you are testing the linearity/scalability of your connector with multiple drives installed.
 
 The single-drive test takes 48 hours.  The multi-drive test takes an additional 48 hours.
 
