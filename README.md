@@ -63,6 +63,8 @@ the results will be affected by the throughput of bus or RAID controller that is
 The test process with ACT is the same for both stages, but in the first stage you are testing a drive and
 in the second stage, you are testing the linearity/scalability of your connector.
 
+The single-drive test takes 48 hours.  The multi-drive test takes an additional 48 hours.
+
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
 Step 1: Test under high loads
