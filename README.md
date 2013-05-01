@@ -326,7 +326,7 @@ add comments, use '#' at the beginning of a line.
 **device-names**
 The value is a comma-separated list of device names (full path), such as:
 ```
-/dev/sdb,/dev/sdc
+device-names: /dev/sdb,/dev/sdc
 ```
 Make absolutely sure the devices named are exactly the devices to be
 used in the test.
