@@ -19,14 +19,31 @@ dependent on the write load the SSD is subjected to. Over the first few hours,
 performance can still be excellent, but past the 4 to 10 hour mark (depending 
 on the drive), performance can suffer.
 
-This tool test the IO patterns of Aerospike Database -- a real-time database
-which constantly reads from and writes to the disk. 
-
 This tool shows latency responses when you are reading from and writing to
 the database concurrently while modeling the Aerospike server's device IO 
 pattern as closely as practical.
 
+#### How to Certify a Drive with ACT
+------------------------------------
 
+The first stage is to certify a single drive, to test the drive itself and the
+connection.
+
+Step 1: Test under normal/high loads
+Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec)
+The drive passes this step if the results have less than 5% of operations fail to complete in 1 ms or less
+
+Step 2: Test under peak loads to ensure the server does not crash under high traffic loads
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec)
+THe drive passes this step if it finishes the test in any way
+
+The second stage is to certify multiple drives, to make sure that the drives
+perform correctly in multi-drive configurations.
+
+
+
+#### What the ACT Tool Does
+---------------------------
 
 Three types of IO operations occur during a test run:
 
