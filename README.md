@@ -84,7 +84,8 @@ The single-drive stage takes 48 hours.  The multi-drive stage takes an additiona
 
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
-Begin by installing your SSD device.
+Begin by installing your SSD device.  Our website has more details about installing SSDs in different environments
+and configurations at https://docs.aerospike.com/.
 
 **Test 1: Test under high loads**
 
@@ -102,7 +103,8 @@ The drive passes this test if ACT runs to completion, regardless of the error ra
 
 ##### The second stage is to certify multiple drives, to make sure that performance scales linearly when you add drives.
 
-Install the additional SSDs to be tested.
+Install the additional SSDs to be tested.  Our website has more details about installing SSDs in different environments
+and configurations at https://docs.aerospike.com/.
 
 **Test 3: Repeat Test 1, with all drives installed: Test under high loads**
 
