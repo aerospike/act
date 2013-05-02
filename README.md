@@ -11,7 +11,7 @@ pattern as closely as practical.
 The purpose of this evaluation is:
 
 1. Determine if an SSD will stand up to the demands of a high-speed real-time database
-2. Evaluate the upper limits of an SSD's capabilities to understand how high a volume of usage you can expect from a drive
+2. Evaluate the upper limits of an SSD's capabilities to understand how much throughput you can expect from a drive
 
 Not all SSDs can handle the high volume of transactions required by high 
 performance real-time databases like Aerospike Database.  Many SSDs are rated 
@@ -63,7 +63,7 @@ defragmentation process.  The operations occur at a specified rate, executed fro
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
-#### Recommended Process for Certifying a Drive with ACT
+#### Recommended Process for Certifying a Drive(s) for the Basic Required Performance
 ----------------------------------
 
 To certify a drive(s) requires two stages:
@@ -110,7 +110,7 @@ Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass
 
 &nbsp;
 
-#### How to Certify a Drive(s) with Higher Loads
+#### How to Test a Drive(s) to Determine Expected Performance at Higher Throughput
 -------------------------------------------------------
 
 To certify a drive(s) at higher levels of performance, do the certification process as described above, but use higher loads (12x, 24x, etc.).
