@@ -155,7 +155,7 @@ For each certification test with ACT, you must perform the following steps:
 
 1. Prepare the storage device(s) using actprep.
 2. Create the config file for your test.
-3. Run the ACT certification, sending the results to a log file.
+3. Run ACT, sending the results to a log file.
 3. Analyze log file output using the /latency_calc/act_latency.py script.
 4. Determine pass/fail for the test.
 
