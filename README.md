@@ -48,17 +48,17 @@ defragmentation process.  The operations occur at a specified rate, executed fro
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
-#### How to Certify a Drive with ACT
+#### Recommended Process for Certifying a Drive with ACT
 ----------------------------------
 
-To certify a drive(s):
+To certify a drive(s) requires two stages:
 
 1. Test a single drive to determine performance using the hardware configuration and connectors. The single-disk certification will help you determine individual drive performance. 
 2. If you will be using multiple drives, you can then test multiple drives to see how 
 the results will be affected by the capacity of the bus or the throughput of the RAID controller that is managing your drives.
 
-The test process with ACT is the same for both steps, but in the first step you are testing a drive and
-in the second step, you are testing the linearity/scalability of your connector with multiple drives installed.
+The test process with ACT is the same for both stages, but in the first stage you are testing a drive and
+in the second stage, you are testing the linearity/scalability of your connector with multiple drives installed.
 
 The single-drive test takes 48 hours.  The multi-drive test takes an additional 48 hours.
 
@@ -66,32 +66,32 @@ The single-drive test takes 48 hours.  The multi-drive test takes an additional 
 
 Begin by installing your SSD device.
 
-**Step 1: Test under high loads**
+**Test 1: Test under high loads**
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
-The drive passes this step if less than 5% of operations fail to complete in 1 ms or less.
+The drive passes this test if less than 5% of operations fail to complete in 1 ms or less.
 
-**Step 2: Stress test to ensure the drive does not fail under excessive loads**
+**Test 2: Stress test to ensure the drive does not fail under excessive loads**
 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
-The drive passes this step if ACT runs to completion, regardless of the error rate.
+The drive passes this test if ACT runs to completion, regardless of the error rate.
 
-**If you are testing a single drive, then the drive is certified when it passes Step 1 and Step 2.**
+**If you are testing a single drive, then the drive is certified when it passes Test 1 and Test 2.**
 
 ##### The second stage is to certify multiple drives, to make sure that performance scales linearly when you add drives.
 
 Install the additional SSDs to be tested.
 
-**Step 3: Repeat step 1, with all drives installed: Test under high loads**
+**Test 3: Repeat step 1, with all drives installed: Test under high loads**
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
-The drives pass this step if less than 5% of operations fail to complete in 1 ms or less.
+The drives pass this test if less than 5% of operations fail to complete in 1 ms or less.
 
-**Step 4: Repeat step 2, with all drives installed: Stress test to ensure the drives do not fail under excessive loads**
+**Test 4: Repeat step 2, with all drives installed: Stress test to ensure the drives do not fail under excessive loads**
 
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this step if ACT runs to completion, regardless of the error rate.
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this test if ACT runs to completion, regardless of the error rate.
 
-**The drives are certified if they pass Step 3 and Step 4.**
+**The drives are certified if they pass Test 3 and Test 4.**
 
 &nbsp;
 
@@ -101,7 +101,7 @@ Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass
 To certify a drive(s) at higher levels of performance, do the certification process as described above, but use higher loads (12x, 24x, etc.).
 Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
 
-For example, if you test at 24x and less than 5% of operations fail to complete in 1 ms, run the test at 48x, etc.  When the drive completes
+For example, if you test at 24x and less than 5% of operations fail to complete in 1 ms, re-run the test at 48x, etc.  When the drive completes
 the test at a particular speed with *more* than 5% of operations failing to complete in 1 ms (i.e., fails the test), then the drive is certified at the
 next lower level where the drive DOES have fewer than 5% of errors in under 1 ms.
 
@@ -137,7 +137,11 @@ This will create 2 binaries:
 ### Running the ACT Certification Process 
 ---------------------
 
-To run ACT, you must perform these steps:
+To certify your drive(s), first determine what certification test you will run, 
+as described above in **Recommended Process for Certifying a Drive with ACT** or 
+**How to Certify a Drive(s) with Higher Loads**.
+
+For each certification test with ACT, you must perform the following steps:
 
 1. Prepare the storage device(s) using actprep.
 2. Create the config file for your test.
@@ -145,7 +149,7 @@ To run ACT, you must perform these steps:
 3. Analyze log file output using the /latency_calc/act_latency.py script.
 4. Determine pass/fail for the test.
 
-The steps are described in detail below.
+The details of these steps are described in detail below.
 
 **The tests destroy all data on the devices being tested!**
 
@@ -181,7 +185,7 @@ $ sudo ./actprep /dev/sdc1
 -------------------------
 
 The ACT package includes a Python script act_config_helper.py which helps you create a configuration file you can
-use to run ACT. When you run this program it will 
+use to run ACT. When you run this program it will: 
 
 1. Ask you basic questions about the test you want to run
 2. Generate the correct config file, based on your answers
@@ -192,7 +196,7 @@ $ python act_config_helper.py
 ### Answer the questions asked in command line.
 ```
 Alternately you can create the config file manually by copying one of the sample config
-files in the /examples directory and modifying it, as described in the instructions below.
+files in the /examples directory and modifying it, as described in the **ACT Configuration Reference** below.
 
 #### 3. Run your Test with ACT
 ---------
@@ -219,7 +223,7 @@ encounters unexpected drive I/O or system errors.
 --------------------
 
 Run /latency_calc/act_latency.py to process the ACT log file and tabulate data.  Note that you can run
-the script when the test is not yet complete, and you will see the results for any slices that have run to completion.
+the script when the test is not yet complete, and you will see the partial results.
 
 For example:
 ```
@@ -267,20 +271,28 @@ example, in the 5th hour, 1.68% of transactions failed to complete in under 1ms.
 #### 5. Evaluate Device(s) by the Standard Pass/Fail Criteria
 -------------------------
 
+##### Passing the Load Test
 To deploy a device(s) in production, Aerospike expects it to be able to perform
-consistently as follows:
+consistently for the 3x test:
 
-In any one-hour period for normal load , we must find that:
+In any one-hour period for normal load, we expect that:
 
- - fewer than 5% of transactions exceed 1 ms
- - fewer than 1% of transactions exceed 8 ms
- - fewer than 0.1% of transactions exceed 64 ms
+ - fewer than 5% of transactions fail to complete in 1 ms
+ - fewer than 1% of transactions fail to complete in 8 ms
+ - fewer than 0.1% of transactions fail to complete in 64 ms
 
-The **max** line of the output shows the highest value and the values on the max line should not
-exceed the values specified above for failures.
+The **max** line of the output shows the highest values observed in any single slice
+and the values on the max line should not
+exceed the values specified above.  
 
-A single device which does not violate these thresholds for 48 hours is considered
-production-worthy.
+In the example output above, the drive passes because the worst performance in any slice
+was 2.7% of transactions failing to complete within 1 ms, 0.73% of transactions failed to complete in less
+than 8 ms and no transactions failed to complete within 64 ms.
+
+A device(s) which does not exceed these error thresholds in 24 hours passes the load test.
+
+##### Passing the Stress Test
+When doing stress testing, a device passes the test if ACT runs to completion, regardless of the number of errors.
 
 ## Tips and Tricks
 -----------------
@@ -292,10 +304,12 @@ speed may have degraded and performance may be much poorer than a new drive of t
 
 ## ACT Configuration Reference
 ----------------------
-#### Modifying the Config File
+#### Modifying the Config File Manually
 -------------
 For ease of use, this package includes act_config_helper.py for creating config 
-files. The package also includes five example configuration files:
+files. **Using act_config_helper.py is the recommended method for creating config files.**
+
+If you are going to modify the config file manually, the package includes five example configuration files:
 
 * actconfig_1x.txt    - run a normal load test on one device
 * actconfig_3x.txt    - run a 3 times normal load test on one device
@@ -305,7 +319,7 @@ files. The package also includes five example configuration files:
 * actconfig_1x_2d.txt - run a normal load test on two devices at a time
 * actconfig_1x_4d.txt - run a normal load test test on four devices at a time
 
-To modify the config file, you must change:
+When modifying config files, you must be sure to set:
 
 1. the device name(s)
 2. the number of reads/writes to perform
