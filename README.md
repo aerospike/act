@@ -93,7 +93,7 @@ Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass
 
 **The drives are certified if they pass Step 3 and Step 4.**
 
-#### &nbsp;
+&nbsp;
 
 #### How to Certify a Drive(s) with Higher Loads
 -------------------------------------------------------
