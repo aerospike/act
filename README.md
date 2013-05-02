@@ -63,8 +63,8 @@ device.
 
 To certify a drive(s) requires two stages:
 
-1. Test a single drive to determine performance using the hardware configuration and connectors. The single-disk certification will help you determine individual drive performance. 
-2. If you will be using multiple drives, you can then test multiple drives to see how 
+1. Test a single drive to determine performance using the hardware configuration and connectors. The single-device certification will help you determine individual drive performance. 
+2. If you will be using multiple drives, you can then run ACT to test multiple drives to see how 
 the results will be affected by the capacity of the bus or the throughput of the RAID controller that is managing your drives.
 
 The test process with ACT is the same for both stages, but in the first stage you are testing a drive and
