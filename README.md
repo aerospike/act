@@ -8,6 +8,11 @@ Aerospike Database (with SATA, SAS and PCIe connectors).  ACT shows latency resp
 the database concurrently while modeling the Aerospike Database server's I/O 
 pattern as closely as practical.
 
+The purpose of this evaluation is:
+
+1. Determine if an SSD will stand up to the demands of a high-speed real-time database
+2. Evaluate the upper limits of an SSD's capabilities to understand how high a volume of usage you can expect from a drive
+
 Not all SSDs can handle the high volume of transactions required by high 
 performance real-time databases like Aerospike Database.  Many SSDs are rated 
 for 100K+ reads/writes per second, but in production the actual load they 
@@ -39,9 +44,9 @@ overall performance.
 * 3x - high load (6000 reads/sec and 3000 writes/sec)
 * any other stress load or high-performance load (custom configurable)
 
-**Failure Rate Analysis**  
+**Latency Rate Analysis**  
 
-ACT's output shows failure rates broken down by intervals of 1, 8 and 64 ms (configurable). 
+ACT's output shows latency rates broken down by intervals of 1, 8 and 64 ms (configurable). 
 
 For example, the test might indicate that 0.25% of requests
 failed to complete in 1 ms or less and 0.01% of requests failed to complete in 8 ms or less.
