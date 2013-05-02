@@ -8,7 +8,7 @@ Aerospike Database (with SATA, SAS and PCIe connectors).  ACT shows latency resp
 the database concurrently while modeling the Aerospike Database server's I/O 
 pattern as closely as practical.
 
-The purpose of this evaluation is:
+The purpose of this certification is:
 
 1. Determine if an SSD will stand up to the demands of a high-speed real-time database
 2. Evaluate the upper limits of an SSD's capabilities to understand how much throughput you can expect from a drive, to help you determine how many SSDs will be required to handle your expected load.
@@ -63,8 +63,13 @@ defragmentation process.  The operations occur at a specified rate, executed fro
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
-#### Recommended Process for Certifying a Drive(s) for the Basic Required Performance
+#### Process for Certifying a Drive(s) for the Basic Required Performance
 ----------------------------------
+
+In general, we recommend that you certify a drive for 3x performance.  Many drives do not pass the 3x
+certification.  If you do not have a high-volume application, you may find that a 2x or 2.5x certification
+will be sufficient.  The instructions below describe the 3x certification process, but you may need to adjust
+the test based on actual performance.
 
 To certify a drive(s) for use with Aerospike Database requires two stages:
 
@@ -114,6 +119,10 @@ Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass
 
 #### How to Test a Drive(s) to Determine Expected Performance at Higher Throughput
 -------------------------------------------------------
+
+If your application is going to have high volumes of transactions and your drive(s) pass the base required certification, 
+we recommend that you test your drive to determine its upper limit on transaction processing latency.  This will help
+you determine how many SSDs you will need to run your application when you are fully scaled up.
 
 To certify a drive(s) at higher levels of performance, do the certification process as described above, but use higher loads (12x, 24x, etc.).
 Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
