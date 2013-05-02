@@ -92,12 +92,12 @@ The drive passes this test if ACT runs to completion, regardless of the error ra
 
 Install the additional SSDs to be tested.
 
-**Test 3: Repeat step 1, with all drives installed: Test under high loads**
+**Test 3: Repeat Test 1, with all drives installed: Test under high loads**
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
 The drives pass this test if less than 5% of operations fail to complete in 1 ms or less.
 
-**Test 4: Repeat step 2, with all drives installed: Stress test to ensure the drives do not fail under excessive loads**
+**Test 4: Repeat Test 2, with all drives installed: Stress test to ensure the drives do not fail under excessive loads**
 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this test if ACT runs to completion, regardless of the error rate.
 
