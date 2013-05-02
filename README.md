@@ -64,6 +64,8 @@ The single-drive test takes 48 hours.  The multi-drive test takes an additional 
 
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
+Begin by installing your SSD device.
+
 **Step 1: Test under high loads**
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
@@ -78,42 +80,46 @@ The drive passes this step if ACT runs to completion.
 
 ##### The second stage is to certify multiple drives, to make sure that performance scales linearly when you add drives.
 
-**Step 3: Repeat step 1, with all drives: Test under high loads**
+Install the additional SSDs to be tested.
+
+**Step 3: Repeat step 1, with all drives installed: Test under high loads**
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
 The drives pass this step if less than 5% of operations fail to complete in 1 ms or less.
 
-**Step 4: Repeat step 2, with all drives: Stress test to ensure the drives do not fail under excessive loads**
+**Step 4: Repeat step 2, with all drives installed: Stress test to ensure the drives do not fail under excessive loads**
 
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this step if ACT runs to completion.
 
-**The drives pass this step if ACT runs to completion.**
+**The drives are certified if they pass Step 3 and Step 4.**
 
 #### How to Certify a Drive(s) with Higher Loads
 -------------------------------------------------------
 
-To certify a drive(s) at higher levels of performance, do the test as described above, but use higher loads (12x, 24x, etc.).
+To certify a drive(s) at higher levels of performance, do the certification process as described above, but use higher loads (12x, 24x, etc.).
 Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
 
 For example, if you test at 24x and less than 5% of operations fail to complete in 1 ms, run the test at 48x, etc.  When the drive completes
-the test at a particular speed with more than 5% of operations failing to complete in 1 ms, then the drive is certified at the
+the test at a particular speed with *more* than 5% of operations failing to complete in 1 ms (i.e., fails the test), then the drive is certified at the
 next lower level where the drive DOES have fewer than 5% of errors in under 1 ms.
 
 As before, test a single drive first, and then test with multiple drives to make sure that the
-performance scales linearly.
+performance scales linearly with your connector/controller.
 
 ### Getting started
 --------------------
 
-Download the ACT package through git:
+**Download the ACT package through git:**
 
 ```
 $ git clone git@github.com:aerospike/act.git
 ```
-This creates a /act directory.  
+This creates an /act directory.  
 
 Alternately you can download the ZIP or TAR file from the links at the left.
-When you unpack/untar the file, it acreates a /aerospike-act-<version> directory.
+When you unpack/untar the file, it acreates an /aerospike-act-<version> directory.
+
+**Build the package.**
 
 ```
 $ cd act    OR    cd /aerospike-act-<version>
@@ -137,7 +143,7 @@ To run ACT, you must:
 3. Analyze log file output using the /latency_calc/act_latency.py script.
 4. Determine pass/fail for the test.
 
-** THE TESTS DESTROY ALL DATA ON THE TEST DEVICES! **
+*** THE TESTS DESTROY ALL DATA ON THE TEST DEVICES! ***
 
 When preparing devices and running tests, make sure the devices are
 specified by name correctly.
