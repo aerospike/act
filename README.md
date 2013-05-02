@@ -30,7 +30,7 @@ ACT assumes standard database read/write loads and generates twice as many read 
 You can simulate:
 * 1x - normal load (2000 reads/sec and 1000 writes/sec)
 * 3x - high load (6000 reads/sec and 3000 writes/sec)
-* etc.
+* any other stress load or high-performance load (custom configurable)
 
 ACT's output shows the results broken down by verification intervals.  The verification intervals are preset
 for 1, 2, 4, 8, 16, 32 and 64 ms intervals. For example, you might see that 0.25% of requests
