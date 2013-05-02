@@ -302,7 +302,7 @@ than 8 ms and no transactions failed to complete within 64 ms.
 A device(s) which does not exceed these error thresholds in 24 hours passes the load test.
 
 ##### Passing the Stress Test
-When doing stress testing, a device passes the test if ACT runs to completion, regardless of the number of errors.
+When doing stress testing at 6x, a device passes the test if ACT runs to completion, regardless of the number of errors.
 
 ## Tips and Tricks
 -----------------
