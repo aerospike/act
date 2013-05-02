@@ -74,7 +74,7 @@ The drive passes this step if less than 5% of operations fail to complete in 1 m
 **Step 2: Stress test to ensure the drive does not fail under excessive loads**
 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
-The drive passes this step if ACT runs to completion.
+The drive passes this step if ACT runs to completion, regardless of the error rate.
 
 **If you are testing a single drive, then the drive is certified when it passes Step 1 and Step 2.**
 
@@ -89,7 +89,7 @@ The drives pass this step if less than 5% of operations fail to complete in 1 ms
 
 **Step 4: Repeat step 2, with all drives installed: Stress test to ensure the drives do not fail under excessive loads**
 
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this step if ACT runs to completion.
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this step if ACT runs to completion, regardless of the error rate.
 
 **The drives are certified if they pass Step 3 and Step 4.**
 
