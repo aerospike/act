@@ -120,7 +120,7 @@ Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass
 #### How to Test a Drive(s) to Determine Expected Performance at Higher Throughput
 -------------------------------------------------------
 
-If your application is going to have high volumes of transactions and your drive(s) pass the base required certification, 
+If your application is going to have high volumes of transactions and your drive(s) passes the 3x certification, 
 we recommend that you test your drive to determine its upper limit on transaction processing latency.  This will help
 you determine how many SSDs you will need to run your application when you are fully scaled up.
 
