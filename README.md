@@ -11,7 +11,7 @@ pattern as closely as practical.
 The purpose of this evaluation is:
 
 1. Determine if an SSD will stand up to the demands of a high-speed real-time database
-2. Evaluate the upper limits of an SSD's capabilities to understand how much throughput you can expect from a drive
+2. Evaluate the upper limits of an SSD's capabilities to understand how much throughput you can expect from a drive, to help you determine how many SSDs will be required to handle your expected load.
 
 Not all SSDs can handle the high volume of transactions required by high 
 performance real-time databases like Aerospike Database.  Many SSDs are rated 
@@ -66,7 +66,7 @@ device.
 #### Recommended Process for Certifying a Drive(s) for the Basic Required Performance
 ----------------------------------
 
-To certify a drive(s) requires two stages:
+To certify a drive(s) for use with Aerospike Database requires two stages:
 
 1. Test a single drive to determine performance using the hardware configuration and connectors. The single-device certification will help you determine individual drive performance. 
 2. If you will be using multiple drives, you can then run ACT to test multiple drives to see how 
@@ -85,6 +85,8 @@ Begin by installing your SSD device.
 
 Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
 The drive passes this test if less than 5% of operations fail to complete in 1 ms or less.
+
+Many drives fail the 3x test and are unsuitable for use with Aerospike Database.
 
 **Test 2: Stress test to ensure the drive does not fail under excessive loads**
 
@@ -106,7 +108,7 @@ The drives pass this test if less than 5% of operations fail to complete in 1 ms
 
 Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this test if ACT runs to completion, regardless of the error rate.
 
-**The drives are certified if they pass Test 3 and Test 4.**
+**The drives are certified if they pass Test 3 and Test 4.**  Once the drive(s) has been certified, the drive can be used with Aerospike Database.
 
 &nbsp;
 
