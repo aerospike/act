@@ -25,18 +25,26 @@ pattern as closely as practical.
 #### What the ACT Tool Does
 ---------------------------
 
-ACT assumes standard database read/write loads and generates twice as many read requests as write requests.
+ACT performs a combination of large (128K) block reads and writes and small (1.5K) block reads, simulating
+standard real-time database read/write loads.
 
-You can simulate:
+Reads and write latency is measured for a long enough period of time (typically 24 hours) to evaluate drive stability and 
+overall performance.
+
+**Traffic/Loading** You can simulate:
+
 * 1x - normal load (2000 reads/sec and 1000 writes/sec)
 * 3x - high load (6000 reads/sec and 3000 writes/sec)
 * any other stress load or high-performance load (custom configurable)
 
-ACT's output shows the results broken down by verification intervals.  The verification intervals are preset
-for 1, 2, 4, 8, 16, 32 and 64 ms intervals. For example, you might see that 0.25% of requests
+**Failure Rate Analysis**  
+
+ACT's output shows failure rates broken down by intervals of 1, 8 and 64 ms (configurable). 
+
+For example, the test might indicate that 0.25% of requests
 failed to complete in 1 ms or less and 0.01% of requests failed to complete in 8 ms or less.
 
-ACT performs a combination of large (128K) block reads and writes and small (1.5K) block reads.
+**Methodology**
 
 The small read operations model client transaction requests.  The operations occur at a
 specified rate.  Requests are added at this rate to a specified number of
