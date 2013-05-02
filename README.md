@@ -285,17 +285,17 @@ example, in the 5th hour, 1.68% of transactions failed to complete in under 1ms.
 To deploy a device(s) in production, Aerospike expects it to be able to perform
 consistently for the 3x test:
 
-In any one-hour period for normal load, we expect that:
+In any one-hour period of the 3x test, we expect that:
 
  - fewer than 5% of transactions fail to complete in 1 ms
  - fewer than 1% of transactions fail to complete in 8 ms
  - fewer than 0.1% of transactions fail to complete in 64 ms
 
-The **max** line of the output shows the highest values observed in any single slice
+The **max** line of the output shows the highest values observed in any single slice (hour) of time
 and the values on the max line should not
-exceed the values specified above.  
+exceed the allowable error values specified above.  
 
-In the example output above, the drive passes because the worst performance in any slice
+In the example output above, we show only 12 hours of results, and the drive passes because the worst performance in any slice
 was 2.7% of transactions failing to complete within 1 ms, 0.73% of transactions failed to complete in less
 than 8 ms and no transactions failed to complete within 64 ms.
 
