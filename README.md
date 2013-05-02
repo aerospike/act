@@ -135,7 +135,7 @@ This will create 2 binaries:
 ### Running the ACT Certification Process 
 ---------------------
 
-To run ACT, you must:
+To run ACT, you must perform these steps:
 
 1. Prepare the storage device(s) using actprep.
 2. Create the config file for your test.
@@ -143,7 +143,9 @@ To run ACT, you must:
 3. Analyze log file output using the /latency_calc/act_latency.py script.
 4. Determine pass/fail for the test.
 
-*** THE TESTS DESTROY ALL DATA ON THE TEST DEVICES! ***
+The steps are described in detail below.
+
+**The tests desdtroy all data on the devices being tested!**
 
 When preparing devices and running tests, make sure the devices are
 specified by name correctly.
