@@ -1,4 +1,4 @@
-## ACT ( Aerospike Certification Tool )
+## Aerospike Certification Tool (ACT)
 
 ### Overview
 ------------
@@ -48,8 +48,8 @@ defragmentation process.  The operations occur at a specified rate, executed fro
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
-#### How to Certify a Drive with ACT - High Load (3x)
------------------------------------------------------
+#### How to Certify a Drive with ACT
+----------------------------------
 
 To certify a drive(s):
 
@@ -93,6 +93,7 @@ Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass
 
 **The drives are certified if they pass Step 3 and Step 4.**
 
+&nbsp;
 
 #### How to Certify a Drive(s) with Higher Loads
 -------------------------------------------------------
@@ -107,7 +108,7 @@ next lower level where the drive DOES have fewer than 5% of errors in under 1 ms
 As before, test a single drive first, and then test with multiple drives to make sure that the
 performance scales linearly with your connector/controller.
 
-### Getting started
+### Getting Started
 --------------------
 
 **Download the ACT package through git:**
@@ -176,7 +177,7 @@ $ sudo ./actprep /dev/sdc1
 
 
 
-#### 2. Create a Configuration file
+#### 2. Create a Configuration File
 -------------------------
 
 The ACT package includes a Python script act_config_helper.py which helps you create a configuration file you can
@@ -193,7 +194,7 @@ $ python act_config_helper.py
 Alternately you can create the config file manually by copying one of the sample config
 files in the /examples directory and modifying it, as described in the instructions below.
 
-#### 3. Run your test with ACT
+#### 3. Run your Test with ACT
 ---------
 
 From the ACT installation directory, run:
@@ -263,7 +264,7 @@ example, in the 5th hour, 1.68% of transactions failed to complete in under 1ms.
    max     2.70   0.73   0.00     1.91   0.08   0.00
 ```
 
-#### 5. Evaluate Device(s) Pass/Fail Criteria
+#### 5. Evaluate Device(s) by the Standard Pass/Fail Criteria
 -------------------------
 
 To deploy a device(s) in production, Aerospike expects it to be able to perform
@@ -328,7 +329,7 @@ format, and must be on a single line.
 Field order in the file is unimportant.  To
 add comments, add a line(s) that begin with '#'.  
 
-### Fields that you must change:
+### Fields that you Must Change:
 
 **device-names**
 Comma-separated list of device names (full path) to test.  For example:
@@ -347,7 +348,7 @@ Large-block write and large-block read operations per second.  Note that this is
 device. e.g. For 3 times (3x) the normal load, this value would be 3*23.5 = 71
 (rounded up). Formula: n x 23.5
 
-### Fields that you will sometimes change:
+### Fields that you will Sometimes Change:
 
 **threads-per-queue**
 Number of threads per read
@@ -359,7 +360,7 @@ you can try increasing the number of threads.
 Size for each read
 transaction, in 512-byte blocks, e.g. for 1.5-Kbyte reads (the default), this value would be 3.
 
-### Fields that you will rarely or never change:
+### Fields that you will Rarely or Never Change:
 
 **queue-per-device**
 Flag that determines ACT's internal read transaction queue setup -- yes means
