@@ -22,6 +22,10 @@ ACT shows latency responses when you are reading from and writing to
 the database concurrently while modeling the Aerospike Database server's I/O 
 pattern as closely as practical.
 
+The ACT tool allows you to test an SSD device(s) for yourself.
+However Aerospike has tested a variety of SSDs and has specific recommendations.
+For more information, visit the Aerospike Database documentation at:  https://docs.aerospike.com/.
+
 #### What the ACT Tool Does
 ---------------------------
 
