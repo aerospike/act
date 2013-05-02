@@ -63,7 +63,7 @@ defragmentation process.  The operations occur at a specified rate, executed fro
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
-#### Process for Certifying a Drive(s) for the 3x Performance
+#### Process for Certifying a Drive(s) for 3x Performance
 ----------------------------------
 
 **In general, we recommend that you certify a drive for 3x performance.  Many drives do not pass the 3x
@@ -71,7 +71,7 @@ certification.  If you do not have a high-volume application, you may find that 
 will be sufficient.  The instructions below describe the 3x certification process, but you may need to adjust
 the test based on actual performance.**
 
-To certify a drive(s) for use with Aerospike Database requires two stages:
+To certify a drive(s) for 3x performance with Aerospike Database requires two stages:
 
 1. Test a single drive to determine performance using the hardware configuration and connectors. The single-device certification will help you determine individual drive performance. 
 2. If you will be using multiple drives, you can then run ACT to test multiple drives to see how 
