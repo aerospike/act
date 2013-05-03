@@ -8,10 +8,12 @@ Aerospike Database (with SATA, SAS and PCIe connectors).  ACT shows latency resp
 the database concurrently while modeling the Aerospike Database server's I/O 
 pattern as closely as practical.
 
+ACT allows you to test a single drive or multiple drives, using your actual connector/controller hardware.
+
 The purpose of this certification is:
 
-1. Determine if an SSD will stand up to the demands of a high-speed real-time database
-2. Evaluate the upper limits of an SSD's capabilities to understand how much throughput you can expect from a drive
+1. Determine if an SSD device(s) will stand up to the demands of a high-speed real-time database
+2. Evaluate the upper limits of the throughput you can expect from a drive(s)
 
 Not all SSDs can handle the high volume of transactions required by high 
 performance real-time databases like Aerospike Database.  Many SSDs are rated 
@@ -38,10 +40,12 @@ standard real-time database read/write loads.
 Reads and write latency is measured for a long enough period of time (typically 24 hours) to evaluate drive stability and 
 overall performance.
 
-**Traffic/Loading** You can simulate:
+**Traffic/Loading** 
 
-* 1x - normal load (2000 reads/sec and 1000 writes/sec)
-* 3x - high load (6000 reads/sec and 3000 writes/sec)
+You can simulate:
+
+* 1x - normal load (2000 reads/sec and 1000 writes/sec per drive)
+* 3x - high load (6000 reads/sec and 3000 writes/sec per drive)
 * any other stress load or high-performance load (custom configurable)
 
 **Latency Rate Analysis**  
@@ -225,8 +229,10 @@ use to run ACT. When you run this program it will:
 To run act_config_helper.py:
 ```
 $ python act_config_helper.py
-### Answer the questions asked in command line.
 ```
+If you are testing multiple drives, specify the drives and the desired traffic per drive per second, and the config
+file will be created appropriately.
+
 Alternately you can create the config file manually by copying one of the sample config
 files in the /examples directory and modifying it, as described in the **ACT Configuration Reference** below.
 
@@ -356,7 +362,7 @@ When modifying config files, you must be sure to set:
 3. the number of large block operations to perform (large-block-ops-per-sec)
 
 For example, to run a 48x test, you would modify
-the actconfig_24x.txt file to specify the correct drive and the correct number of reads/writes.  For a
+the actconfig_24x.txt file to specify the correct drive and the correct number of reads/writes per drive.  For a
 test of 8 drives at 6x, you would modify the actconfig_1x_4d.txt file to specify all of your drives AND to specify the
 number of reads/writes to perform (6x rather than 1x).
 
@@ -383,7 +389,7 @@ device-names: /dev/sdb,/dev/sdc
 Make sure the devices named are entered correctly.
 
 **read-reqs-per-sec**
-Read transactions/second.  Note
+Read transactions/second to generate.  Note
 that this is not per device, or per read transaction queue. For 3 times (3x)
 the normal load, this value would be 3*2000 = 6000. Formula: n x 2000
 
