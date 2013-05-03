@@ -333,7 +333,7 @@ if ACT runs to completion, regardless of the number of errors.
 ## Tips and Tricks
 -----------------
 If a drive is failing or there is a large discrepancy between the device and transaction
-latencies, try increasing the number of threads in the config file (described below).
+latencies, try increasing the number of threads in the config file by one or two (as described below).
 
 If a drive has been used for some other purpose for a period of time before testing, then the
 speed may have degraded and performance may be much poorer than a new drive of the same model.
@@ -388,15 +388,21 @@ device-names: /dev/sdb,/dev/sdc
 ```
 Make sure the devices named are entered correctly.
 
+**num-queues**
+Total number of queues.  If queue-per-device is set to yes, the num-queues field is ignored,
+since in this case the number of queues is determined by the number of devices. if queue-per-device
+is set to no, you must specify the number of queues based on how many devices you are testing.
+We recommend two queues per device.  Formula: 2 x number of devices.
+
 **read-reqs-per-sec**
 Read transactions/second to generate.  Note
 that this is not per device, or per read transaction queue. For 3 times (3x)
-the normal load, this value would be 3*2000 = 6000. Formula: n x 2000
+the normal load for four drives, this value would be 3*4*2000 = 24000. Formula: n x number of drives x 2000
 
 **large-block-ops-per-sec**
 Large-block write and large-block read operations per second.  Note that this is not per
-device. e.g. For 3 times (3x) the normal load, this value would be 3*23.5 = 71
-(rounded up). Formula: n x 23.5
+device. e.g. For 3 times (3x) the normal load for two drives, this value would be 3*2*23.5 = 141
+(rounded up). Formula: n x number of drives x 23.5
 
 ### Fields that you will Sometimes Change:
 
@@ -404,7 +410,7 @@ device. e.g. For 3 times (3x) the normal load, this value would be 3*23.5 = 71
 Number of threads per read
 transaction queue. If a drive is failing and
 there is a large discrepancy between transaction and device speeds from the ACT test
-you can try increasing the number of threads.
+you can try increasing the number of threads.  Default is 8 threads/queue.
 
 **read-req-num-512-blocks**
 Size for each read
@@ -417,19 +423,15 @@ Flag that determines ACT's internal read transaction queue setup -- yes means
 each device is read by a single dedicated read transaction queue, no means each
 device is read by all read transaction queues. If this field is left out, the default is no.
 
-**num-queues**
-Total number of read transaction
-queued.  If queue-per-device is set to yes, the num-queues field is ignored,
-since in this case the number of queues is determined by the number of devices.
-
 **test-duration-sec**
-Duration of each analysis slice, in seconds.
+Duration of the entire test, in seconds.
 Note that it has to be a single number, e.g. use 86400, not 60*60*24.
 The default is one day (24 hours).
 
 **report-interval-sec**
-Interval between metric reports,
-in seconds.
+Interval between generating observations,
+in seconds. This is the smallest granularity that you can analyze.  Default is 1 sec.  The
+/latency_calc/act_latency.py script aggregates these observations into slices, typically hour-long groups.
 
 **large-block-op-kbytes**
 Size written and read in each
