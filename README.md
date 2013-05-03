@@ -264,23 +264,6 @@ transaction queues become extremely backed-up, ACT will halt before the
 configured test duration has elapsed.  ACT may also halt prematurely if it
 encounters unexpected drive I/O or system errors.
 
-To run the test:
-```
-$ sudo ./runact device actconfig resultfile &
-```
-where:
-```
-* actconfig.txt - path/name for your config file name
-* resultfile    - path/name of your log file
-```
-If running the test from a remote terminal, it is best to run it as a background
-process, or within a "screen".  To verify that ACT is running, tail the output
-text file with the -f option.
-
-Note that if the drive(s) being tested performs so badly that ACT's internal
-transaction queues become extremely backed-up, ACT will halt before the
-configured test duration has elapsed.  ACT may also halt prematurely if it
-encounters unexpected drive I/O or system errors.
 
 #### 4. Analyze ACT Output
 --------------------
@@ -363,12 +346,12 @@ latencies, try increasing the number of threads in the config file by one or two
 If a drive has been used for some other purpose for a period of time before testing, then the
 speed may have degraded and performance may be much poorer than a new drive of the same model.
 
-## Reference
+## ACT Configuration Reference
 ----------------------
-
 
 #### Modifying the Config File Manually
 -------------
+
 For ease of use, this package includes act_config_helper.py for creating config 
 files. **Using act_config_helper.py is the recommended method for creating config files.**
 
