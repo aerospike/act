@@ -183,7 +183,7 @@ For each certification test with ACT, you must perform the following steps:
 
 1. Prepare the drive(s) with actprep -- only the first time you test a drive(s)
 2. Create the config file for your test.
-2. 3. Run the test, sending the results to a log file.
+3. Run the test, sending the results to a log file.
 4. Analyze log file output using the /latency_calc/act_latency.py script.
 5. Determine pass/fail for the test.
 
@@ -197,7 +197,7 @@ specified by name correctly.
 Make sure the test device is not mounted.
 
 
-#### 1. Prepare the Drives with actprep
+#### 1. Prepare the Drives with actprep - First Time Only
 -------------
 
 The first time you test a drive(s), you must
