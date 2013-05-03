@@ -208,6 +208,9 @@ actprep takes a device name as its only command-line parameter.  For
 a typical 240GB SSD, actprep takes 30-60+ minutes to run. The time varies depending on the
 drive and the capacity.
 
+If you are testing multiple drives, you can run actprep on all of the drives in parallel. Preparing multiple drives
+in parallel does not take a lot more time than preparing a single drive, so this step should only take an hour or two.
+
 For example, to clean and salt the device /dev/sdc: (over-provisioned using hdparm)
 ```
 $ sudo ./actprep /dev/sdc &
@@ -218,9 +221,6 @@ invalidate the test.
 ```
 $ sudo ./actprep /dev/sdc1 &
 ```
-
-**If you are testing multiple drives, you can run actprep on all of the drives in parallel. Preparing multiple drives
-in parallel does not take a lot more time than preparing a single drive, so this step should only take an hour or two.**
 
 #### 2. Create a Configuration File
 -------------------------
