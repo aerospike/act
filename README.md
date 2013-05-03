@@ -181,10 +181,11 @@ as described above in **Process for Certifying a Drive(s) for 3x Performance** o
 
 For each certification test with ACT, you must perform the following steps:
 
-1. Create the config file for your test.
-2. Run the test, sending the results to a log file.
-3. Analyze log file output using the /latency_calc/act_latency.py script.
-4. Determine pass/fail for the test.
+1. Prepare the drive(s) with actprep -- only the first time you test a drive(s)
+2. Create the config file for your test.
+2. 3. Run the test, sending the results to a log file.
+4. Analyze log file output using the /latency_calc/act_latency.py script.
+5. Determine pass/fail for the test.
 
 The details of these steps are described in detail below.
 
@@ -196,7 +197,32 @@ specified by name correctly.
 Make sure the test device is not mounted.
 
 
-#### 1. Create a Configuration File
+#### 1. Prepare the Drives with actprep
+-------------
+
+The first time you test a drive(s), you must
+prepare the drive(s) by first cleaning them (writing zeros everywhere) and
+then "salting" them (writing random data everywhere) with actprep.
+
+actprep takes a device name as its only command-line parameter.  For
+a typical 240GB SSD, actprep takes 30-60+ minutes to run. The time varies depending on the
+drive and the capacity.
+
+For example, to clean and salt the device /dev/sdc: (over-provisioned using hdparm)
+```
+$ sudo ./actprep /dev/sdc &
+```
+If you are using a RAID controller / over-provisioned using fdisk, make sure you specify the partition and not the raw
+device. If the raw device is used then ACT will wipe out the partition table and this will
+invalidate the test.
+```
+$ sudo ./actprep /dev/sdc1 &
+```
+
+**If you are testing multiple drives, you can run actprep on all of the drives in parallel. Preparing multiple drives
+in parallel does not take a lot more time than preparing a single drive, so this step should only take an hour or two.**
+
+#### 2. Create a Configuration File
 -------------------------
 
 The ACT package includes a Python script act_config_helper.py which helps you create a configuration file you can
@@ -215,8 +241,28 @@ file will be created appropriately.
 Alternately you can create the config file manually by copying one of the sample config
 files in the /examples directory and modifying it, as described in the **ACT Configuration Reference** below.
 
-#### 2. Run the test
------------------
+
+
+#### 3. Run the test
+---------
+
+From the ACT installation directory, run:
+```
+$ sudo ./act actconfig.txt > ouput.txt &
+```
+where:
+```
+* actconfig.txt - path/name for your config file name
+* output.txt    - path/name of your log file
+```
+If running ACT from a remote terminal, it is best to run it as a background
+process, or within a "screen".  To verify that ACT is running, tail the output
+text file with the -f option.
+
+Note that if the drive(s) being tested performs so badly that ACT's internal
+transaction queues become extremely backed-up, ACT will halt before the
+configured test duration has elapsed.  ACT may also halt prematurely if it
+encounters unexpected drive I/O or system errors.
 
 To run the test:
 ```
@@ -236,7 +282,7 @@ transaction queues become extremely backed-up, ACT will halt before the
 configured test duration has elapsed.  ACT may also halt prematurely if it
 encounters unexpected drive I/O or system errors.
 
-#### 3. Analyze ACT Output
+#### 4. Analyze ACT Output
 --------------------
 
 Run /latency_calc/act_latency.py to process the ACT log file and tabulate data.  Note that you can run
@@ -285,7 +331,7 @@ example, in the 5th hour, 1.68% of transactions failed to complete in under 1ms.
    max     2.70   0.73   0.00     1.91   0.08   0.00
 ```
 
-#### 4. Evaluate Device(s) by the Standard Pass/Fail Criteria
+#### 5. Evaluate Device(s) by the Standard Pass/Fail Criteria
 -------------------------
 
 ##### Passing a Performance Test
@@ -319,53 +365,6 @@ speed may have degraded and performance may be much poorer than a new drive of t
 
 ## Reference
 ----------------------
-
-
-#### Running ACT manually
----------
-
-You will normally run ACT from the **runact** script that does actprep and act in a single script.  However if
-you want to run ACT by itself, from the ACT installation directory, run:
-```
-$ sudo ./act actconfig.txt > ouput.txt &
-```
-where:
-```
-* actconfig.txt - path/name for your config file name
-* output.txt    - path/name of your log file
-```
-If running ACT from a remote terminal, it is best to run it as a background
-process, or within a "screen".  To verify that ACT is running, tail the output
-text file with the -f option.
-
-Note that if the drive(s) being tested performs so badly that ACT's internal
-transaction queues become extremely backed-up, ACT will halt before the
-configured test duration has elapsed.  ACT may also halt prematurely if it
-encounters unexpected drive I/O or system errors.
-
-#### Running actprep Manually
--------------
-
-The first step of any test is to 
-prepare storage devices by first cleaning them (writing zeros everywhere) and
-then "salting" them (writing random data everywhere) with actprep.
-
-You will normally run actprep from the **runact** script that does actprep and act in a single script.  However if
-you want to run actprep by itself, do the steps below.
-
-actprep takes a device name as its only command-line parameter.  For
-a typical 240GB SSD, actprep takes a little over an hour to run.
-
-For example, to clean and salt the device /dev/sdc: (over-provisioned using hdparm)
-```
-$ sudo ./actprep /dev/sdc
-```
-If you are using a RAID controller / over-provisioned using fdisk, make sure you specify the partition and not the raw
-device. If the raw device is used then ACT will wipe out the partition table and this will
-invalidate the test.
-```
-$ sudo ./actprep /dev/sdc1
-```
 
 
 #### Modifying the Config File Manually
