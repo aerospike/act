@@ -1,260 +1,297 @@
-### ACT ( Aerospike Certification Tool )
+## Aerospike Certification Tool (ACT)
 
-### Getting started
---------------------
-
-```
-$ git clone git@github.com:aerospike/act.git
-$ cd act
-$ make
-$ make -f Makesalt
-```
-
-This will create 2 binaries, act and actprep
-
-* ***actprep***:This executable will basically zero’s out the drives and fills it up with random data(Salting). Basically to reproduce a normal production state.
-* ***act***: The primary executable.
-
-### Test Process Overview
----------------------
-
-
-1. Clean and initialize the storage device(s).
-2. Run the act executable.
-3. Analyze act's output using the act_latency.py script.
-
-
-### Caution
--------
-
-THE TESTS DESTROY ALL DATA ON THE TEST DEVICES!
-
-When cleaning, initializing, and running tests, make sure the devices are
-specified by name correctly.
-
-Also make sure that the test devices are not mounted.
-
-Run the command:
-```
-	$ mount
-```
-and examine the result.  e.g. the result:
-	/dev/sda1 on /boot type ext3 (rw)
-implies device /dev/sda1 is mounted.
-
-Also run the command:
-```
-	$ sudo /sbin/pvscan
-```
-and examine the result.  e.g. the result:
-	  PV /dev/sda2   VG VolGroup00   lvm2 [19.88 GB / 0    free]
-implies device /dev/sda2 is mounted.
-
-Unmount any intended test devices that are mounted.
-
-
-### Cleaning and Initializing Devices
----------------------------------
-
-For consistency, and to obtain test results that model the long-time
-equilibrium condition expected in Aerospike production servers, it is best to
-prepare storage devices by first cleaning them (writing zeros everywhere) and
-then "salting" them (writing random data everywhere).
-
-This package contains actprep, an executable that may be used to clean and salt
-a device.  actprep takes a device name as its only command-line parameter.  For
-a typical 240GB SSD, actprep takes a little over an hour to run.
-
-Example - to clean and salt device /dev/sdc: (If Over-Provisioned using hdparm)
-```
-        $ sudo ./actprep /dev/sdc
-```
-If Over-Provisioned using fdisk, make sure you specify the partition and not raw
-device, if raw device(sdc) is used then it will wipe out the partition table.
-```
-        $ sudo ./actprep /dev/sdc1
-```
-
-### ACT Overview
+### Overview
 ------------
 
-ACT is a program for testing storage device IO.  Its primary purpose is to
-measure the latency of small read transactions while modeling the Aerospike
-server's device IO pattern as closely as practical.
+ACT is a program for testing and certifying flash/SSD devices' performance for
+Aerospike Database (with SATA, SAS and PCIe connectors).  ACT shows latency responses when you are reading from and writing to
+the database concurrently while modeling the Aerospike Database server's I/O 
+pattern as closely as practical.
 
-These IO patterns will be very similar to many databases focused on real-time
-performance. Databases of this type will constantly read and write from
-disk, without allowing the drive time to rest. This tool very easily shows
-latency responses under write load.
+ACT allows you to test a single drive or multiple drives, using your actual connector/controller hardware.
 
-Three types of IO operations occur during a test run:
+The purpose of this certification is:
 
-1. Small (~2 Kbyte) read operations, typically several thousand per second.
-2. Large-block (~128 Kbyte) read operations, typically a few tens per second.
-3. Large-block write operations, same size and rate as large-block reads.
+1. Determine if an SSD device(s) will stand up to the demands of a high-speed real-time database
+2. Evaluate the upper limits of the throughput you can expect from a drive(s)
 
-The small read operations model client transaction requests.  They occur at a
+Not all SSDs can handle the high volume of transactions required by high 
+performance real-time databases like Aerospike Database.  Many SSDs are rated 
+for 100K+ reads/writes per second, but in production the actual load they 
+can withstand for sustained periods of time is generally much lower.  In the process
+of testing many common SSDs in high-throughput tests, Aerospike developed this certification tool, ACT, that you can use to test/certify an 
+SSD for yourself.
+
+We have found performance – especially latency – of SSDs to be highly 
+dependent on the write load the SSD is subjected to. Over the first few hours of a test, 
+performance can be excellent, but past the 4- to 10-hour mark (depending 
+on the drive), performance can suffer.
+
+The ACT tool allows you to test an SSD device(s) for yourself.
+In addition, Aerospike has tested a variety of SSDs and has specific recommendations.
+For more information, visit the Aerospike Database documentation at:  https://docs.aerospike.com/.
+
+#### What the ACT Tool Does
+---------------------------
+
+ACT performs a combination of large (128K) block reads and writes and small (1.5K) block reads, simulating
+standard real-time database read/write loads.
+
+Reads and write latency is measured for a long enough period of time (typically 24 hours) to evaluate drive stability and 
+overall performance.
+
+**Traffic/Loading** 
+
+You can simulate:
+
+* 1x - normal load (2000 reads/sec and 1000 writes/sec per drive)
+* 3x - high load (6000 reads/sec and 3000 writes/sec per drive)
+* any other stress load or high-performance load (custom configurable)
+
+**Latency Rate Analysis**  
+
+ACT's output shows latency rates broken down by intervals of 1, 8 and 64 ms (configurable). 
+
+For example, the test might indicate that 0.25% of requests
+failed to complete in 1 ms or less and 0.01% of requests failed to complete in 8 ms or less.
+
+**Methodology**
+
+The small read operations model client transaction requests.  The operations occur at a
 specified rate.  Requests are added at this rate to a specified number of
 read transaction queues, each of which is serviced by a specified number of
 threads.
 
 The large-block read and write operations model the Aerospike server's
-defragmentation process.  They occur at a specified rate, executed from one
+defragmentation process.  The operations occur at a specified rate, executed from one
 dedicated large-block read thread and one dedicated large-block write thread per
 device.
 
-### Create Configuration file
+#### Process for Certifying a Drive(s) for 3x Performance
+----------------------------------
+
+**In general, we recommend that you certify a drive for 3x performance.  Many drives do not pass the 3x
+certification.  If you do not have a high-volume application, you may find that a 2x or 2.5x certification
+will be sufficient.  The instructions below describe the 3x certification process, but you may need to adjust
+the test based on your requirements.**
+
+To certify a drive(s) for 3x performance with Aerospike Database requires two stages:
+
+1. Test a single drive to determine performance using the hardware configuration and connectors. The single-device certification will help you determine individual drive performance. 
+2. If you will be using multiple drives, you can then run ACT to test multiple drives to see how 
+the results will be affected by the capacity of the bus or the throughput of the RAID controller that is managing your drives.
+
+The test process with ACT is the same for both stages, but in the first stage you are testing a drive and
+in the second stage, you are testing the linearity/scalability of your connector with multiple drives installed.
+
+The single-drive stage takes 48 hours.  The multi-drive stage takes an additional 48 hours.
+
+##### The first stage is to certify a single drive, to test the drive itself and the connection.
+
+Begin by installing your SSD device.  Our website has more details about installing SSDs in different environments
+and configurations at https://docs.aerospike.com/.
+
+**Test 1: Test under high loads**
+
+Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
+The drive passes this test if less than 5% of operations fail to complete in 1 ms or less.
+
+Many drives fail the 3x test and are unsuitable for use with Aerospike Database.
+
+**Test 2: Stress test to ensure the drive does not fail under excessive loads**
+
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).
+The drive passes this test if ACT runs to completion, regardless of the error rate.
+
+**If you are testing a single drive, then the drive is certified when it passes Test 1 and Test 2.**
+
+##### The second stage is to certify multiple drives, to make sure that performance scales linearly when you add drives.
+
+Install the additional SSDs to be tested.  Our website has more details about installing SSDs in different environments
+and configurations at https://docs.aerospike.com/.
+
+**Test 3: Repeat Test 1, with all drives installed: Test under high loads**
+
+Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).
+The drives pass this test if less than 5% of operations fail to complete in 1 ms or less.
+
+**Test 4: Repeat Test 2, with all drives installed: Stress test to ensure the drives do not fail under excessive loads**
+
+Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass this test if ACT runs to completion, regardless of the error rate.
+
+**The drives are certified if they pass Test 3 and Test 4.**  Once the drive(s) has been certified, the drive can be used with Aerospike Database.
+
+&nbsp;
+
+#### Determining Expected Performance at Higher Throughput
+-------------------------------------------------------
+
+If your application is going to have high volumes of transactions and your drive(s) passes the 3x certification, 
+we recommend that you test your drive to determine its upper limit on transaction processing latency.  This will help
+you determine how many SSDs you will need to run your application when you are fully scaled up.
+
+To certify a drive(s) at higher levels of performance, do the certification process as described above, but use higher loads (12x, 24x, etc.).
+Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
+
+For example, if you test at 24x and less than 5% of operations fail to complete in 1 ms, re-run the test at 48x, etc.  When the drive completes
+the test at a particular speed with *more* than 5% of operations failing to complete in 1 ms (i.e., fails the test), then the drive is certified at the
+next lower level where the drive DOES have fewer than 5% of errors in under 1 ms.
+
+If your drive is testing well at higher loads, you may want to shorten the test time.  Running ACT for six hours
+will give you a good idea whether your drive can pass ACT testing at a given traffic volume.  Before certifying your
+drive at a given traffic level, we recommend a full 24-hour test.
+
+As before, test a single drive first, and then test with multiple drives to make sure that the
+performance scales linearly with your connector/controller.
+
+### Getting Started
+--------------------
+
+**Download the ACT package through git:**
+
+```
+$ git clone git@github.com:aerospike/act.git
+```
+This creates an /act directory.  
+
+Alternately you can download the ZIP or TAR file from the links at the left.
+When you unpack/untar the file, it acreates an /aerospike-act-<version> directory.
+
+**Build the package.**
+
+```
+$ cd act    OR    cd /aerospike-act-<version>
+$ make
+$ make -f Makesalt
+```
+
+This will create 2 binaries:
+
+* ***actprep***: This executable prepares a drive for ACT by writing zeroes on every sector of the disk and then filling it up with random data (salting). This simulates a normal production state.
+* ***act***: The ACT tool executable.
+
+The root also contains a bash script called **runact** that runs actprep and act in a single process.
+
+### Running the ACT Certification Process 
+---------------------
+
+To certify your drive(s), first determine what certification test you will run, 
+as described above in **Process for Certifying a Drive(s) for 3x Performance** or 
+**Determining Expected Performance at Higher Throughput**.
+
+For each certification test with ACT, you must perform the following steps:
+
+1. Prepare the drive(s) with actprep -- only the first time you test a drive(s)
+2. Create the config file for your test.
+3. Run the test, sending the results to a log file.
+4. Analyze log file output using the /latency_calc/act_latency.py script.
+5. Determine pass/fail for the test.
+
+The details of these steps are described in detail below.
+
+**The tests destroy all data on the devices being tested!**
+
+When preparing devices and running tests, make sure the devices are
+specified by name correctly.
+
+Make sure the test device is not mounted.
+
+
+#### 1. Prepare the Drives with actprep - First Time Only
+-------------
+
+The first time you test a drive(s), you must
+prepare the drive(s) by first cleaning them (writing zeros everywhere) and
+then "salting" them (writing random data everywhere) with actprep.
+
+actprep takes a device name as its only command-line parameter.  For
+a typical 240GB SSD, actprep takes 30-60+ minutes to run. The time varies depending on the
+drive and the capacity.
+
+If you are testing multiple drives, you can run actprep on all of the drives in parallel. Preparing multiple drives
+in parallel does not take a lot more time than preparing a single drive, so this step should only take an hour or two.
+
+For example, to clean and salt the device /dev/sdc: (over-provisioned using hdparm)
+```
+$ sudo ./actprep /dev/sdc &
+```
+If you are using a RAID controller / over-provisioned using fdisk, make sure you specify the partition and not the raw
+device. If the raw device is used then ACT will wipe out the partition table and this will
+invalidate the test.
+```
+$ sudo ./actprep /dev/sdc1 &
+```
+
+#### 2. Create a Configuration File
 -------------------------
 
-The repo contains act_config_helper.py which can create configuration file you can
-use to run act, When yoy run this program it will ask you basic questions on test
-you want to run and generate config file at the end of the questions
-```
-        $ python act_config_helper.py
-        ### Answer the questions asked in command line.
-```
-Alternately you can create config file manually based on instructions below.
+The ACT package includes a Python script act_config_helper.py which helps you create a configuration file you can
+use to run ACT. When you run this program it will: 
 
-### Using ACT
+1. Ask you basic questions about the test you want to run
+2. Generate the correct config file, based on your answers
+
+To run act_config_helper.py:
+```
+$ python act_config_helper.py
+```
+If you are testing multiple drives, specify the drives and the desired traffic per drive per second, and the config
+file will be created appropriately.
+
+Alternately you can create the config file manually by copying one of the sample config
+files in the /examples directory and modifying it, as described in the **ACT Configuration Reference** below.
+
+
+
+#### 3. Run the test
 ---------
 
-Necessary files: act (the executable), plus a configuration text file.
-
-For ease of use, this package includes act_config_helper.py for creating config 
-files and also has five example configuration files:
-
-* actconfig_1x.txt    - run a normal load test on one device
-* actconfig_3x.txt    - run a 3 times normal load test on one device
-* actconfig_6x.txt    - run a 6 times normal load test on one device
-* actconfig_12x.txt   - run a 12 times normal load test on one device
-* actconfig_24x.txt   - run a 24 times normal load test on one device
-* actconfig_1x_2d.txt - run a normal load test on two devices at a time
-*  actconfig_1x_4d.txt - run a normal load test test on four devices at a time
-
-These configuration files must be modified to make sure the device-names field
-(see below) specifies exactly the device(s) to be tested.
-
-The other fields in the configuration files should not be changed without good
-reasons.  As they are, the files specify 24-hour tests with IO patterns and
-loads very similar to Aerospike production servers.
-
-Usage example:
+From the ACT installation directory, run:
 ```
-	$ sudo ./act actconfig.txt > ouput.txt
+$ sudo ./act actconfig.txt > ouput.txt &
 ```
-act outputs to stdout, so for normal (long-duration) tests, pipe to an output
-file as above.  This will be necessary to run the act_latency.py script to
-analyze the output.
-
-If running act from a remote terminal, it is best to run it as a background
-process, or within a "screen".  To verify that act is running, tail the output
+where:
+```
+* actconfig.txt - path/name for your config file name
+* output.txt    - path/name of your log file
+```
+If running ACT from a remote terminal, it is best to run it as a background
+process, or within a "screen".  To verify that ACT is running, tail the output
 text file with the -f option.
 
-Note that if the drive(s) being tested perform so badly that act's internal
-transaction queues become extremely backed-up, act will halt before the
-configured test duration has elapsed.  act may also halt prematurely if it
+Note that if the drive(s) being tested performs so badly that ACT's internal
+transaction queues become extremely backed-up, ACT will halt before the
+configured test duration has elapsed.  ACT may also halt prematurely if it
 encounters unexpected drive I/O or system errors.
 
 
-### ACT Configuration File
-----------------------
-
-All fields use a "name-token: value" format, and must be on a single line.
-Field order in the file is unimportant.  Integer values must be in decimal.  To
-add comments, use '#' at the beginning of a line.  The fields are:
-
-**device-names**
-The value is a comma-separated list of device names (full path), such as
-/dev/sdb.  Make absolutely sure the devices named are exactly the devices to be
-used in the test.
-
-**queue-per-device**
-The value is either yes or no.  If the field is left out, the default is no.
-This flag determines act's internal read transaction queue setup -- yes means
-each device is read by a single dedicated read transaction queue, no means each
-device is read by all read transaction queues.
-
-**num-queues**
-The value is a non-zero integer.  This is the total number of read transaction
-queues.  However if queue-per-device is set to yes, this field is ignored,
-since in this case the number of queues is determined by the number of devices.
-
-**threads-per-queue**
-The value is a non-zero integer.  This is the number of threads per read
-transaction queue that execute the read transactions.
-
-**test-duration-sec**
-The value is a non-zero integer.  This is the duration of the test, in seconds.
-Note that it has to be a single number, e.g. use 86400, not 60*60*24.
-
-**report-interval-sec**
-The value is a non-zero integer.  This is the interval between metric reports,
-in seconds.
-
-**read-reqs-per-sec**
-The value is a non-zero integer.  This is the total read transaction rate.  Note
-that it is not per device, or per read transaction queue. e.g. For 2 times (2x)
-the normal load, value would be 2*2000 = 4000. Formula: n x 2000
-
-**large-block-ops-per-sec**
-The value is a non-zero integer.  This is the total rate used for both
-large-block write and large-block read operations.  Note that it is not per
-device. e.g. For 2 times (2x) the normal load, value would be 2*23.5 = 47
-(rounded up) Formula: n x 23.5
-
-**read-req-num-512-blocks**
-The value is a non-zero integer.  This is the size read in each read
-transaction, in 512-byte blocks, e.g. for 1.5-Kbyte reads, use 3.
-
-**large-block-op-kbytes**
-The value is a non-zero integer.  This is the size written and read in each
-large-block write and large-block read operation respectively, in Kbytes.
-
-**use-valloc**
-The value is either yes or no.  If the field is left out, the default is no.
-This flag determines act's memory allocation mechanism for read transaction
-buffers -- yes means a system memory allocation call is used, no means dynamic
-stack allocation is used.
-
-**num-write-buffers**
-The value is an integer.  If the field is left out, the default is 0.  This is
-the number of different large blocks of random data we choose from when doing a
-large-block write operation -- 0 will cause all zeros to be written every time.
-
-**scheduler-mode**
-The value is either noop or cfq.  If the field is left out, the default is noop.
-This sets the mode in /sys/block/<device>/queue/scheduler for all the devices in
-the test run -- noop means no special scheduling is done for device IO
-operations, cfq means operations may be reordered to optimize for physical
-constraints imposed by rotating disc drives (which likely means it hurts
-performance for ssds).
-
-
-### Analyzing act Output
+#### 4. Analyze ACT Output
 --------------------
 
-Run act_latency.py to process a act output file and tabulate data about
-"latencies" (small read transactions that took longer than usual).
+Run /latency_calc/act_latency.py to process the ACT log file and tabulate data.  Note that you can run
+the script when the test is not yet complete, and you will see the partial results.
 
-Example usage:
+For example:
 ```
-	$ ./act_latency.py -l output.txt
+$ ./act_latency.py -l output.txt
 ```
-**act_latency.py** command-line parameters:
-```
- -l <act output file name>
 
- -t <analysis slice interval in seconds> (default is 3600)
-```
-(There are two other optional parameters for more advanced use, to control which
-latency thresholds are displayed.)
+where:
 
-The script will analyze the act output in time slices as specified, and display
-latency data above various thresholds for each slice.  The script output will
+```
+ -l <act output file name>   - required parameter that specifies the path/name of the log file generated by ACT
+ -t <slice duration in seconds>  - optional parameter specifying slice length; default is 3600 sec (1 hour)
+```
+
+The Python script analyzes the ACT output in time slices as specified, and displays
+latency data and various verification intervals for each slice.  The script output will
 show latencies both for end-to-end transactions (which include time spent on the
 transaction queues) and for the device IO portion of transactions.
 
-Example **act_latency.py** output (for a act output file yielding 12 slices):
+The example output below shows a 12-hour test (each slice is an hour).  The **trans** table
+shows transaction latency (end to end) and the **device** table at the right shows device latency.  So for 
+example, in the 5th hour, 1.68% of transactions failed to complete in under 1ms.
+
 ```
          trans                  device
          %>(ms)                 %>(ms)
@@ -277,17 +314,152 @@ Example **act_latency.py** output (for a act output file yielding 12 slices):
    max     2.70   0.73   0.00     1.91   0.08   0.00
 ```
 
-### Device Pass/Fail Criteria
+#### 5. Evaluate Device(s) by the Standard Pass/Fail Criteria
 -------------------------
 
-To deploy a device in production, Aerospike expects it to be able to perform
-consistently as follows:
+##### Passing a Performance Test
+In any one-hour period of an ACT performance test, we expect that:
 
-In any one-hour period for normal load , we must find that:
+ - fewer than 5% of transactions fail to complete in 1 ms
+ - fewer than 1% of transactions fail to complete in 8 ms
+ - fewer than 0.1% of transactions fail to complete in 64 ms
 
- - fewer than 5% of transactions exceed 1 ms
- - fewer than 1% of transactions exceed 8 ms
- - fewer than 0.1% of transactions exceed 64 ms
+The **max** line of the output shows the highest values observed in any single slice (hour) of time
+and the values on the max line should not
+exceed the allowable error values specified above.  
 
-A device which does not violate these thresholds for 48 hours is considered
-production-worthy.
+In the example output above, we show only 12 hours of results, and the drive passes because the worst performance in any slice
+was 2.7% of transactions failing to complete within 1 ms, 0.73% of transactions failing to complete in less
+than 8 ms and no transactions failing to complete within 64 ms.
+
+A device(s) which does not exceed these error thresholds in 24 hours passes the load test.
+
+##### Passing a Stress Test 
+When doing stress testing at a level ABOVE where the drive is certified, a device passes the test 
+if ACT runs to completion, regardless of the number of errors.  
+
+## Tips and Tricks
+-----------------
+If a drive is failing or there is a large discrepancy between the device and transaction
+latencies, try increasing the number of threads in the config file by one or two (as described below).
+
+If a drive has been used for some other purpose for a period of time before testing, then the
+speed may have degraded and performance may be much poorer than a new drive of the same model.
+
+## ACT Configuration Reference
+----------------------
+
+#### Modifying the Config File Manually
+-------------
+
+For ease of use, this package includes act_config_helper.py for creating config 
+files. **Using act_config_helper.py is the recommended method for creating config files.**
+
+If you are going to modify the config file manually, the package includes five example configuration files:
+
+* actconfig_1x.txt    - run a normal load test on one device
+* actconfig_3x.txt    - run a 3 times normal load test on one device
+* actconfig_6x.txt    - run a 6 times normal load test on one device
+* actconfig_12x.txt   - run a 12 times normal load test on one device
+* actconfig_24x.txt   - run a 24 times normal load test on one device
+* actconfig_1x_2d.txt - run a normal load test on two devices at a time
+* actconfig_1x_4d.txt - run a normal load test test on four devices at a time
+
+When modifying config files, you must be sure to set:
+
+1. the device name(s)
+2. the number of reads/writes to perform
+3. the number of large block operations to perform (large-block-ops-per-sec)
+
+For example, to run a 48x test, you would modify
+the actconfig_24x.txt file to specify the correct drive and the correct number of reads/writes per drive.  For a
+test of 8 drives at 6x, you would modify the actconfig_1x_4d.txt file to specify all of your drives AND to specify the
+number of reads/writes to perform (6x rather than 1x).
+
+The other fields in the configuration files should generally not be changed.  
+
+#### Format of Lines in the Config File
+-------------------
+
+All fields use a 
+```
+name-token: value
+```
+format, and must be on a single line.
+Field order in the file is unimportant.  To
+add comments, add a line(s) that begin with '#'.  
+
+### Fields that you Must Change:
+
+**device-names**
+Comma-separated list of device names (full path) to test.  For example:
+```
+device-names: /dev/sdb,/dev/sdc
+```
+Make sure the devices named are entered correctly.
+
+**num-queues**
+Total number of queues.  If queue-per-device is set to yes, the num-queues field is ignored,
+since in this case the number of queues is determined by the number of devices. if queue-per-device
+is set to no, you must specify the number of queues based on how many devices you are testing.
+We recommend two queues per device.  Formula: 2 x number of devices.
+
+**read-reqs-per-sec**
+Read transactions/second to generate.  Note
+that this is not per device, or per read transaction queue. For 3 times (3x)
+the normal load for four drives, this value would be 3*4*2000 = 24000. Formula: n x number of drives x 2000
+
+**large-block-ops-per-sec**
+Large-block write and large-block read operations per second.  Note that this is not per
+device. e.g. For 3 times (3x) the normal load for two drives, this value would be 3*2*23.5 = 141
+(rounded up). Formula: n x number of drives x 23.5
+
+### Fields that you will Sometimes Change:
+
+**threads-per-queue**
+Number of threads per read
+transaction queue. If a drive is failing and
+there is a large discrepancy between transaction and device speeds from the ACT test
+you can try increasing the number of threads.  Default is 8 threads/queue.
+
+**read-req-num-512-blocks**
+Size for each read
+transaction, in 512-byte blocks, e.g. for 1.5-Kbyte reads (the default), this value would be 3.
+
+### Fields that you will Rarely or Never Change:
+
+**queue-per-device**
+Flag that determines ACT's internal read transaction queue setup -- yes means
+each device is read by a single dedicated read transaction queue, no means each
+device is read by all read transaction queues. If this field is left out, the default is no.
+
+**test-duration-sec**
+Duration of the entire test, in seconds.
+Note that it has to be a single number, e.g. use 86400, not 60*60*24.
+The default is one day (24 hours).
+
+**report-interval-sec**
+Interval between generating observations,
+in seconds. This is the smallest granularity that you can analyze.  Default is 1 sec.  The
+/latency_calc/act_latency.py script aggregates these observations into slices, typically hour-long groups.
+
+**large-block-op-kbytes**
+Size written and read in each
+large-block write and large-block read operation respectively, in Kbytes.
+
+**use-valloc**
+Flag that determines ACT's memory allocation mechanism for read transaction
+buffers -- yes means a system memory allocation call is used, no means dynamic
+stack allocation is used.  If this field is left out, the default is no.
+
+**num-write-buffers**
+Number of different large blocks of random data we choose from when doing a
+large-block write operation -- 0 will cause all zeros to be written every time. 
+If this field is left out, the default is 0.  
+
+**scheduler-mode**
+Mode in /sys/block/<device>/queue/scheduler for all the devices in
+the test run -- noop means no special scheduling is done for device I/O
+operations, cfq means operations may be reordered to optimize for physical
+constraints imposed by rotating disc drives (which likely means it hurts
+performance for ssds).  If the field is left out, the default is noop.
