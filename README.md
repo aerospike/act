@@ -157,6 +157,19 @@ This creates an /act directory.
 Alternately you can download the ZIP or TAR file from the links at the left.
 When you unpack/untar the file, it acreates an /aerospike-act-<version> directory.
 
+**Install the Required Libraries**
+Before you can build ACT, you need to install some libraries.
+
+For CentOS:
+```
+$ sudo yum install make gcc openssl-devel
+```
+
+For Debian or Ubuntu:
+```
+$ sudo apt-get install make gcc libc6-dev libssl-dev
+```
+
 **Build the package.**
 
 ```
