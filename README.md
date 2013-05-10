@@ -1,5 +1,7 @@
 ## Aerospike Certification Tool (ACT)
 
+This project is maintained by [Aerospike](http://www.aerospike.com)
+
 ### Overview
 ------------
 
