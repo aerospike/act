@@ -350,8 +350,8 @@ except getopt.GetoptError, err:
 # Default values for arguments:
 arg_log = None
 arg_slice = 3600
-arg_num_buckets = 3
-arg_every_nth = 3
+arg_num_buckets = 7
+arg_every_nth = 1
 arg_extra = False
 
 # Set the arguments:
