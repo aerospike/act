@@ -21,7 +21,7 @@ class RunCommand(cmd.Cmd):
 	
 		device_names = ''
 		queue_per_device = 'no'
-		num_queues = 2
+		num_queues = 8
 		threads_per_queue = 8
 		test_duration_sec = 86400
 		report_interval_sec = 1
