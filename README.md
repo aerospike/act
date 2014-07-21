@@ -288,7 +288,7 @@ the script when the test is not yet complete, and you will see the partial resul
 
 For example:
 ```
-$ ./act_latency.py -l output.txt
+$ ./latency_calc/act_latency.py -l output.txt
 ```
 
 where:
