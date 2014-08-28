@@ -52,6 +52,16 @@ TIMESPEC_TO_MS( struct timespec ts )
     return ( r1 + r2 );
 }
 
+inline static uint64_t
+TIMESPEC_TO_US( struct timespec ts )
+{
+    uint64_t r1 = ts.tv_nsec;
+    r1 /= 1000;
+    uint64_t r2 = ts.tv_sec;
+    r2 *= 1000000;
+    return ( r1 + r2 );
+}
+
 inline static void
 TIMESPEC_ADD_MS(struct timespec *ts, uint64_t ms)
 {
