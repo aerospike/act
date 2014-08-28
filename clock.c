@@ -35,6 +35,13 @@ cf_getms() {
 }	
 
 cf_clock
+cf_getus() {
+	struct timespec ts;
+	clock_gettime( CLOCK_MONOTONIC, &ts);
+	return ( TIMESPEC_TO_US (ts) );
+}	
+
+cf_clock
 cf_clock_getabsolute() {
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);

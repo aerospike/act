@@ -80,12 +80,12 @@ extern int cf_queue_sz(cf_queue *q);
 #define CF_QUEUE_ERR -1
 #define CF_QUEUE_OK 0
 
-// mswait < 0 wait forever
-// mswait == 0 wait not at all
-// mswait > 0 wait that number of ms
+// uswait < 0 wait forever
+// uswait == 0 wait not at all
+// uswait > 0 wait that number of us
 #define CF_QUEUE_FOREVER -1
 #define CF_QUEUE_NOWAIT 0
-extern int cf_queue_pop(cf_queue *q, void *buf, int mswait);
+extern int cf_queue_pop(cf_queue *q, void *buf, int uswait);
 
 // Queue Reduce
 // Run the entire queue, calling the callback, with the lock held
@@ -130,7 +130,7 @@ typedef struct cf_queue_priority_s {
 extern cf_queue_priority *cf_queue_priority_create(size_t elementsz, bool threadsafe);
 extern void cf_queue_priority_destroy(cf_queue_priority *q);
 extern int cf_queue_priority_push(cf_queue_priority *q, void *ptr, int pri);
-extern int cf_queue_priority_pop(cf_queue_priority *q, void *buf, int mswait);
+extern int cf_queue_priority_pop(cf_queue_priority *q, void *buf, int uswait);
 extern int cf_queue_priority_sz(cf_queue_priority *q);
 
 

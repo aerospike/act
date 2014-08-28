@@ -122,17 +122,17 @@ void histogram_dump(histogram* h, const char* p_tag) {
 	}
 }
 
-void histogram_insert_data_point(histogram* h, uint64_t delta_ms) {
+void histogram_insert_data_point(histogram* h, uint64_t delta_us) {
 	cf_atomic_int_incr(&h->n_counts);
 
-	int index = bits_find_last_set_64(delta_ms);
+	int index = bits_find_last_set_64(delta_us);
 
 	if (index < 0) {
 		index = 0;
 	}
 
-	if ((int64_t)delta_ms < 0) {
-	    // Need to investigate why in some cases start is a couple of ms greater than end
+	if ((int64_t)delta_us < 0) {
+	    // Need to investigate why in some cases start is a couple of us greater than end
 		// Could it be rounding error (usually the difference is 1 but sometimes I have seen 2
 	    // fprintf(stdout, "start = %"PRIu64" > end = %"PRIu64"", start, end);
 		index = 0;

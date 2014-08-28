@@ -271,12 +271,12 @@ cf_queue_push_head(cf_queue *q, void *ptr)
 
 
 /* cf_queue_pop
- * if ms_wait < 0, wait forever
- * if ms_wait = 0, don't wait at all
- * if ms_wait > 0, wait that number of ms
+ * if us_wait < 0, wait forever
+ * if us_wait = 0, don't wait at all
+ * if us_wait > 0, wait that number of us
  * */
 int
-cf_queue_pop(cf_queue *q, void *buf, int ms_wait)
+cf_queue_pop(cf_queue *q, void *buf, int us_wait)
 {
 	if (NULL == q)
 		return(-1);
@@ -286,10 +286,10 @@ cf_queue_pop(cf_queue *q, void *buf, int ms_wait)
 		return(-1);
 
 	struct timespec tp;
-	if (ms_wait > 0) {
+	if (us_wait > 0) {
 		clock_gettime( CLOCK_REALTIME, &tp); 
-		tp.tv_sec += ms_wait / 1000;
-		tp.tv_nsec += (ms_wait % 1000) * 1000000;
+		tp.tv_sec += us_wait / 1000000;
+		tp.tv_nsec += (us_wait % 1000000) * 1000000;
 		if (tp.tv_nsec > 1000000000) {
 			tp.tv_nsec -= 1000000000;
 			tp.tv_sec++;
@@ -302,10 +302,10 @@ cf_queue_pop(cf_queue *q, void *buf, int ms_wait)
 	 * waiting thread will be awakened... */
 	if (q->threadsafe) {
 		while (CF_Q_EMPTY(q)) {
-			if (CF_QUEUE_FOREVER == ms_wait) {
+			if (CF_QUEUE_FOREVER == us_wait) {
 				pthread_cond_wait(&q->CV, &q->LOCK);
 			}
-			else if (CF_QUEUE_NOWAIT == ms_wait) {
+			else if (CF_QUEUE_NOWAIT == us_wait) {
 				pthread_mutex_unlock(&q->LOCK);
 				return(CF_QUEUE_EMPTY);
 			}
@@ -560,16 +560,16 @@ cf_queue_priority_push(cf_queue_priority *q, void *ptr, int pri)
 }
 
 int 
-cf_queue_priority_pop(cf_queue_priority *q, void *buf, int ms_wait)
+cf_queue_priority_pop(cf_queue_priority *q, void *buf, int us_wait)
 {
 	if (q->threadsafe && (0 != pthread_mutex_lock(&q->LOCK)))
 			return(-1);
 
 	struct timespec tp;
-	if (ms_wait > 0) {
+	if (us_wait > 0) {
 		clock_gettime( CLOCK_REALTIME, &tp); 
-		tp.tv_sec += ms_wait / 1000;
-		tp.tv_nsec += (ms_wait % 1000) * 1000000;
+		tp.tv_sec += us_wait / 1000000;
+		tp.tv_nsec += (us_wait % 1000000) * 1000000;
 		if (tp.tv_nsec > 1000000000) {
 			tp.tv_nsec -= 1000000000;
 			tp.tv_sec++;
@@ -578,10 +578,10 @@ cf_queue_priority_pop(cf_queue_priority *q, void *buf, int ms_wait)
 
 	if (q->threadsafe) {
 		while (CF_Q_PRI_EMPTY(q)) {
-			if (CF_QUEUE_FOREVER == ms_wait) {
+			if (CF_QUEUE_FOREVER == us_wait) {
 				pthread_cond_wait(&q->CV, &q->LOCK);
 			}
-			else if (CF_QUEUE_NOWAIT == ms_wait) {
+			else if (CF_QUEUE_NOWAIT == us_wait) {
 				pthread_mutex_unlock(&q->LOCK);
 				return(CF_QUEUE_EMPTY);
 			}

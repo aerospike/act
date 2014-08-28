@@ -142,8 +142,8 @@ static uint32_t g_num_devices = 0;
 static bool g_queue_per_device = false;
 static uint32_t g_num_queues = 0;
 static uint32_t g_threads_per_queue = 0;
-static uint64_t g_run_ms = 0;
-static uint32_t g_report_interval_ms = 0;
+static uint64_t g_run_us = 0;
+static uint32_t g_report_interval_us = 0;
 static uint64_t g_read_reqs_per_sec = 0;
 static uint64_t g_large_block_ops_per_sec = 0;
 static uint32_t g_read_req_num_512_blocks = 0;
@@ -158,7 +158,7 @@ static device* g_devices;
 static readq* g_readqs;
 
 static uint32_t g_running;
-static uint64_t g_run_start_ms;
+static uint64_t g_run_start_us;
 
 static cf_atomic_int g_read_reqs_queued = 0;
 
@@ -202,7 +202,7 @@ static void		read_and_report(readreq* p_readreq, uint8_t* p_buffer);
 static void		read_and_report_large_block(device* p_device);
 static uint64_t	read_from_device(device* p_device, uint64_t offset,
 					uint32_t size, uint8_t* p_buffer);
-static inline uint64_t safe_delta_ms(uint64_t start_ms, uint64_t stop_ms);
+static inline uint64_t safe_delta_us(uint64_t start_us, uint64_t stop_us);
 static void		set_schedulers();
 static void		write_and_report_large_block(device* p_device);
 static uint64_t	write_to_device(device* p_device, uint64_t offset,
@@ -252,9 +252,9 @@ int main(int argc, char* argv[]) {
 	g_p_raw_read_histogram = histogram_create();
 	g_p_read_histogram = histogram_create();
 
-	g_run_start_ms = cf_getms();
+	g_run_start_us = cf_getus();
 
-	uint64_t run_stop_ms = g_run_start_ms + g_run_ms;
+	uint64_t run_stop_us = g_run_start_us + g_run_us;
 
 	g_running = 1;
 
@@ -305,21 +305,21 @@ int main(int argc, char* argv[]) {
 
 	fprintf(stdout, "\n");
 
-	uint64_t now_ms;
+	uint64_t now_us;
 	uint64_t count = 0;
 
-	while ((now_ms = cf_getms()) < run_stop_ms && g_running) {	
+	while ((now_us = cf_getus()) < run_stop_us && g_running) {	
 		count++;
 
-		int sleep_ms = (int)
-			((count * g_report_interval_ms) - (now_ms - g_run_start_ms));
+		int sleep_us = (int)
+			((count * g_report_interval_us) - (now_us - g_run_start_us));
 
-		if (sleep_ms > 0) {
-			usleep((uint32_t)sleep_ms * 1000);
+		if (sleep_us > 0) {
+			usleep((uint32_t)sleep_us);
 		}
 
 		fprintf(stdout, "After %" PRIu64 " sec:\n",
-			(count * g_report_interval_ms) / 1000);
+			(count * g_report_interval_us) / 1000000);
 
 		fprintf(stdout, "read-reqs queued: %" PRIu64 "\n",
 			cf_atomic_int_get(g_read_reqs_queued));
@@ -407,23 +407,23 @@ static void* run_add_readreqs(void* pv_unused) {
 		p_readreq->p_device = p_random_device;
 		p_readreq->offset = random_read_offset(p_random_device);
 		p_readreq->size = g_read_req_num_512_blocks * MIN_BLOCK_BYTES;
-		p_readreq->start_time = cf_getms();
+		p_readreq->start_time = cf_getus();
 
 		cf_queue_push(g_readqs[random_queue_index].p_req_queue, &p_readreq);
 
 		count++;
 
-		int sleep_ms = (int)
-			(((count * 1000) / g_read_reqs_per_sec) -
-				(cf_getms() - g_run_start_ms));
+		int sleep_us = (int)
+			(((count * 1000000) / g_read_reqs_per_sec) -
+				(cf_getus() - g_run_start_us));
 
-		if (sleep_ms > 0) {
-			usleep((uint32_t)sleep_ms * 1000);
+		if (sleep_us > 0) {
+			usleep((uint32_t)sleep_us);
 		}
 
-//		if (sleep_ms != 0) {
-//			fprintf(stdout, "%" PRIu64 ", sleep_ms = %d\n", count, sleep_ms);
-//		}
+		if (sleep_us != 0) {
+			fprintf(stdout, "%" PRIu64 ", sleep_us = %d\n", count, sleep_us);
+		}
 	}
 
 	return (0);
@@ -442,17 +442,17 @@ static void* run_large_block_reads(void* pv_device) {
 
 		count++;
 
-		int sleep_ms = (int)
-			(((count * 1000 * g_num_devices) / g_large_block_ops_per_sec) -
-				(cf_getms() - g_run_start_ms));
+		int sleep_us = (int)
+			(((count * 1000000 * g_num_devices) / g_large_block_ops_per_sec) -
+				(cf_getus() - g_run_start_us));
 
-		if (sleep_ms > 0) {
-			usleep((uint32_t)sleep_ms * 1000);
+		if (sleep_us > 0) {
+			usleep((uint32_t)sleep_us);
 		}
 
-//		if (sleep_ms != 0) {
-//			fprintf(stdout, "%" PRIu64 ", sleep_ms = %d\n", count, sleep_ms);
-//		}
+		if (sleep_us != 0) {
+			fprintf(stdout, "%" PRIu64 ", sleep_us = %d\n", count, sleep_us);
+		}
 	}
 
 	return (0);
@@ -471,17 +471,17 @@ static void* run_large_block_writes(void* pv_device) {
 
 		count++;
 
-		int sleep_ms = (int)
-			(((count * 1000 * g_num_devices) / g_large_block_ops_per_sec) -
-				(cf_getms() - g_run_start_ms));
+		int sleep_us = (int)
+			(((count * 1000000 * g_num_devices) / g_large_block_ops_per_sec) -
+				(cf_getus() - g_run_start_us));
 
-		if (sleep_ms > 0) {
-			usleep((uint32_t)sleep_ms * 1000);
+		if (sleep_us > 0) {
+			usleep((uint32_t)sleep_us);
 		}
 
-//		if (sleep_ms != 0) {
-//			fprintf(stdout, "%" PRIu64 ", sleep_ms = %d\n", count, sleep_ms);
-//		}
+		if (sleep_us != 0) {
+			fprintf(stdout, "%" PRIu64 ", sleep_us = %d\n", count, sleep_us);
+		}
 	}
 
 	return (0);
@@ -568,9 +568,9 @@ static bool check_config() {
 	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_THREADS_PER_QUEUE,
 		g_threads_per_queue);
 	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_RUN_SEC,
-		g_run_ms / 1000);
+		g_run_us / 1000000);
 	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_REPORT_INTERVAL_SEC,
-		g_report_interval_ms / 1000);
+		g_report_interval_us / 1000000);
 	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_READ_REQS_PER_SEC,
 		g_read_reqs_per_sec);
 	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_LARGE_BLOCK_OPS_PER_SEC,
@@ -590,8 +590,8 @@ static bool check_config() {
 	if (! (	g_num_devices &&
 			g_num_queues &&
 			g_threads_per_queue &&
-			g_run_ms &&
-			g_report_interval_ms &&
+			g_run_us &&
+			g_report_interval_us &&
 			g_read_reqs_per_sec &&
 			g_large_block_ops_per_sec &&
 			g_read_req_num_512_blocks &&
@@ -702,10 +702,10 @@ static bool configure(int argc, char* argv[]) {
 			g_threads_per_queue = config_parse_uint32();
 		}
 		else if (! strcmp(tag, TAG_RUN_SEC)) {
-			g_run_ms = (uint64_t)config_parse_uint32() * 1000;
+			g_run_us = (uint64_t)config_parse_uint32() * 1000000;
 		}
 		else if (! strcmp(tag, TAG_REPORT_INTERVAL_SEC)) {
-			g_report_interval_ms = config_parse_uint32() * 1000;
+			g_report_interval_us = config_parse_uint32() * 1000000;
 		}
 		else if (! strcmp(tag, TAG_READ_REQS_PER_SEC)) {
 			g_read_reqs_per_sec = (uint64_t)config_parse_uint32();
@@ -970,18 +970,18 @@ static uint64_t random_large_block_offset(device* p_device) {
 // Do one transaction read operation and report.
 //
 static void read_and_report(readreq* p_readreq, uint8_t* p_buffer) {
-	uint64_t raw_start_time = cf_getms();
+	uint64_t raw_start_time = cf_getus();
 	uint64_t stop_time = read_from_device(p_readreq->p_device,
 		p_readreq->offset, p_readreq->size, p_buffer);
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_raw_read_histogram,
-			safe_delta_ms(raw_start_time, stop_time));
+			safe_delta_us(raw_start_time, stop_time));
 		histogram_insert_data_point(g_p_read_histogram,
-			safe_delta_ms(p_readreq->start_time, stop_time));
+			safe_delta_us(p_readreq->start_time, stop_time));
 		histogram_insert_data_point(
 			p_readreq->p_device->p_raw_read_histogram,
-				safe_delta_ms(raw_start_time, stop_time));
+				safe_delta_us(raw_start_time, stop_time));
 	}
 }
 
@@ -990,13 +990,13 @@ static void read_and_report(readreq* p_readreq, uint8_t* p_buffer) {
 //
 static void read_and_report_large_block(device* p_device) {
 	uint64_t offset = random_large_block_offset(p_device);
-	uint64_t start_time = cf_getms();
+	uint64_t start_time = cf_getus();
 	uint64_t stop_time = read_from_device(p_device, offset,
 		g_large_block_ops_bytes, p_device->p_large_block_read_buffer);
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_large_block_read_histogram,
-			safe_delta_ms(start_time, stop_time));
+			safe_delta_us(start_time, stop_time));
 	}
 }
 
@@ -1018,18 +1018,18 @@ static uint64_t read_from_device(device* p_device, uint64_t offset,
 		return -1;
 	}
 
-	uint64_t stop_ms = cf_getms();
+	uint64_t stop_us = cf_getus();
 
 	fd_put(p_device, fd);
 
-	return stop_ms;
+	return stop_us;
 }
 
 //------------------------------------------------
 // Check time differences.
 //
-static inline uint64_t safe_delta_ms(uint64_t start_ms, uint64_t stop_ms) {
-	return start_ms > stop_ms ? 0 : stop_ms - start_ms;
+static inline uint64_t safe_delta_us(uint64_t start_us, uint64_t stop_us) {
+	return start_us > stop_us ? 0 : stop_us - start_us;
 }
 
 //------------------------------------------------
@@ -1048,7 +1048,7 @@ static void set_schedulers() {
 
 		strcpy(scheduler_file_name, "/sys/block/");
 		strcat(scheduler_file_name, device_tag);
-		strcat(scheduler_file_name, "/queue/scheduler");
+		strcat(scheduler_file_name, "/queue/scheduler/");
 
 		FILE* scheduler_file = fopen(scheduler_file_name, "w");
 
@@ -1083,7 +1083,7 @@ static void write_and_report_large_block(device* p_device) {
 	}
 
 	uint64_t offset = random_large_block_offset(p_device);
-	uint64_t start_time = cf_getms();
+	uint64_t start_time = cf_getus();
 	uint64_t stop_time = write_to_device(p_device, offset,
 		g_large_block_ops_bytes, p_salter->p_buffer);
 
@@ -1093,7 +1093,7 @@ static void write_and_report_large_block(device* p_device) {
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_large_block_write_histogram,
-			safe_delta_ms(start_time, stop_time));
+			safe_delta_us(start_time, stop_time));
 	}
 }
 
@@ -1115,11 +1115,11 @@ static uint64_t write_to_device(device* p_device, uint64_t offset,
 		return -1;
 	}
 
-	uint64_t stop_ms = cf_getms();
+	uint64_t stop_us = cf_getus();
 
 	fd_put(p_device, fd);
 
-	return stop_ms;
+	return stop_us;
 }
 
 
