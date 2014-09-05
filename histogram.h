@@ -31,13 +31,19 @@
 #include <inttypes.h>
 #include "atomic.h"
 
-#define N_COUNTS 64
+#define N_BUCKETS 64
+
+typedef enum {
+	HIST_MILLISECONDS,
+	HIST_MICROSECONDS,
+	HIST_SCALE_MAX_PLUS_1
+} histogram_scale;
 
 typedef struct _histogram {
-	cf_atomic_int n_counts;
-	cf_atomic_int count[N_COUNTS];
+	uint32_t time_div;
+	cf_atomic64 counts[N_BUCKETS];
 } histogram;
 
-extern histogram* histogram_create();
+extern histogram* histogram_create(histogram_scale scale);
 extern void histogram_dump(histogram* h, const char* p_tag);
-extern void histogram_insert_data_point(histogram* h, uint64_t delta_ms);
+extern void histogram_insert_data_point(histogram* h, uint64_t delta_ns);

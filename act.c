@@ -39,10 +39,10 @@
 #include <pthread.h>
 #include <signal.h>		// for debugging
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <linux/fs.h>
 #include <openssl/rand.h>
@@ -59,12 +59,15 @@
 // Constants
 //
 
+const char VERSION[] = "2.0";
+
 const char TAG_DEVICE_NAMES[]				= "device-names";
 const char TAG_QUEUE_PER_DEVICE[]			= "queue-per-device";
 const char TAG_NUM_QUEUES[]					= "num-queues";
 const char TAG_THREADS_PER_QUEUE[]			= "threads-per-queue";
 const char TAG_RUN_SEC[]					= "test-duration-sec";
 const char TAG_REPORT_INTERVAL_SEC[]		= "report-interval-sec";
+const char TAG_MICROSECOND_HISTOGRAMS[]		= "microsecond-histograms";
 const char TAG_READ_REQS_PER_SEC[]			= "read-reqs-per-sec";
 const char TAG_LARGE_BLOCK_OPS_PER_SEC[]	= "large-block-ops-per-sec";
 const char TAG_READ_REQ_NUM_512_BLOCKS[]	= "read-req-num-512-blocks";
@@ -133,10 +136,6 @@ typedef struct _salter {
 // Globals
 //
 
-static uint8_t g_rand_64_buffer[1024 * 8];
-static size_t g_rand_64_buffer_offset = 0;
-static pthread_mutex_t g_rand_64_lock = PTHREAD_MUTEX_INITIALIZER;
-
 static char g_device_names[MAX_NUM_DEVICES][MAX_DEVICE_NAME_SIZE];
 static uint32_t g_num_devices = 0;
 static bool g_queue_per_device = false;
@@ -144,6 +143,7 @@ static uint32_t g_num_queues = 0;
 static uint32_t g_threads_per_queue = 0;
 static uint64_t g_run_ms = 0;
 static uint32_t g_report_interval_ms = 0;
+static bool g_us_histograms = false;
 static uint64_t g_read_reqs_per_sec = 0;
 static uint64_t g_large_block_ops_per_sec = 0;
 static uint32_t g_read_req_num_512_blocks = 0;
@@ -192,7 +192,7 @@ static void		discover_num_blocks(device* p_device);
 static void		fd_close_all(device* p_device);
 static int		fd_get(device* p_device);
 static void		fd_put(device* p_device, int fd);
-static inline uint32_t rand_32();
+static inline uint32_t rand_31();
 static uint64_t	rand_64();
 static bool		rand_fill(uint8_t* p_buffer, uint32_t size);
 static bool		rand_seed(uint8_t* p_buffer);
@@ -202,7 +202,7 @@ static void		read_and_report(readreq* p_readreq, uint8_t* p_buffer);
 static void		read_and_report_large_block(device* p_device);
 static uint64_t	read_from_device(device* p_device, uint64_t offset,
 					uint32_t size, uint8_t* p_buffer);
-static inline uint64_t safe_delta_ms(uint64_t start_ms, uint64_t stop_ms);
+static inline uint64_t safe_delta_ns(uint64_t start_ns, uint64_t stop_ns);
 static void		set_schedulers();
 static void		write_and_report_large_block(device* p_device);
 static uint64_t	write_to_device(device* p_device, uint64_t offset,
@@ -220,7 +220,7 @@ int main(int argc, char* argv[]) {
 	signal(SIGSEGV, as_sig_handle_segv);
 	signal(SIGTERM , as_sig_handle_term);
 
-	fprintf(stdout, "\nAerospike act - device IO test\n");
+	fprintf(stdout, "\nAerospike act version %s - device IO test\n", VERSION);
 	fprintf(stdout, "Copyright 2011 by Aerospike. All rights reserved.\n\n");
 
 	if (! configure(argc, argv)) {
@@ -229,7 +229,6 @@ int main(int argc, char* argv[]) {
 
 	set_schedulers();
 	srand(time(NULL));
-//	rand_seed(g_rand_64_buffer);
 
 	salter salters[g_num_write_buffers ? g_num_write_buffers : 1];
 
@@ -245,12 +244,13 @@ int main(int argc, char* argv[]) {
 	g_devices = devices;
 	g_readqs = readqs;
 
-	// TODO - 'salt' drive?
+	histogram_scale scale =
+			g_us_histograms ? HIST_MICROSECONDS : HIST_MILLISECONDS;
 
-	g_p_large_block_read_histogram = histogram_create();
-	g_p_large_block_write_histogram = histogram_create();
-	g_p_raw_read_histogram = histogram_create();
-	g_p_read_histogram = histogram_create();
+	g_p_large_block_read_histogram = histogram_create(scale);
+	g_p_large_block_write_histogram = histogram_create(scale);
+	g_p_raw_read_histogram = histogram_create(scale);
+	g_p_read_histogram = histogram_create(scale);
 
 	g_run_start_ms = cf_getms();
 
@@ -265,7 +265,7 @@ int main(int argc, char* argv[]) {
 		p_device->p_fd_queue = cf_queue_create(sizeof(int), true);
 		discover_num_blocks(p_device);
 		create_large_block_read_buffer(p_device);
-		p_device->p_raw_read_histogram = histogram_create();
+		p_device->p_raw_read_histogram = histogram_create(scale);
 		sprintf(p_device->histogram_tag, "%-18s", p_device->name);
 
 		if (pthread_create(&p_device->large_block_read_thread, NULL,
@@ -374,7 +374,7 @@ int main(int argc, char* argv[]) {
 
 	destroy_salters();
 
-	return (0);
+	return 0;
 }
 
 
@@ -397,9 +397,9 @@ static void* run_add_readreqs(void* pv_unused) {
 			break;
 		}
 
-		uint32_t random_queue_index = rand_32() % g_num_queues;
+		uint32_t random_queue_index = rand_31() % g_num_queues;
 		uint32_t random_device_index =
-			g_queue_per_device ? random_queue_index : rand_32() % g_num_devices;
+			g_queue_per_device ? random_queue_index : rand_31() % g_num_devices;
 
 		device* p_random_device = &g_devices[random_device_index];
 		readreq* p_readreq = malloc(sizeof(readreq));
@@ -407,7 +407,7 @@ static void* run_add_readreqs(void* pv_unused) {
 		p_readreq->p_device = p_random_device;
 		p_readreq->offset = random_read_offset(p_random_device);
 		p_readreq->size = g_read_req_num_512_blocks * MIN_BLOCK_BYTES;
-		p_readreq->start_time = cf_getms();
+		p_readreq->start_time = cf_getns();
 
 		cf_queue_push(g_readqs[random_queue_index].p_req_queue, &p_readreq);
 
@@ -426,7 +426,7 @@ static void* run_add_readreqs(void* pv_unused) {
 //		}
 	}
 
-	return (0);
+	return NULL;
 }
 
 //------------------------------------------------
@@ -455,7 +455,7 @@ static void* run_large_block_reads(void* pv_device) {
 //		}
 	}
 
-	return (0);
+	return NULL;
 }
 
 //------------------------------------------------
@@ -484,7 +484,7 @@ static void* run_large_block_writes(void* pv_device) {
 //		}
 	}
 
-	return (0);
+	return NULL;
 }
 
 //------------------------------------------------
@@ -523,7 +523,7 @@ static void* run_reads(void* pv_req_queue) {
 		cf_atomic_int_decr(&g_read_reqs_queued);
 	}
 
-	return (0);
+	return NULL;
 }
 
 
@@ -571,6 +571,8 @@ static bool check_config() {
 		g_run_ms / 1000);
 	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_REPORT_INTERVAL_SEC,
 		g_report_interval_ms / 1000);
+	fprintf(stdout, "%s: %s\n",				TAG_MICROSECOND_HISTOGRAMS,
+		g_us_histograms ? "yes" : "no");
 	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_READ_REQS_PER_SEC,
 		g_read_reqs_per_sec);
 	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_LARGE_BLOCK_OPS_PER_SEC,
@@ -706,6 +708,9 @@ static bool configure(int argc, char* argv[]) {
 		}
 		else if (! strcmp(tag, TAG_REPORT_INTERVAL_SEC)) {
 			g_report_interval_ms = config_parse_uint32() * 1000;
+		}
+		else if (! strcmp(tag, TAG_MICROSECOND_HISTOGRAMS)) {
+			g_us_histograms = config_parse_yes_no();
 		}
 		else if (! strcmp(tag, TAG_READ_REQS_PER_SEC)) {
 			g_read_reqs_per_sec = (uint64_t)config_parse_uint32();
@@ -870,10 +875,10 @@ static void fd_put(device* p_device, int fd) {
 }
 
 //------------------------------------------------
-// Get a random uint32_t.
+// Get a random 31-bit uint32_t.
 //
-static inline uint32_t rand_32() {
-	return (uint32_t)rand_64();
+static inline uint32_t rand_31() {
+	return (uint32_t)rand();
 }
 
 //------------------------------------------------
@@ -881,27 +886,6 @@ static inline uint32_t rand_32() {
 //
 static uint64_t rand_64() {
 	return ((uint64_t)rand() << 16) | ((uint64_t)rand() & 0xffffULL);
-/*
-	uint64_t r;
-
-	pthread_mutex_lock(&g_rand_64_lock);
-
-	if (g_rand_64_buffer_offset < sizeof(uint64_t)) {
-		if (! rand_fill(g_rand_64_buffer, sizeof(g_rand_64_buffer))) {
-			pthread_mutex_unlock(&g_rand_64_lock);
-			return 0;
-		}
-
-		g_rand_64_buffer_offset = sizeof(g_rand_64_buffer);
-	}
-	
-	g_rand_64_buffer_offset -= sizeof(uint64_t);
-	r = *(uint64_t*)(&g_rand_64_buffer[g_rand_64_buffer_offset]);
-
-	pthread_mutex_unlock(&g_rand_64_lock);
-
-	return r;
-*/
 }
 
 //------------------------------------------------
@@ -970,18 +954,18 @@ static uint64_t random_large_block_offset(device* p_device) {
 // Do one transaction read operation and report.
 //
 static void read_and_report(readreq* p_readreq, uint8_t* p_buffer) {
-	uint64_t raw_start_time = cf_getms();
+	uint64_t raw_start_time = cf_getns();
 	uint64_t stop_time = read_from_device(p_readreq->p_device,
 		p_readreq->offset, p_readreq->size, p_buffer);
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_raw_read_histogram,
-			safe_delta_ms(raw_start_time, stop_time));
+			safe_delta_ns(raw_start_time, stop_time));
 		histogram_insert_data_point(g_p_read_histogram,
-			safe_delta_ms(p_readreq->start_time, stop_time));
+			safe_delta_ns(p_readreq->start_time, stop_time));
 		histogram_insert_data_point(
 			p_readreq->p_device->p_raw_read_histogram,
-				safe_delta_ms(raw_start_time, stop_time));
+				safe_delta_ns(raw_start_time, stop_time));
 	}
 }
 
@@ -990,13 +974,13 @@ static void read_and_report(readreq* p_readreq, uint8_t* p_buffer) {
 //
 static void read_and_report_large_block(device* p_device) {
 	uint64_t offset = random_large_block_offset(p_device);
-	uint64_t start_time = cf_getms();
+	uint64_t start_time = cf_getns();
 	uint64_t stop_time = read_from_device(p_device, offset,
 		g_large_block_ops_bytes, p_device->p_large_block_read_buffer);
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_large_block_read_histogram,
-			safe_delta_ms(start_time, stop_time));
+			safe_delta_ns(start_time, stop_time));
 	}
 }
 
@@ -1018,18 +1002,18 @@ static uint64_t read_from_device(device* p_device, uint64_t offset,
 		return -1;
 	}
 
-	uint64_t stop_ms = cf_getms();
+	uint64_t stop_ns = cf_getns();
 
 	fd_put(p_device, fd);
 
-	return stop_ms;
+	return stop_ns;
 }
 
 //------------------------------------------------
 // Check time differences.
 //
-static inline uint64_t safe_delta_ms(uint64_t start_ms, uint64_t stop_ms) {
-	return start_ms > stop_ms ? 0 : stop_ms - start_ms;
+static inline uint64_t safe_delta_ns(uint64_t start_ns, uint64_t stop_ns) {
+	return start_ns > stop_ns ? 0 : stop_ns - start_ns;
 }
 
 //------------------------------------------------
@@ -1073,7 +1057,7 @@ static void write_and_report_large_block(device* p_device) {
 	salter* p_salter;
 
 	if (g_num_write_buffers > 1) {
-		p_salter = &g_salters[rand_32() % g_num_write_buffers];
+		p_salter = &g_salters[rand_31() % g_num_write_buffers];
 
 		pthread_mutex_lock(&p_salter->lock);
 		*(uint32_t*)p_salter->p_buffer = p_salter->stamp++;
@@ -1083,7 +1067,7 @@ static void write_and_report_large_block(device* p_device) {
 	}
 
 	uint64_t offset = random_large_block_offset(p_device);
-	uint64_t start_time = cf_getms();
+	uint64_t start_time = cf_getns();
 	uint64_t stop_time = write_to_device(p_device, offset,
 		g_large_block_ops_bytes, p_salter->p_buffer);
 
@@ -1093,7 +1077,7 @@ static void write_and_report_large_block(device* p_device) {
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_large_block_write_histogram,
-			safe_delta_ms(start_time, stop_time));
+			safe_delta_ns(start_time, stop_time));
 	}
 }
 
@@ -1115,11 +1099,11 @@ static uint64_t write_to_device(device* p_device, uint64_t offset,
 		return -1;
 	}
 
-	uint64_t stop_ms = cf_getms();
+	uint64_t stop_ns = cf_getns();
 
 	fd_put(p_device, fd);
 
-	return stop_ms;
+	return stop_ns;
 }
 
 

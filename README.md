@@ -458,6 +458,11 @@ Interval between generating observations,
 in seconds. This is the smallest granularity that you can analyze.  Default is 1 sec.  The
 /latency_calc/act_latency.py script aggregates these observations into slices, typically hour-long groups.
 
+**microsecond-histograms**
+Flag that specifies what time units the histogram buckets will use -- yes means
+use microseconds, no means use milliseconds.  If this field is left out, the
+default is no.
+
 **large-block-op-kbytes**
 Size written and read in each
 large-block write and large-block read operation respectively, in Kbytes.
@@ -470,7 +475,7 @@ stack allocation is used.  If this field is left out, the default is no.
 **num-write-buffers**
 Number of different large blocks of random data we choose from when doing a
 large-block write operation -- 0 will cause all zeros to be written every time. 
-If this field is left out, the default is 0.  
+If this field is left out, the default is 0.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in

@@ -208,12 +208,24 @@ def main(arg_log, arg_slice, arg_num_buckets, arg_every_nth, arg_extra):
 		print "log file " + arg_log + " not found."
 		sys.exit(-1)
 
+	# Find and echo the act version:
+	version = "1.0"
+	line = file_id.readline()
+	while line and not line.startswith("Aerospike act"):
+		line = file_id.readline()
+	if not line:
+		print "can't find any output data"
+		sys.exit(-1)
+	if line.split(" ")[2] == "version":
+		version = line.split(" ")[3]
+	print "data is act version " + version
+
 	# Find the act reporting interval:
 	line = file_id.readline()
-	while (line and not line.startswith("report-interval-sec")):
+	while line and not line.startswith("report-interval-sec"):
 		line = file_id.readline()
-	if (not line):
-		print "can't find any output data"
+	if not line:
+		print "can't find report interval"
 		sys.exit(-1)
 	interval = long(line.split(" ")[1])
 
@@ -223,6 +235,18 @@ def main(arg_log, arg_slice, arg_num_buckets, arg_every_nth, arg_extra):
 	except:
 		print "can't determine reporting interval"
 		sys.exit(-1)
+
+	# Find the histograms' scale:
+	scale_label = " %>(ms)"
+	file_id.seek(0, 0)
+	line = file_id.readline()
+	while line and not line.startswith("microsecond-histograms"):
+		line = file_id.readline()
+	if not line:
+		print "can't find histograms' scale, assuming milliseconds"
+		file_id.seek(0, 0)
+	elif line.split(" ")[1].startswith("y"):
+		scale_label = " %>(us)"
 
 	# Adjust the slice time if necessary:
 	slice_time = ((arg_slice + interval - 1) / interval) * interval
@@ -242,7 +266,8 @@ def main(arg_log, arg_slice, arg_num_buckets, arg_every_nth, arg_extra):
 	prefix_pad = repeat(" ", len_labels_prefix)
 	justify_pad = repeat(" ", len_justify)
 	print prefix_pad + GAP_PAD + " trans " + justify_pad + GAP_PAD + " device"
-	print prefix_pad + GAP_PAD + " %>(ms)" + justify_pad + GAP_PAD + " %>(ms)"
+	print prefix_pad + GAP_PAD + scale_label + justify_pad + GAP_PAD + \
+		scale_label
 	print labels_prefix + GAP_PAD + threshold_labels + GAP_PAD + \
 		threshold_labels
 	underline = repeat("-", len_labels_prefix) + GAP_PAD + \
