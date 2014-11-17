@@ -3,7 +3,8 @@ DIR_INCLUDE = .
 DIR_OBJECT = .
 DIR_TARGET = .
 
-SOURCES = salt.c
+HEADERS = random.h
+SOURCES = salt.c random.c
 TARGET = actprep
 
 CC = gcc

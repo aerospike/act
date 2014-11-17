@@ -1,5 +1,25 @@
 /*
- *	salt.c
+ * salt.c
+ *
+ * Copyright (c) 2008-2014 Aerospike, Inc. All rights reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
  */
 
 
@@ -20,36 +40,24 @@
 #include <time.h>
 #include <unistd.h>
 #include <linux/fs.h>
-#include <openssl/rand.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+
+#include "random.h"
 
 
 //==========================================================
 // Constants
 //
 
-const uint32_t NUM_SALT_BUFFERS = 256;
 const uint32_t NUM_SALT_THREADS = 8;
 const uint32_t NUM_ZERO_THREADS = 8;
 const uint32_t LARGE_BLOCK_BYTES = 1024 * 128;
-const uint32_t RAND_SEED_SIZE = 64;
 
 // Linux has removed O_DIRECT, but not its functionality.
 #ifndef O_DIRECT
-#define O_DIRECT 00040000
+#define O_DIRECT 040000 // the leading 0 is necessary - this is octal
 #endif
-
-
-//==========================================================
-// Typedefs
-//
-
-typedef struct _salter {
-	uint8_t* p_buffer;
-	pthread_mutex_t lock;
-	uint32_t stamp;
-} salter;
 
 
 //==========================================================
@@ -58,7 +66,6 @@ typedef struct _salter {
 
 static char* g_device_name = NULL;
 static uint64_t g_num_large_blocks = 0;
-static salter* g_salters = NULL;
 static uint8_t* g_p_zero_buffer = NULL;
 static uint64_t g_blocks_per_salt_thread = 0;
 static uint64_t g_blocks_per_zero_thread = 0;
@@ -75,13 +82,9 @@ static void*			run_salt(void* pv_n);
 static void*			run_zero(void* pv_n);
 
 static inline uint8_t*	cf_valloc(size_t size);
-static bool				create_salters();
 static bool				create_zero_buffer();
-static void				destroy_salters();
 static bool				discover_num_blocks();
 static inline int		fd_get();
-static bool				rand_fill(uint8_t* p_buffer, uint32_t size);
-static bool				rand_seed();
 static void				set_scheduler();
 
 static void				as_sig_handle_segv(int sig_num);
@@ -150,14 +153,6 @@ int main(int argc, char* argv[]) {
 		exit(-1);
 	}
 
-	salter salters[NUM_SALT_BUFFERS];
-
-	g_salters = salters;
-
-	if (! create_salters()) {
-		exit(-1);
-	}
-
 	pthread_t salt_threads[NUM_SALT_THREADS];
 
 	for (uint32_t n = 0; n < NUM_SALT_THREADS; n++) {
@@ -173,8 +168,6 @@ int main(int argc, char* argv[]) {
 
 		pthread_join(salt_threads[n], &pv_value);
 	}
-
-	destroy_salters();
 
 	return 0;
 }
@@ -208,37 +201,39 @@ static void* run_salt(void* pv_n) {
 //	fprintf(stdout, "thread %d: blks-to-salt = %" PRIu64 ", prg-blks = %"
 //		PRIu64 "\n", n, blocks_to_salt, progress_blocks);
 
+	uint8_t* p_buffer = cf_valloc(LARGE_BLOCK_BYTES);
+
+	if (! p_buffer) {
+		fprintf(stdout, "ERROR: valloc in salt thread %" PRIu32 "\n", n);
+		return NULL;
+	}
+
 	int fd = fd_get();
 
 	if (fd == -1) {
 		fprintf(stdout, "ERROR: open in salt thread %" PRIu32 "\n", n);
-		// TODO - what?
+		free(p_buffer);
 		return NULL;
 	}
 
 	if (lseek(fd, offset, SEEK_SET) != offset) {
-		close(fd);
 		fprintf(stdout, "ERROR: seek in salt thread %" PRIu32 "\n", n);
-		// TODO - what?
+		close(fd);
+		free(p_buffer);
 		return NULL;
 	}
 
 	for (uint64_t b = 0; b < blocks_to_salt; b++) {
-		salter* p_salter = &g_salters[rand() % NUM_SALT_BUFFERS];
-
-		pthread_mutex_lock(&p_salter->lock);
-
-		*(uint32_t*)p_salter->p_buffer = p_salter->stamp++;
-
-		if (write(fd, p_salter->p_buffer, LARGE_BLOCK_BYTES) !=
-				(ssize_t)LARGE_BLOCK_BYTES) {
-			pthread_mutex_unlock(&p_salter->lock);
-			fprintf(stdout, "ERROR: write in salt thread %" PRIu32 "\n", n);
-			// TODO - what?
+		if (! rand_fill(p_buffer, LARGE_BLOCK_BYTES)) {
+			fprintf(stdout, "ERROR: rand fill in salt thread %" PRIu32 "\n", n);
 			break;
 		}
 
-		pthread_mutex_unlock(&p_salter->lock);
+		if (write(fd, p_buffer, LARGE_BLOCK_BYTES) !=
+				(ssize_t)LARGE_BLOCK_BYTES) {
+			fprintf(stdout, "ERROR: write in salt thread %" PRIu32 "\n", n);
+			break;
+		}
 
 		if (progress_blocks && ! (b % progress_blocks)) {
 			fprintf(stdout, ".");
@@ -251,6 +246,7 @@ static void* run_salt(void* pv_n) {
 	}
 
 	close(fd);
+	free(p_buffer);
 
 	return NULL;
 }
@@ -283,14 +279,12 @@ static void* run_zero(void* pv_n) {
 
 	if (fd == -1) {
 		fprintf(stdout, "ERROR: open in zero thread %" PRIu32 "\n", n);
-		// TODO - what?
 		return NULL;
 	}
 
 	if (lseek(fd, offset, SEEK_SET) != offset) {
-		close(fd);
 		fprintf(stdout, "ERROR: seek in zero thread %" PRIu32 "\n", n);
-		// TODO - what?
+		close(fd);
 		return NULL;
 	}
 
@@ -298,7 +292,6 @@ static void* run_zero(void* pv_n) {
 		if (write(fd, g_p_zero_buffer, LARGE_BLOCK_BYTES) !=
 				(ssize_t)LARGE_BLOCK_BYTES) {
 			fprintf(stdout, "ERROR: write in zero thread %" PRIu32 "\n", n);
-			// TODO - what?
 			break;
 		}
 
@@ -339,26 +332,6 @@ static inline uint8_t* cf_valloc(size_t size) {
 }
 
 //------------------------------------------------
-// Allocate large block sized salt buffers, etc.
-//
-static bool create_salters() {
-	for (uint32_t n = 0; n < NUM_SALT_BUFFERS; n++) {
-		if (! (g_salters[n].p_buffer = cf_valloc(LARGE_BLOCK_BYTES))) {
-			fprintf(stdout, "ERROR: salt buffer %" PRIu32 " cf_valloc()\n", n);
-			return false;
-		}
-
-		if (! rand_fill(g_salters[n].p_buffer, LARGE_BLOCK_BYTES)) {
-			return false;
-		}
-
-		pthread_mutex_init(&g_salters[n].lock, NULL);
-	}
-
-	return true;
-}
-
-//------------------------------------------------
 // Allocate and zero one large block sized buffer.
 //
 static bool create_zero_buffer() {
@@ -372,16 +345,6 @@ static bool create_zero_buffer() {
 	memset(g_p_zero_buffer, 0, LARGE_BLOCK_BYTES);
 
 	return true;
-}
-
-//------------------------------------------------
-// Destroy large block sized salt buffers.
-//
-static void destroy_salters() {
-	for (uint32_t n = 0; n < NUM_SALT_BUFFERS; n++) {
-		free(g_salters[n].p_buffer);
-		pthread_mutex_destroy(&g_salters[n].lock);
-	}
 }
 
 //------------------------------------------------
@@ -420,44 +383,6 @@ static bool discover_num_blocks() {
 //
 static inline int fd_get() {
 	return open(g_device_name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
-}
-
-//------------------------------------------------
-// Fill a buffer with random bits.
-//
-static bool rand_fill(uint8_t* p_buffer, uint32_t size) {
-	if (RAND_bytes(p_buffer, size) != 1) {
-		fprintf(stdout, "ERROR: RAND_bytes() failed\n");
-		return false;
-	}
-
-	return true;
-}
-
-//------------------------------------------------
-// Seed for random fill.
-//
-static bool rand_seed() {
-	int fd = open("/dev/urandom", O_RDONLY);
-
-	if (fd == -1) {
-		fprintf(stdout, "ERROR: can't open /dev/urandom\n");
-		return false;
-	}
-
-	uint8_t seed_buffer[RAND_SEED_SIZE];
-	ssize_t read_result = read(fd, seed_buffer, RAND_SEED_SIZE);
-
-	if (read_result != (ssize_t)RAND_SEED_SIZE) {
-		close(fd);
-		fprintf(stdout, "ERROR: can't seed random number generator\n");
-		return false;
-	}
-
-	close(fd);
-	RAND_seed(seed_buffer, read_result);
-
-	return true;
 }
 
 //------------------------------------------------

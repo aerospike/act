@@ -413,23 +413,13 @@ device-names: /dev/sdb,/dev/sdc
 ```
 Make sure the devices named are entered correctly.
 
+### Fields that you will Sometimes Change:
+
 **num-queues**
 Total number of queues.  If queue-per-device is set to yes, the num-queues field is ignored,
 since in this case the number of queues is determined by the number of devices. if queue-per-device
 is set to no, you must specify the number of queues based on how many devices you are testing.
 We recommend two queues per device.  Formula: 2 x number of devices.
-
-**read-reqs-per-sec**
-Read transactions/second to generate.  Note
-that this is not per device, or per read transaction queue. For 3 times (3x)
-the normal load for four drives, this value would be 3*4*2000 = 24000. Formula: n x number of drives x 2000
-
-**large-block-ops-per-sec**
-Large-block write and large-block read operations per second.  Note that this is not per
-device. e.g. For 3 times (3x) the normal load for two drives, this value would be 3*2*23.5 = 141
-(rounded up). Formula: n x number of drives x 23.5
-
-### Fields that you will Sometimes Change:
 
 **threads-per-queue**
 Number of threads per read
@@ -437,9 +427,30 @@ transaction queue. If a drive is failing and
 there is a large discrepancy between transaction and device speeds from the ACT test
 you can try increasing the number of threads.  Default is 8 threads/queue.
 
-**read-req-num-512-blocks**
-Size for each read
-transaction, in 512-byte blocks, e.g. for 1.5-Kbyte reads (the default), this value would be 3.
+**record-bytes**
+Size of a record in bytes.  This determines the size of a read operation -- just
+record-bytes rounded up to a multiple of 512 bytes (or whatever the device's
+minimum direct op size).  Also, along with write-reqs-per-sec and
+large-block-op-kbytes, this item determines the rate of large block operations.
+record-bytes is rounded up to a multiple of 128 bytes for the purposes of this
+calculation.  For example, if record-bytes is 1500, write-reqs-per-sec is 1000,
+and large-block-op-kbytes is 128, we write (1536 x 1000) bytes per second, or
+(1536 x 1000) / (128 x 1024) = 11.71875 large blocks per second.  We double this
+to simulate defragmentation where blocks depleted to 50%-used are re-packed,
+yielding a large block write (and read) rate of 23.4375 blocks per second.
+
+**read-reqs-per-sec**
+Read transactions/second to generate.  Note
+that this is not per device, or per read transaction queue. For 3 times (3x)
+the normal load for four drives, this value would be 3*4*2000 = 24000. Formula: n x number of drives x 2000
+
+**write-reqs-per-sec**
+Write transactions/second to simulate.  Note that we do not do separate device
+write operations per transaction -- written records are pooled up in big buffers
+which are then written to device.  Therefore along with record-bytes and
+large-block-op-kbytes, this item determines the rate of large block operations.
+Note also, if write-reqs-per-sec is zero (read-only simulation) then no large
+block operations are done.
 
 ### Fields that you will Rarely or Never Change:
 
@@ -471,11 +482,6 @@ large-block write and large-block read operation respectively, in Kbytes.
 Flag that determines ACT's memory allocation mechanism for read transaction
 buffers -- yes means a system memory allocation call is used, no means dynamic
 stack allocation is used.  If this field is left out, the default is no.
-
-**num-write-buffers**
-Number of different large blocks of random data we choose from when doing a
-large-block write operation -- 0 will cause all zeros to be written every time. 
-If this field is left out, the default is 0.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in

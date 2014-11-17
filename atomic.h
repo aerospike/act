@@ -54,17 +54,6 @@ cf_atomic64_add(cf_atomic64 *a, int64_t b)
 #define cf_atomic64_incr(a)		(cf_atomic64_add((a), 1))
 #define cf_atomic64_decr(a)		(cf_atomic64_add((a), -1))
 
-// Until we switch usage of cf_atomic_int to cf_atomic64 in the next check-in:
-
-typedef volatile uint64_t cf_atomic_int;
-
-#define cf_atomic_int_get(a)	cf_atomic64_get(a)
-#define cf_atomic_int_set(a, b)	cf_atomic64_set(a, b)
-#define cf_atomic_int_add(a, b)	cf_atomic64_add(a, b)
-#define cf_atomic_int_sub(a, b)	cf_atomic64_sub(a, b)
-#define cf_atomic_int_incr(a)	cf_atomic64_add((a), 1)
-#define cf_atomic_int_decr(a)	cf_atomic64_add((a), -1)
-
 
 //------------------------------------------------
 // 32-bit atomic operations.

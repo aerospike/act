@@ -15,16 +15,15 @@ num-queues: 8
 threads-per-queue: 8
 test-duration-sec: 86400
 report-interval-sec: 1
+record-bytes: 1536
 read-reqs-per-sec: 24000
-large-block-ops-per-sec: 282
-read-req-num-512-blocks: 3
+
+# usually non-zero:
+write-reqs-per-sec: 12000
 large-block-op-kbytes: 128
 
 # yes|no - default is no:
 use-valloc: no
 
-# if 0, will write all zeros every time:
-num-write-buffers: 256
-
-# noop|cfq - default is noop
+# noop|cfq - default is noop:
 scheduler-mode: noop

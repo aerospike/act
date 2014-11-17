@@ -3,8 +3,8 @@ DIR_INCLUDE = .
 DIR_OBJECT = .
 DIR_TARGET = .
 
-HEADERS = atomic.h clock.h histogram.h queue.h
-SOURCES = act.c histogram.c queue.c
+HEADERS = atomic.h clock.h histogram.h queue.h random.h
+SOURCES = act.c histogram.c queue.c random.c
 TARGET = act
 
 CC = gcc
