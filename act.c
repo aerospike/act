@@ -80,7 +80,8 @@ const char TAG_SCHEDULER_MODE[]				= "scheduler-mode";
 #define WHITE_SPACE " \t\n\r"
 
 const uint32_t MIN_REC_BYTES_MINUS_1 = 128 - 1;
-const uint32_t MIN_OP_BYTES = 512;
+const uint32_t LO_IO_MIN_SIZE = 512;
+const uint32_t HI_IO_MIN_SIZE = 4096;
 const uint32_t MAX_READ_REQS_QUEUED = 100000;
 const uint64_t STAGGER = 1000;
 const uint64_t RW_STAGGER = 1000 / 2;
@@ -106,8 +107,10 @@ const uint32_t NUM_SCHEDULER_MODES = sizeof(SCHEDULER_MODES) / sizeof(char*);
 typedef struct _device {
 	const char* name;
 	int n;
-	uint64_t num_min_op_blocks;
 	uint64_t num_large_blocks;
+	uint64_t num_read_offsets;
+	uint32_t min_op_bytes;
+	uint32_t read_bytes;
 	cf_queue* p_fd_queue;
 	pthread_t large_block_read_thread;
 	pthread_t large_block_write_thread;
@@ -147,7 +150,6 @@ static uint32_t g_large_block_ops_bytes = 0;
 static bool g_use_valloc = false;
 static uint32_t g_scheduler_mode = 0;
 
-static uint32_t g_read_req_min_op_blocks = 0;
 static uint32_t g_record_stored_bytes = 0;
 static double g_large_block_ops_per_sec = 0;
 
@@ -182,14 +184,15 @@ static void		config_parse_scheduler_mode();
 static uint32_t	config_parse_uint32();
 static bool		config_parse_yes_no();
 static bool		configure(int argc, char* argv[]);
+static uint64_t	discover_min_op_bytes(int fd, const char *name);
 static bool		discover_num_blocks(device* p_device);
 static void		fd_close_all(device* p_device);
 static int		fd_get(device* p_device);
 static void		fd_put(device* p_device, int fd);
 static inline uint32_t rand_31();
 static uint64_t	rand_48();
-static uint64_t	random_read_offset(device* p_device);
-static uint64_t	random_large_block_offset(device* p_device);
+static inline uint64_t random_read_offset(device* p_device);
+static inline uint64_t random_large_block_offset(device* p_device);
 static void		read_and_report(readreq* p_readreq, uint8_t* p_buffer);
 static void		read_and_report_large_block(device* p_device,
 					uint8_t* p_buffer);
@@ -422,7 +425,7 @@ static void* run_add_readreqs(void* pv_unused) {
 
 		p_readreq->p_device = p_random_device;
 		p_readreq->offset = random_read_offset(p_random_device);
-		p_readreq->size = g_read_req_min_op_blocks * MIN_OP_BYTES;
+		p_readreq->size = p_random_device->read_bytes;
 		p_readreq->start_time = cf_getns();
 
 		cf_queue_push(g_readqs[random_queue_index].p_req_queue, &p_readreq);
@@ -624,14 +627,11 @@ static bool check_config() {
 			g_report_interval_us &&
 			g_read_reqs_per_sec &&
 			g_record_bytes &&
-			(g_write_reqs_per_sec ?
-					g_large_block_ops_bytes >= g_record_bytes : true))) {
+			g_large_block_ops_bytes >= g_record_bytes)) {
 		fprintf(stdout, "ERROR: invalid configuration\n");
 		return false;
 	}
 
-	g_read_req_min_op_blocks =
-		(g_record_bytes + MIN_OP_BYTES - 1) / MIN_OP_BYTES;
 	g_record_stored_bytes =
 		(g_record_bytes + MIN_REC_BYTES_MINUS_1) & ~MIN_REC_BYTES_MINUS_1;
 	g_large_block_ops_per_sec =
@@ -639,8 +639,6 @@ static bool check_config() {
 		(double)g_write_reqs_per_sec /
 		(double)(g_large_block_ops_bytes / g_record_stored_bytes);
 
-	fprintf(stdout, "%" PRIu32 "-byte blocks per record read: %" PRIu32 "\n",
-		MIN_OP_BYTES, g_read_req_min_op_blocks);
 	fprintf(stdout, "bytes per stored record: %" PRIu32 "\n",
 		g_record_stored_bytes);
 	fprintf(stdout, "large block ops per sec: %.2lf\n",
@@ -787,6 +785,37 @@ static bool configure(int argc, char* argv[]) {
 }
 
 //------------------------------------------------
+// Discover device's minimum direct IO op size.
+//
+static uint64_t discover_min_op_bytes(int fd, const char *name) {
+	off_t off = lseek(fd, 0, SEEK_SET);
+
+	if (off != 0) {
+		fprintf(stdout, "ERROR: %s seek\n", name);
+		return 0;
+	}
+
+	uint8_t *buf = cf_valloc(HI_IO_MIN_SIZE);
+	size_t read_sz = LO_IO_MIN_SIZE;
+
+	while (read_sz <= HI_IO_MIN_SIZE) {
+		if (read(fd, (void*)buf, read_sz) == (ssize_t)read_sz) {
+			free(buf);
+			return read_sz;
+		}
+
+		read_sz <<= 1; // LO_IO_MIN_SIZE and HI_IO_MIN_SIZE are powers of 2
+	}
+
+	fprintf(stdout, "ERROR: %s read failed at all sizes from %u to %u bytes\n",
+			name, LO_IO_MIN_SIZE, HI_IO_MIN_SIZE);
+
+	free(buf);
+
+	return 0;
+}
+
+//------------------------------------------------
 // Discover device storage capacity.
 //
 static bool discover_num_blocks(device* p_device) {
@@ -800,15 +829,27 @@ static bool discover_num_blocks(device* p_device) {
 
 	ioctl(fd, BLKGETSIZE64, &device_bytes);
 	p_device->num_large_blocks = device_bytes / g_large_block_ops_bytes;
-	p_device->num_min_op_blocks = 
-		(p_device->num_large_blocks * g_large_block_ops_bytes) / MIN_OP_BYTES;
-
-	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " %" PRIu32
-		"-byte blocks, %" PRIu64 " large blocks\n", p_device->name,
-			device_bytes, p_device->num_min_op_blocks, MIN_OP_BYTES,
-			p_device->num_large_blocks);
-
+	p_device->min_op_bytes = discover_min_op_bytes(fd, p_device->name);
 	fd_put(p_device, fd);
+
+	if (! (p_device->num_large_blocks && p_device->min_op_bytes)) {
+		return false;
+	}
+
+	uint64_t num_min_op_blocks =
+		(p_device->num_large_blocks * g_large_block_ops_bytes) /
+			p_device->min_op_bytes;
+
+	uint64_t read_req_min_op_blocks =
+		(g_record_bytes + p_device->min_op_bytes - 1) / p_device->min_op_bytes;
+
+	p_device->num_read_offsets = num_min_op_blocks - read_req_min_op_blocks + 1;
+	p_device->read_bytes = read_req_min_op_blocks * p_device->min_op_bytes;
+
+	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks, "
+		"%" PRIu64 " %" PRIu32 "-byte blocks, reads are %" PRIu32 " bytes\n",
+			p_device->name, device_bytes, p_device->num_large_blocks,
+			num_min_op_blocks, p_device->min_op_bytes, p_device->read_bytes);
 
 	return true;
 }
@@ -867,25 +908,14 @@ static uint64_t rand_48() {
 //------------------------------------------------
 // Get a random read offset for a device.
 //
-static uint64_t random_read_offset(device* p_device) {
-	if (! p_device->num_min_op_blocks) {
-		return 0;
-	}
-
-	uint64_t num_read_offsets =
-		p_device->num_min_op_blocks - (uint64_t)g_read_req_min_op_blocks + 1;
-
-	return (rand_48() % num_read_offsets) * MIN_OP_BYTES;
+static inline uint64_t random_read_offset(device* p_device) {
+	return (rand_48() % p_device->num_read_offsets) * p_device->min_op_bytes;
 }
 
 //------------------------------------------------
 // Get a random large block offset for a device.
 //
-static uint64_t random_large_block_offset(device* p_device) {
-	if (! p_device->num_large_blocks) {
-		return 0;
-	}
-
+static inline uint64_t random_large_block_offset(device* p_device) {
 	return (rand_48() % p_device->num_large_blocks) * g_large_block_ops_bytes;
 }
 

@@ -15,12 +15,12 @@ num-queues: 8
 threads-per-queue: 8
 test-duration-sec: 86400
 report-interval-sec: 1
+large-block-op-kbytes: 128
 record-bytes: 1536
 read-reqs-per-sec: 48000
 
 # usually non-zero:
 write-reqs-per-sec: 24000
-large-block-op-kbytes: 128
 
 # yes|no - default is no:
 use-valloc: no

@@ -384,7 +384,6 @@ When modifying config files, you must be sure to set:
 
 1. the device name(s)
 2. the number of reads/writes to perform
-3. the number of large block operations to perform (large-block-ops-per-sec)
 
 For example, to run a 48x test, you would modify
 the actconfig_24x.txt file to specify the correct drive and the correct number of reads/writes per drive.  For a
