@@ -21,8 +21,7 @@ Not all SSDs can handle the high volume of transactions required by high
 performance real-time databases like Aerospike Database.  Many SSDs are rated 
 for 100K+ reads/writes per second, but in production the actual load they 
 can withstand for sustained periods of time is generally much lower.  In the process
-of testing many common SSDs in high-throughput tests, Aerospike developed this certification tool, ACT, that you can use to test/certify an 
-SSD for yourself.
+of testing many common SSDs in high-throughput tests, Aerospike developed this certification tool, ACT, that you can use to test/certify an SSD for yourself.
 
 We have found performance – especially latency – of SSDs to be highly 
 dependent on the write load the SSD is subjected to. Over the first few hours of a test, 
@@ -31,7 +30,7 @@ on the drive), performance can suffer.
 
 The ACT tool allows you to test an SSD device(s) for yourself.
 In addition, Aerospike has tested a variety of SSDs and has specific recommendations.
-For more information, visit the Aerospike Database documentation at:  https://www.aerospike.com/docs.
+For more information, visit the Aerospike Database documentation at:  http://www.aerospike.com/docs.
 
 #### What the ACT Tool Does
 ---------------------------
@@ -91,7 +90,7 @@ The single-drive stage takes 48 hours.  The multi-drive stage takes an additiona
 ##### The first stage is to certify a single drive, to test the drive itself and the connection.
 
 Begin by installing your SSD device.  Our website has more details about installing SSDs in different environments
-and configurations at https://docs.aerospike.com/.
+and configurations at http://www.aerospike.com/docs.
 
 **Test 1: Test under high loads**
 
@@ -110,7 +109,7 @@ The drive passes this test if ACT runs to completion, regardless of the error ra
 ##### The second stage is to certify multiple drives, to make sure that performance scales linearly when you add drives.
 
 Install the additional SSDs to be tested.  Our website has more details about installing SSDs in different environments
-and configurations at https://docs.aerospike.com/.
+and configurations at http://www.aerospike.com/docs.
 
 **Test 3: Repeat Test 1, with all drives installed: Test under high loads**
 
