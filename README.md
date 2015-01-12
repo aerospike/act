@@ -31,7 +31,7 @@ on the drive), performance can suffer.
 
 The ACT tool allows you to test an SSD device(s) for yourself.
 In addition, Aerospike has tested a variety of SSDs and has specific recommendations.
-For more information, visit the Aerospike Database documentation at:  https://docs.aerospike.com/.
+For more information, visit the Aerospike Database documentation at:  https://www.aerospike.com/docs.
 
 #### What the ACT Tool Does
 ---------------------------
