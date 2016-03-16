@@ -34,6 +34,7 @@
 
 #include <dirent.h>
 #include <execinfo.h>	// for debugging
+#include <errno.h>	// for detailed error reporting
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -277,7 +278,7 @@ int main(int argc, char* argv[]) {
 
 			if (pthread_create(&p_device->large_block_write_thread, NULL,
 					run_large_block_writes, (void*)p_device)) {
-				fprintf(stdout, "ERROR: create large op write thread %d\n", n);
+				fprintf(stdout, "ERROR: create large op write thread %d errno=%d err_msg=\"%s\\n", n, errno, strerror(errno));
 				exit(-1);
 			}
 		}
@@ -287,7 +288,7 @@ int main(int argc, char* argv[]) {
 
 			if (pthread_create(&p_device->large_block_read_thread, NULL,
 					run_large_block_reads, (void*)p_device)) {
-				fprintf(stdout, "ERROR: create large op read thread %d\n", n);
+				fprintf(stdout, "ERROR: create large op read thread %d errno=%d err_msg=\"%s\\n", n, errno, strerror(errno));
 				exit(-1);
 			}
 		}
@@ -877,7 +878,7 @@ static int fd_get(device* p_device) {
 		fd = open(p_device->name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {
-			fprintf(stdout, "ERROR: open device %s\n", p_device->name);
+			fprintf(stdout, "ERROR: open device %s errno=%d err_msg=\"%s\"\n", p_device->name, errno, strerror(errno));
 		}
 	}
 
@@ -967,7 +968,7 @@ static uint64_t read_from_device(device* p_device, uint64_t offset,
 	if (lseek(fd, offset, SEEK_SET) != offset ||
 			read(fd, p_buffer, size) != (ssize_t)size) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & read\n");
+		fprintf(stdout, "ERROR: seek & read errno=%d err_msg=\"%s\"\n", errno, strerror(errno));
 		return -1;
 	}
 
@@ -1011,8 +1012,8 @@ static void set_schedulers() {
 		}
 
 		if (fwrite(mode, mode_length, 1, scheduler_file) != 1) {
-			fprintf(stdout, "ERROR: writing %s to %s\n", mode,
-				scheduler_file_name);
+			fprintf(stdout, "ERROR: writing %s to %s errno=%d err_msg=\"%s\"\n", mode,
+				scheduler_file_name, errno, strerror(errno));
 		}
 
 		fclose(scheduler_file);
@@ -1052,7 +1053,7 @@ static uint64_t write_to_device(device* p_device, uint64_t offset,
 	if (lseek(fd, offset, SEEK_SET) != offset ||
 			write(fd, p_buffer, size) != (ssize_t)size) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & write\n");
+		fprintf(stdout, "ERROR: seek & write errno=%d err_msg=\"%s\"\n", errno, strerror(errno));
 		return -1;
 	}
 
