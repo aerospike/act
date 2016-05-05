@@ -139,7 +139,9 @@ class RunCommand(cmd.Cmd):
 					else:
 						load_tag = 'non-standard'
 						filename_load_tag = str(read_reqs_per_sec / no_of_devices) + 'r' + str(write_reqs_per_sec / no_of_devices) + 'w'
-					actfile = 'actconfig_' + filename_load_tag + '_' + str(no_of_devices) + 'd.txt'
+					devices = device_names.split(',')
+					device_names = '_'.join([ d.split('/')[-1] for d in devices ])
+					actfile = "config_%s_%dh_%s.txt"%(filename_load_tag,tds,device_names)
 					try:
 						act_file_fd = open(actfile, "wb")
 						act_file_fd.write('##########\n')
