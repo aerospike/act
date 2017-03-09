@@ -1,0 +1,124 @@
+We have provisioned servers to add capacity to our clusters and are running the ACT test before adding them to the clusters. I wanted to ask a few questions - but first want to make sure this is something that Aerospike support can address. Here is our setup:
+
+
+We currently have 3 clusters hostnamed to reflect the datacenter they are in:
+aerospike-dalXX.collective-media.net - 6 nodes in Dallas
+aerospike-dcXX.collective-media.net - 6 nodes in Washington, DC 
+aerospike-seaXX.collective-media.net - 6 nodes in Seattle
+
+Each cluster is independent - no cross-cluster setup.
+
+Recently we have increased capacity and have provisioned servers like this:
+aerospike-dalXX.collective-media.net - 10 nodes in Dallas (additional 4 servers)
+aerospike-dcXX.collective-media.net - 10 nodes in Washington, DC  (additional 4 servers)
+aerospike-seaXX.collective-media.net - 8 nodes in Seattle (additional 2 servers)
+
+Each server is identical to the existing servers. We do not have direct control of the servers as they are in Softlayer datacenters but we know the base hardware config. It is:
+
+1 X Supermicrochassis
+1 X SuperMicro X9DRI-LN4F+ Intel Xeon DualProc 
+2 X Intel Xeon-SandyBridge E5-2650-OctoCore 
+8 X Kingston 8GB DDR3
+(Onboard SATAII Controller)
+1 X 500G Western Digital WD Caviar RE4 WD5003ABYX
+1 X 800G Intel S3700 Series SSDSC2BA800G301 
+1 X 1G Intel NICs (public LAN)
+1 X 1G Intel NICs (private LAN)
+
+
+
+
+
+These additional servers are not yet in the cluster. We thought we would take the opportunity to try the ACT test.
+
+I have it running on all new servers. Each datacenter I am doing one test at a time. At the moment I am running:
+
+4 new servers in Dallas a 1x test (standard actconfig_1x.txt)
+4 new servers in WDC a 3x test (standard actconfig_3x.txt)
+4 new servers in Seattle a 6x test (standard actconfig_6x.txt)
+
+In Seattle I also tried a 24x test which failed after a few seconds
+
+
+To run the test I am using the provided Bash script, "runact" - like this:
+
+./runact /dev/sdb actconfig_6x.txt /root/actlog/6x_`date +"%Y%m%d_%H%M"`_`hostname`_ACT.log
+
+And then am tailing the logs to watch progress.
+
+
+An example config looks like this:
+
+root@aerospike-dc08:~#   cat aerospike-act-e1ecd83/actconfig_3x.txt
+#
+# act config file for testing 1 device at 3 times normal load
+#
+
+# comma-separated list:
+device-names: /dev/sdb1
+
+# yes|no - default is no:
+queue-per-device: no
+
+# mandatory non-zero, ignored if queue-per-device is yes:
+num-queues: 2
+
+# mandatory non-zero:
+threads-per-queue: 8
+test-duration-sec: 86400
+report-interval-sec: 1
+read-reqs-per-sec: 6000
+large-block-ops-per-sec: 70
+read-req-num-512-blocks: 3
+large-block-op-kbytes: 128
+
+# yes|no - default is no:
+use-valloc: no
+
+# if 0, will write all zeros every time:
+num-write-buffers: 256
+
+# noop|cfq - default is noop
+scheduler-mode: noop
+
+
+
+
+
+I guess my first question is - do you see anyhting so far that looks out of place or misconfigured?
+
+The tests seem to be running well. I do ss this error early on in the logs:
+
+Aerospike act - device IO test
+Copyright 2011 by Aerospike. All rights reserved.
+
+CIO CONFIGURATION
+device-names: /dev/sdb1
+num-devices: 1
+queue-per-device: no
+num-queues: 2
+threads-per-queue: 8
+test-duration-sec: 86400
+report-interval-sec: 1
+read-reqs-per-sec: 2000
+large-block-ops-per-sec: 24
+read-req-num-512-blocks: 3
+large-block-op-kbytes: 128
+use-valloc: no
+num-write-buffers: 256
+scheduler-mode: noop
+
+ERROR: couldn't open /sys/block/sdb1/queue/scheduler
+/dev/sdb1 size = 799926124544 bytes, 1562355712 512-byte blocks, 6102952 large blocks
+
+
+
+Is this of concern?
+
+yrs
+
+Michael
+
+
+
+

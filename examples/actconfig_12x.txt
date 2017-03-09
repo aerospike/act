@@ -3,7 +3,7 @@
 #
 
 # comma-separated list:
-device-names: /dev/sdb? 
+device-names: /dev/sdb
 
 # yes|no - default is no:
 queue-per-device: no

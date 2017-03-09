@@ -1,5 +1,5 @@
 #
-# ACT config file for testing 1 device at 24 times normal load
+# act config file for testing 1 device at 6 times normal load
 #
 
 # comma-separated list:
@@ -9,21 +9,23 @@ device-names: /dev/sdb
 queue-per-device: no
 
 # mandatory non-zero, ignored if queue-per-device is yes:
-num-queues: 8
+num-queues: 2
 
 # mandatory non-zero:
 threads-per-queue: 8
 test-duration-sec: 86400
 report-interval-sec: 1
+read-reqs-per-sec: 8000
+#large-block-ops-per-sec: 141
+large-block-ops-per-sec: 70
+read-req-num-512-blocks: 3
 large-block-op-kbytes: 128
-record-bytes: 1536
-read-reqs-per-sec: 48000
-
-# usually non-zero:
-write-reqs-per-sec: 24000
 
 # yes|no - default is no:
 use-valloc: no
 
-# noop|cfq - default is noop:
+# if 0, will write all zeros every time:
+num-write-buffers: 256
+
+# noop|cfq - default is noop
 scheduler-mode: noop
