@@ -151,7 +151,7 @@ performance scales linearly with your connector/controller.
 **Download the ACT package through git:**
 
 ```
-$ git clone git@github.com:aerospike/act.git
+$ git clone https://github.com/aerospike/act.git
 ```
 This creates an /act directory.  
 
@@ -168,7 +168,7 @@ $ sudo yum install make gcc openssl-devel
 
 For Debian or Ubuntu:
 ```
-$ sudo apt-get install make gcc libc6-dev libssl-dev
+$ sudo apt-get install make gcc libc6-dev libssl-dev zlib1g-dev
 ```
 
 **Build the package.**
