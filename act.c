@@ -471,10 +471,9 @@ static void* run_large_block_reads(void* pv_device) {
 			((double)(count * 1000000 * g_num_devices) /
 				g_large_block_ops_per_sec);
 
-		int sleep_us = (int)(target_us - (cf_getus() - start_us));
-
-		if (sleep_us > 0) {
-			usleep((uint32_t)sleep_us);
+		if (target_us > (cf_getus() - start_us))
+		{
+			usleep((uint32_t)(target_us - (cf_getus() - start_us)));
 		}
 	}
 
@@ -509,10 +508,9 @@ static void* run_large_block_writes(void* pv_device) {
 			((double)(count * 1000000 * g_num_devices) /
 				g_large_block_ops_per_sec);
 
-		int sleep_us = (int)(target_us - (cf_getus() - start_us));
-
-		if (sleep_us > 0) {
-			usleep((uint32_t)sleep_us);
+		if (target_us > (cf_getus() - start_us))
+		{
+			usleep((uint32_t)(target_us - (cf_getus() - start_us)));
 		}
 	}
 
