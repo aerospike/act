@@ -84,6 +84,7 @@ const uint32_t MIN_REC_BYTES_MINUS_1 = 128 - 1;
 const uint32_t LO_IO_MIN_SIZE = 512;
 const uint32_t HI_IO_MIN_SIZE = 4096;
 const uint32_t MAX_READ_REQS_QUEUED = 100000;
+const int64_t MAX_SLEEP_LAG_USEC = 1000000 * 10;
 const uint64_t STAGGER = 1000;
 const uint64_t RW_STAGGER = 1000 / 2;
 const double DEFRAG_WRITE_AMPLIFICATION = 2.0;
@@ -157,7 +158,7 @@ static double g_large_block_ops_per_sec = 0;
 static device* g_devices;
 static readq* g_readqs;
 
-static uint32_t g_running;
+static volatile bool g_running;
 static uint64_t g_run_start_us;
 
 static cf_atomic32 g_read_reqs_queued = 0;
@@ -269,7 +270,7 @@ int main(int argc, char* argv[]) {
 
 	uint64_t run_stop_us = g_run_start_us + g_run_us;
 
-	g_running = 1;
+	g_running = true;
 
 	if (g_write_reqs_per_sec) {
 		// Separate loops help writer threads start on different cores.
@@ -359,7 +360,7 @@ int main(int argc, char* argv[]) {
 		fflush(stdout);
 	}
 
-	g_running = 0;
+	g_running = false;
 
 	void* pv_value;
 
@@ -433,7 +434,7 @@ static void* run_add_readreqs(void* pv_unused) {
 
 		count++;
 
-		int sleep_us = (int)
+		int64_t sleep_us = (int64_t)
 			(((count * 1000000) / g_read_reqs_per_sec) -
 				(cf_getus() - g_run_start_us));
 
@@ -471,10 +472,15 @@ static void* run_large_block_reads(void* pv_device) {
 			((double)(count * 1000000 * g_num_devices) /
 				g_large_block_ops_per_sec);
 
-		int sleep_us = (int)(target_us - (cf_getus() - start_us));
+		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
+		}
+		else if (sleep_us < -MAX_SLEEP_LAG_USEC) {
+			fprintf(stdout, "ERROR: large block reads can't keep up\n");
+			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
+			g_running = false;
 		}
 	}
 
@@ -509,10 +515,15 @@ static void* run_large_block_writes(void* pv_device) {
 			((double)(count * 1000000 * g_num_devices) /
 				g_large_block_ops_per_sec);
 
-		int sleep_us = (int)(target_us - (cf_getus() - start_us));
+		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
+		}
+		else if (sleep_us < -MAX_SLEEP_LAG_USEC) {
+			fprintf(stdout, "ERROR: large block writes can't keep up\n");
+			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
+			g_running = false;
 		}
 	}
 
