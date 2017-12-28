@@ -34,7 +34,7 @@
 
 #include <dirent.h>
 #include <execinfo.h>	// for debugging
-#include <errno.h>	// for detailed error reporting
+#include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
@@ -278,7 +278,7 @@ int main(int argc, char* argv[]) {
 
 			if (pthread_create(&p_device->large_block_write_thread, NULL,
 					run_large_block_writes, (void*)p_device)) {
-				fprintf(stdout, "ERROR: create large op write thread %d errno=%d err_msg=\"%s\\n", n, errno, strerror(errno));
+				fprintf(stdout, "ERROR: create large op write thread %d\n", n);
 				exit(-1);
 			}
 		}
@@ -288,7 +288,7 @@ int main(int argc, char* argv[]) {
 
 			if (pthread_create(&p_device->large_block_read_thread, NULL,
 					run_large_block_reads, (void*)p_device)) {
-				fprintf(stdout, "ERROR: create large op read thread %d errno=%d err_msg=\"%s\\n", n, errno, strerror(errno));
+				fprintf(stdout, "ERROR: create large op read thread %d\n", n);
 				exit(-1);
 			}
 		}
@@ -792,11 +792,18 @@ static uint64_t discover_min_op_bytes(int fd, const char *name) {
 	off_t off = lseek(fd, 0, SEEK_SET);
 
 	if (off != 0) {
-		fprintf(stdout, "ERROR: %s seek\n", name);
+		fprintf(stdout, "ERROR: %s seek errno %d '%s'\n", name, errno,
+				strerror(errno));
 		return 0;
 	}
 
 	uint8_t *buf = cf_valloc(HI_IO_MIN_SIZE);
+
+	if (! buf) {
+		fprintf(stdout, "ERROR: IO min size buffer cf_valloc()\n");
+		return 0;
+	}
+
 	size_t read_sz = LO_IO_MIN_SIZE;
 
 	while (read_sz <= HI_IO_MIN_SIZE) {
@@ -878,7 +885,8 @@ static int fd_get(device* p_device) {
 		fd = open(p_device->name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {
-			fprintf(stdout, "ERROR: open device %s errno=%d err_msg=\"%s\"\n", p_device->name, errno, strerror(errno));
+			fprintf(stdout, "ERROR: open device %s errno %d '%s'\n",
+					p_device->name, errno, strerror(errno));
 		}
 	}
 
@@ -968,7 +976,8 @@ static uint64_t read_from_device(device* p_device, uint64_t offset,
 	if (lseek(fd, offset, SEEK_SET) != offset ||
 			read(fd, p_buffer, size) != (ssize_t)size) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & read errno=%d err_msg=\"%s\"\n", errno, strerror(errno));
+		fprintf(stdout, "ERROR: seek & read errno %d '%s'\n", errno,
+				strerror(errno));
 		return -1;
 	}
 
@@ -1007,12 +1016,13 @@ static void set_schedulers() {
 		FILE* scheduler_file = fopen(scheduler_file_name, "w");
 
 		if (! scheduler_file) {
-			fprintf(stdout, "ERROR: couldn't open %s\n", scheduler_file_name);
+			fprintf(stdout, "ERROR: couldn't open %s errno %d '%s'\n",
+					scheduler_file_name, errno, strerror(errno));
 			continue;
 		}
 
 		if (fwrite(mode, mode_length, 1, scheduler_file) != 1) {
-			fprintf(stdout, "ERROR: writing %s to %s errno=%d err_msg=\"%s\"\n", mode,
+			fprintf(stdout, "ERROR: writing %s to %s errno %d '%s'\n", mode,
 				scheduler_file_name, errno, strerror(errno));
 		}
 
@@ -1053,7 +1063,8 @@ static uint64_t write_to_device(device* p_device, uint64_t offset,
 	if (lseek(fd, offset, SEEK_SET) != offset ||
 			write(fd, p_buffer, size) != (ssize_t)size) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & write errno=%d err_msg=\"%s\"\n", errno, strerror(errno));
+		fprintf(stdout, "ERROR: seek & write errno %d '%s'\n", errno,
+				strerror(errno));
 		return -1;
 	}
 
