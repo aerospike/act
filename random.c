@@ -1,7 +1,7 @@
 /*
  * random.c
  *
- * Copyright (c) 2008-2014 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,6 +33,8 @@
 //==========================================================
 // Includes
 //
+
+#include "random.h"
 
 #include <stdbool.h>
 #include <stdint.h>

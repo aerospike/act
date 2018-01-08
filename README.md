@@ -452,11 +452,6 @@ block operations are done.
 
 ### Fields that you will Rarely or Never Change:
 
-**queue-per-device**
-Flag that determines ACT's internal read transaction queue setup -- yes means
-each device is read by a single dedicated read transaction queue, no means each
-device is read by all read transaction queues. If this field is left out, the default is no.
-
 **test-duration-sec**
 Duration of the entire test, in seconds.
 Note that it has to be a single number, e.g. use 86400, not 60*60*24.
@@ -475,11 +470,6 @@ default is no.
 **large-block-op-kbytes**
 Size written and read in each
 large-block write and large-block read operation respectively, in Kbytes.
-
-**use-valloc**
-Flag that determines ACT's memory allocation mechanism for read transaction
-buffers -- yes means a system memory allocation call is used, no means dynamic
-stack allocation is used.  If this field is left out, the default is no.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in

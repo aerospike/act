@@ -6,7 +6,7 @@
  *
  * Joey Shurtleff & Andrew Gooding, 2011.
  *
- * Copyright (c) 2008-2014 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -51,6 +51,7 @@
 
 #include "atomic.h"
 #include "clock.h"
+#include "configuration.h"
 #include "histogram.h"
 #include "queue.h"
 #include "random.h"
@@ -62,39 +63,12 @@
 
 const char VERSION[] = "3.0";
 
-const char TAG_DEVICE_NAMES[]				= "device-names";
-const char TAG_QUEUE_PER_DEVICE[]			= "queue-per-device";
-const char TAG_NUM_QUEUES[]					= "num-queues";
-const char TAG_THREADS_PER_QUEUE[]			= "threads-per-queue";
-const char TAG_RUN_SEC[]					= "test-duration-sec";
-const char TAG_REPORT_INTERVAL_SEC[]		= "report-interval-sec";
-const char TAG_MICROSECOND_HISTOGRAMS[]		= "microsecond-histograms";
-const char TAG_READ_REQS_PER_SEC[]			= "read-reqs-per-sec";
-const char TAG_WRITE_REQS_PER_SEC[]			= "write-reqs-per-sec";
-const char TAG_RECORD_BYTES[]				= "record-bytes";
-const char TAG_LARGE_BLOCK_OP_KBYTES[]		= "large-block-op-kbytes";
-const char TAG_USE_VALLOC[]					= "use-valloc";
-const char TAG_SCHEDULER_MODE[]				= "scheduler-mode";
-
-#define MAX_NUM_DEVICES 32
-#define MAX_DEVICE_NAME_SIZE 64
-#define WHITE_SPACE " \t\n\r"
-
-const uint32_t MIN_REC_BYTES_MINUS_1 = 128 - 1;
 const uint32_t LO_IO_MIN_SIZE = 512;
 const uint32_t HI_IO_MIN_SIZE = 4096;
 const uint32_t MAX_READ_REQS_QUEUED = 100000;
 const int64_t MAX_SLEEP_LAG_USEC = 1000000 * 10;
 const uint64_t STAGGER = 1000;
 const uint64_t RW_STAGGER = 1000 / 2;
-const double DEFRAG_WRITE_AMPLIFICATION = 2.0;
-
-const char* const SCHEDULER_MODES[] = {
-	"noop",
-	"cfq"
-};
-
-const uint32_t NUM_SCHEDULER_MODES = sizeof(SCHEDULER_MODES) / sizeof(char*);
 
 // Linux has removed O_DIRECT, but not its functionality.
 #ifndef O_DIRECT
@@ -108,7 +82,7 @@ const uint32_t NUM_SCHEDULER_MODES = sizeof(SCHEDULER_MODES) / sizeof(char*);
 
 typedef struct _device {
 	const char* name;
-	int n;
+	uint32_t n;
 	uint64_t num_large_blocks;
 	uint64_t num_read_offsets;
 	uint32_t min_op_bytes;
@@ -137,24 +111,6 @@ typedef struct _readq {
 // Globals
 //
 
-static char g_device_names[MAX_NUM_DEVICES][MAX_DEVICE_NAME_SIZE];
-static uint32_t g_num_devices = 0;
-static bool g_queue_per_device = false;
-static uint32_t g_num_queues = 0;
-static uint32_t g_threads_per_queue = 0;
-static uint64_t g_run_us = 0;
-static uint64_t g_report_interval_us = 0;
-static bool g_us_histograms = false;
-static uint64_t g_read_reqs_per_sec = 0;
-static uint32_t g_write_reqs_per_sec = 0;
-static uint32_t g_record_bytes = 0;
-static uint32_t g_large_block_ops_bytes = 0;
-static bool g_use_valloc = false;
-static uint32_t g_scheduler_mode = 0;
-
-static uint32_t g_record_stored_bytes = 0;
-static double g_large_block_ops_per_sec = 0;
-
 static device* g_devices;
 static readq* g_readqs;
 
@@ -180,12 +136,6 @@ static void*	run_reads(void* pv_req_queue);
 
 static inline uint8_t* align_4096(uint8_t* stack_buffer);
 static inline uint8_t* cf_valloc(size_t size);
-static bool		check_config();
-static void		config_parse_device_names();
-static void		config_parse_scheduler_mode();
-static uint32_t	config_parse_uint32();
-static bool		config_parse_yes_no();
-static bool		configure(int argc, char* argv[]);
 static uint64_t	discover_min_op_bytes(int fd, const char *name);
 static bool		discover_num_blocks(device* p_device);
 static void		fd_close_all(device* p_device);
@@ -234,14 +184,14 @@ int main(int argc, char* argv[]) {
 		exit(-1);
 	}
 
-	device devices[g_num_devices];
-	readq readqs[g_num_queues];
+	device devices[g_cfg.num_devices];
+	readq readqs[g_cfg.num_queues];
 
 	g_devices = devices;
 	g_readqs = readqs;
 
 	histogram_scale scale =
-			g_us_histograms ? HIST_MICROSECONDS : HIST_MILLISECONDS;
+			g_cfg.us_histograms ? HIST_MICROSECONDS : HIST_MILLISECONDS;
 
 	if (! (g_p_large_block_read_histogram = histogram_create(scale)) ||
 		! (g_p_large_block_write_histogram = histogram_create(scale)) ||
@@ -250,10 +200,10 @@ int main(int argc, char* argv[]) {
 		exit(-1);
 	}
 
-	for (int n = 0; n < g_num_devices; n++) {
+	for (uint32_t n = 0; n < g_cfg.num_devices; n++) {
 		device* p_device = &g_devices[n];
 
-		p_device->name = g_device_names[n];
+		p_device->name = g_cfg.device_names[n];
 		p_device->n = n;
 
 		if (! (p_device->p_fd_queue = cf_queue_create(sizeof(int), true)) ||
@@ -265,37 +215,37 @@ int main(int argc, char* argv[]) {
 		sprintf(p_device->histogram_tag, "%-18s", p_device->name);
 	}
 
-	usleep((g_num_devices + 1) * STAGGER); // so we can stagger large block ops
+	usleep((g_cfg.num_devices + 1) * STAGGER); // stagger large block ops
 	g_run_start_us = cf_getus();
 
-	uint64_t run_stop_us = g_run_start_us + g_run_us;
+	uint64_t run_stop_us = g_run_start_us + g_cfg.run_us;
 
 	g_running = true;
 
-	if (g_write_reqs_per_sec) {
+	if (g_cfg.write_reqs_per_sec != 0) {
 		// Separate loops help writer threads start on different cores.
-		for (int n = 0; n < g_num_devices; n++) {
+		for (uint32_t n = 0; n < g_cfg.num_devices; n++) {
 			device* p_device = &g_devices[n];
 
 			if (pthread_create(&p_device->large_block_write_thread, NULL,
 					run_large_block_writes, (void*)p_device)) {
-				fprintf(stdout, "ERROR: create large op write thread %d\n", n);
+				fprintf(stdout, "ERROR: create large op write thread %u\n", n);
 				exit(-1);
 			}
 		}
 
-		for (int n = 0; n < g_num_devices; n++) {
+		for (uint32_t n = 0; n < g_cfg.num_devices; n++) {
 			device* p_device = &g_devices[n];
 
 			if (pthread_create(&p_device->large_block_read_thread, NULL,
 					run_large_block_reads, (void*)p_device)) {
-				fprintf(stdout, "ERROR: create large op read thread %d\n", n);
+				fprintf(stdout, "ERROR: create large op read thread %u\n", n);
 				exit(-1);
 			}
 		}
 	}
 
-	for (int i = 0; i < g_num_queues; i++) {
+	for (uint32_t i = 0; i < g_cfg.num_queues; i++) {
 		readq* p_readq = &g_readqs[i];
 
 		if (! (p_readq->p_req_queue =
@@ -304,15 +254,15 @@ int main(int argc, char* argv[]) {
 		}
 
 		if (! (p_readq->threads =
-				malloc(sizeof(pthread_t) * g_threads_per_queue))) {
-			fprintf(stdout, "ERROR: malloc read threads %d\n", i);
+				malloc(sizeof(pthread_t) * g_cfg.threads_per_queue))) {
+			fprintf(stdout, "ERROR: malloc read threads %u\n", i);
 			exit(-1);
 		}
 
-		for (int j = 0; j < g_threads_per_queue; j++) {
+		for (uint32_t j = 0; j < g_cfg.threads_per_queue; j++) {
 			if (pthread_create(&p_readq->threads[j], NULL, run_reads,
 					(void*)p_readq->p_req_queue)) {
-				fprintf(stdout, "ERROR: create read thread %d:%d\n", i, j);
+				fprintf(stdout, "ERROR: create read thread %u:%u\n", i, j);
 				exit(-1);
 			}
 		}
@@ -333,15 +283,15 @@ int main(int argc, char* argv[]) {
 	while (g_running && (now_us = cf_getus()) < run_stop_us) {
 		count++;
 
-		int sleep_us = (int)
-			((count * g_report_interval_us) - (now_us - g_run_start_us));
+		int64_t sleep_us = (int64_t)
+			((count * g_cfg.report_interval_us) - (now_us - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
 		}
 
 		fprintf(stdout, "After %" PRIu64 " sec:\n",
-			(count * g_report_interval_us) / 1000000);
+			(count * g_cfg.report_interval_us) / 1000000);
 
 		fprintf(stdout, "read-reqs queued: %" PRIu32 "\n",
 			cf_atomic32_get(g_read_reqs_queued));
@@ -350,7 +300,7 @@ int main(int argc, char* argv[]) {
 		histogram_dump(g_p_large_block_write_histogram, "LARGE BLOCK WRITES");
 		histogram_dump(g_p_raw_read_histogram,          "RAW READS         ");
 
-		for (int d = 0; d < g_num_devices; d++) {			
+		for (uint32_t d = 0; d < g_cfg.num_devices; d++) {
 			histogram_dump(g_devices[d].p_raw_read_histogram,
 				g_devices[d].histogram_tag);	
 		}
@@ -366,10 +316,10 @@ int main(int argc, char* argv[]) {
 
 	pthread_join(thr_add_readreqs, &pv_value);
 
-	for (int i = 0; i < g_num_queues; i++) {
+	for (uint32_t i = 0; i < g_cfg.num_queues; i++) {
 		readq* p_readq = &g_readqs[i];
 
-		for (int j = 0; j < g_threads_per_queue; j++) {
+		for (uint32_t j = 0; j < g_cfg.threads_per_queue; j++) {
 			pthread_join(p_readq->threads[j], &pv_value);
 		}
 
@@ -377,10 +327,10 @@ int main(int argc, char* argv[]) {
 		free(p_readq->threads);
 	}
 
-	for (int d = 0; d < g_num_devices; d++) {
+	for (uint32_t d = 0; d < g_cfg.num_devices; d++) {
 		device* p_device = &g_devices[d];
 
-		if (g_write_reqs_per_sec) {
+		if (g_cfg.write_reqs_per_sec != 0) {
 			pthread_join(p_device->large_block_read_thread, &pv_value);
 			pthread_join(p_device->large_block_write_thread, &pv_value);
 		}
@@ -418,9 +368,8 @@ static void* run_add_readreqs(void* pv_unused) {
 			break;
 		}
 
-		uint32_t random_queue_index = rand_31() % g_num_queues;
-		uint32_t random_device_index =
-			g_queue_per_device ? random_queue_index : rand_31() % g_num_devices;
+		uint32_t queue_index = count % g_cfg.num_queues;
+		uint32_t random_device_index = rand_31() % g_cfg.num_devices;
 
 		device* p_random_device = &g_devices[random_device_index];
 		readreq* p_readreq = malloc(sizeof(readreq));
@@ -430,12 +379,12 @@ static void* run_add_readreqs(void* pv_unused) {
 		p_readreq->size = p_random_device->read_bytes;
 		p_readreq->start_time = cf_getns();
 
-		cf_queue_push(g_readqs[random_queue_index].p_req_queue, &p_readreq);
+		cf_queue_push(g_readqs[queue_index].p_req_queue, &p_readreq);
 
 		count++;
 
 		int64_t sleep_us = (int64_t)
-			(((count * 1000000) / g_read_reqs_per_sec) -
+			(((count * 1000000) / g_cfg.read_reqs_per_sec) -
 				(cf_getus() - g_run_start_us));
 
 		if (sleep_us > 0) {
@@ -453,7 +402,7 @@ static void* run_add_readreqs(void* pv_unused) {
 static void* run_large_block_reads(void* pv_device) {
 	device* p_device = (device*)pv_device;
 
-	uint8_t* p_buffer = cf_valloc(g_large_block_ops_bytes);
+	uint8_t* p_buffer = cf_valloc(g_cfg.large_block_ops_bytes);
 
 	if (! p_buffer) {
 		fprintf(stdout, "ERROR: large block read buffer cf_valloc()\n");
@@ -469,8 +418,8 @@ static void* run_large_block_reads(void* pv_device) {
 		count++;
 
 		uint64_t target_us = (uint64_t)
-			((double)(count * 1000000 * g_num_devices) /
-				g_large_block_ops_per_sec);
+			((double)(count * 1000000 * g_cfg.num_devices) /
+				g_cfg.large_block_ops_per_sec);
 
 		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - start_us));
 
@@ -496,7 +445,7 @@ static void* run_large_block_reads(void* pv_device) {
 static void* run_large_block_writes(void* pv_device) {
 	device* p_device = (device*)pv_device;
 
-	uint8_t* p_buffer = cf_valloc(g_large_block_ops_bytes);
+	uint8_t* p_buffer = cf_valloc(g_cfg.large_block_ops_bytes);
 
 	if (! p_buffer) {
 		fprintf(stdout, "ERROR: large block write buffer cf_valloc()\n");
@@ -512,8 +461,8 @@ static void* run_large_block_writes(void* pv_device) {
 		count++;
 
 		uint64_t target_us = (uint64_t)
-			((double)(count * 1000000 * g_num_devices) /
-				g_large_block_ops_per_sec);
+			((double)(count * 1000000 * g_cfg.num_devices) /
+				g_cfg.large_block_ops_per_sec);
 
 		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - start_us));
 
@@ -546,23 +495,10 @@ static void* run_reads(void* pv_req_queue) {
 			continue;
 		}
 
-		if (g_use_valloc) {
-			uint8_t* p_buffer = cf_valloc(p_readreq->size);
+		uint8_t stack_buffer[p_readreq->size + 4096];
+		uint8_t* p_buffer = align_4096(stack_buffer);
 
-			if (p_buffer) {
-				read_and_report(p_readreq, p_buffer);
-				free(p_buffer);
-			}
-			else {
-				fprintf(stdout, "ERROR: read buffer cf_valloc()\n");
-			}
-		}
-		else {
-			uint8_t stack_buffer[p_readreq->size + 4096];
-			uint8_t* p_buffer = align_4096(stack_buffer);
-
-			read_and_report(p_readreq, p_buffer);
-		}
+		read_and_report(p_readreq, p_buffer);
 
 		free(p_readreq);
 		cf_atomic32_decr(&g_read_reqs_queued);
@@ -590,210 +526,6 @@ static inline uint8_t* cf_valloc(size_t size) {
 	void* pv;
 
 	return posix_memalign(&pv, 4096, size) == 0 ? (uint8_t*)pv : 0;
-}
-
-//------------------------------------------------
-// Check (and finish setting) run parameters.
-//
-static bool check_config() {
-	fprintf(stdout, "ACT CONFIGURATION\n");
-
-	fprintf(stdout, "%s:", TAG_DEVICE_NAMES);
-
-	for (int d = 0; d < g_num_devices; d++) {
-		fprintf(stdout, " %s", g_device_names[d]);
-	}
-
-	fprintf(stdout, "\nnum-devices: %" PRIu32 "\n",
-		g_num_devices);
-	fprintf(stdout, "%s: %s\n",				TAG_QUEUE_PER_DEVICE,
-		g_queue_per_device ? "yes" : "no");
-	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_NUM_QUEUES,
-		g_num_queues);
-	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_THREADS_PER_QUEUE,
-		g_threads_per_queue);
-	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_RUN_SEC,
-		g_run_us / 1000000);
-	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_REPORT_INTERVAL_SEC,
-		g_report_interval_us / 1000000);
-	fprintf(stdout, "%s: %s\n",				TAG_MICROSECOND_HISTOGRAMS,
-		g_us_histograms ? "yes" : "no");
-	fprintf(stdout, "%s: %" PRIu64 "\n",	TAG_READ_REQS_PER_SEC,
-		g_read_reqs_per_sec);
-	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_WRITE_REQS_PER_SEC,
-		g_write_reqs_per_sec);
-	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_RECORD_BYTES,
-		g_record_bytes);
-	fprintf(stdout, "%s: %" PRIu32 "\n",	TAG_LARGE_BLOCK_OP_KBYTES,
-		g_large_block_ops_bytes / 1024);
-	fprintf(stdout, "%s: %s\n",				TAG_USE_VALLOC,
-		g_use_valloc ? "yes" : "no");
-	fprintf(stdout, "%s: %s\n",				TAG_SCHEDULER_MODE,
-		SCHEDULER_MODES[g_scheduler_mode]);
-	fprintf(stdout, "\n");
-
-	if (! (	g_num_devices &&
-			g_num_queues &&
-			g_threads_per_queue &&
-			g_run_us &&
-			g_report_interval_us &&
-			g_read_reqs_per_sec &&
-			g_record_bytes &&
-			g_large_block_ops_bytes >= g_record_bytes)) {
-		fprintf(stdout, "ERROR: invalid configuration\n");
-		return false;
-	}
-
-	g_record_stored_bytes =
-		(g_record_bytes + MIN_REC_BYTES_MINUS_1) & ~MIN_REC_BYTES_MINUS_1;
-	g_large_block_ops_per_sec =
-		DEFRAG_WRITE_AMPLIFICATION *
-		(double)g_write_reqs_per_sec /
-		(double)(g_large_block_ops_bytes / g_record_stored_bytes);
-
-	fprintf(stdout, "bytes per stored record: %" PRIu32 "\n",
-		g_record_stored_bytes);
-	fprintf(stdout, "large block ops per sec: %.2lf\n",
-		g_large_block_ops_per_sec);
-	fprintf(stdout, "\n");
-
-	return true;
-}
-
-//------------------------------------------------
-// Parse device names parameter.
-//
-static void config_parse_device_names() {
-	const char* val;
-
-	while ((val = strtok(NULL, ",;" WHITE_SPACE)) != NULL) {
-		int name_length = strlen(val);
-
-		if (name_length == 0 || name_length >= MAX_DEVICE_NAME_SIZE) {
-			continue;
-		}
-
-		strcpy(g_device_names[g_num_devices], val);
-		g_num_devices++;
-
-		if (g_num_devices >= MAX_NUM_DEVICES) {
-			break;
-		}
-	}
-}
-
-//------------------------------------------------
-// Parse system block scheduler mode.
-//
-static void config_parse_scheduler_mode() {
-	const char* val = strtok(NULL, WHITE_SPACE);
-
-	if (! val) {
-		return;
-	}
-
-	for (uint32_t m = 0; m < NUM_SCHEDULER_MODES; m++) {
-		if (! strcmp(val, SCHEDULER_MODES[m])) {
-			g_scheduler_mode = m;
-		}
-	}
-}
-
-//------------------------------------------------
-// Parse numeric run parameter.
-//
-static uint32_t config_parse_uint32() {
-	const char* val = strtok(NULL, WHITE_SPACE);
-
-	return val ? strtoul(val, NULL, 10) : 0;
-}
-
-//------------------------------------------------
-// Parse yes/no run parameter.
-//
-static bool config_parse_yes_no() {
-	const char* val = strtok(NULL, WHITE_SPACE);
-
-	return val && *val == 'y';
-}
-
-//------------------------------------------------
-// Set run parameters.
-//
-static bool configure(int argc, char* argv[]) {
-	if (argc != 2) {
-		fprintf(stdout, "usage: act [config filename]\n");
-		return false;
-	}
-
-	FILE* config_file = fopen(argv[1], "r");
-
-	if (! config_file) {
-		fprintf(stdout, "couldn't open config file: %s\n", argv[1]);
-		return false;
-	}
-
-	char line[1024];
-
-	while (fgets(line, sizeof(line), config_file)) {
-		if (*line == '#') {
-			continue;
-		}
-
-		const char* tag = strtok(line, ":" WHITE_SPACE);
-
-		if (! tag) {
-			continue;
-		}
-
-		if		(! strcmp(tag, TAG_DEVICE_NAMES)) {
-			config_parse_device_names();
-		}
-		else if (! strcmp(tag, TAG_QUEUE_PER_DEVICE)) {
-			g_queue_per_device = config_parse_yes_no();
-		}
-		else if (! strcmp(tag, TAG_NUM_QUEUES)) {
-			g_num_queues = config_parse_uint32();
-		}
-		else if (! strcmp(tag, TAG_THREADS_PER_QUEUE)) {
-			g_threads_per_queue = config_parse_uint32();
-		}
-		else if (! strcmp(tag, TAG_RUN_SEC)) {
-			g_run_us = (uint64_t)config_parse_uint32() * 1000000;
-		}
-		else if (! strcmp(tag, TAG_REPORT_INTERVAL_SEC)) {
-			g_report_interval_us = (uint64_t)config_parse_uint32() * 1000000;
-		}
-		else if (! strcmp(tag, TAG_MICROSECOND_HISTOGRAMS)) {
-			g_us_histograms = config_parse_yes_no();
-		}
-		else if (! strcmp(tag, TAG_READ_REQS_PER_SEC)) {
-			g_read_reqs_per_sec = (uint64_t)config_parse_uint32();
-		}
-		else if (! strcmp(tag, TAG_WRITE_REQS_PER_SEC)) {
-			g_write_reqs_per_sec = config_parse_uint32();
-		}
-		else if (! strcmp(tag, TAG_RECORD_BYTES)) {
-			g_record_bytes = config_parse_uint32();
-		}
-		else if (! strcmp(tag, TAG_LARGE_BLOCK_OP_KBYTES)) {
-			g_large_block_ops_bytes = config_parse_uint32() * 1024;
-		}
-		else if (! strcmp(tag, TAG_USE_VALLOC)) {
-			g_use_valloc = config_parse_yes_no();
-		}
-		else if (! strcmp(tag, TAG_SCHEDULER_MODE)) {
-			config_parse_scheduler_mode();
-		}
-	}
-
-	fclose(config_file);
-
-	if (g_queue_per_device) {
-		g_num_queues = g_num_devices;
-	}
-
-	return check_config();
 }
 
 //------------------------------------------------
@@ -847,7 +579,7 @@ static bool discover_num_blocks(device* p_device) {
 	uint64_t device_bytes = 0;
 
 	ioctl(fd, BLKGETSIZE64, &device_bytes);
-	p_device->num_large_blocks = device_bytes / g_large_block_ops_bytes;
+	p_device->num_large_blocks = device_bytes / g_cfg.large_block_ops_bytes;
 	p_device->min_op_bytes = discover_min_op_bytes(fd, p_device->name);
 	fd_put(p_device, fd);
 
@@ -856,11 +588,12 @@ static bool discover_num_blocks(device* p_device) {
 	}
 
 	uint64_t num_min_op_blocks =
-		(p_device->num_large_blocks * g_large_block_ops_bytes) /
+		(p_device->num_large_blocks * g_cfg.large_block_ops_bytes) /
 			p_device->min_op_bytes;
 
 	uint64_t read_req_min_op_blocks =
-		(g_record_bytes + p_device->min_op_bytes - 1) / p_device->min_op_bytes;
+		(g_cfg.record_bytes + p_device->min_op_bytes - 1) /
+			p_device->min_op_bytes;
 
 	p_device->num_read_offsets = num_min_op_blocks - read_req_min_op_blocks + 1;
 	p_device->read_bytes = read_req_min_op_blocks * p_device->min_op_bytes;
@@ -936,7 +669,8 @@ static inline uint64_t random_read_offset(device* p_device) {
 // Get a random large block offset for a device.
 //
 static inline uint64_t random_large_block_offset(device* p_device) {
-	return (rand_48() % p_device->num_large_blocks) * g_large_block_ops_bytes;
+	return (rand_48() % p_device->num_large_blocks) *
+			g_cfg.large_block_ops_bytes;
 }
 
 //------------------------------------------------
@@ -965,7 +699,7 @@ static void read_and_report_large_block(device* p_device, uint8_t* p_buffer) {
 	uint64_t offset = random_large_block_offset(p_device);
 	uint64_t start_time = cf_getns();
 	uint64_t stop_time = read_from_device(p_device, offset,
-		g_large_block_ops_bytes, p_buffer);
+		g_cfg.large_block_ops_bytes, p_buffer);
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_large_block_read_histogram,
@@ -1010,11 +744,11 @@ static inline uint64_t safe_delta_ns(uint64_t start_ns, uint64_t stop_ns) {
 // Set devices' system block schedulers.
 //
 static void set_schedulers() {
-	const char* mode = SCHEDULER_MODES[g_scheduler_mode];
+	const char* mode = SCHEDULER_MODES[g_cfg.scheduler_mode];
 	size_t mode_length = strlen(mode);
 
-	for (uint32_t d = 0; d < g_num_devices; d++) {
-		const char* device_name = g_device_names[d];
+	for (uint32_t d = 0; d < g_cfg.num_devices; d++) {
+		const char* device_name = g_cfg.device_names[d];
 		const char* p_slash = strrchr(device_name, '/');
 		const char* device_tag = p_slash ? p_slash + 1 : device_name;
 
@@ -1047,12 +781,12 @@ static void set_schedulers() {
 static void write_and_report_large_block(device* p_device, uint8_t* p_buffer,
 		uint64_t count) {
 	// Salt the block each time.
-	rand_fill(p_buffer, g_large_block_ops_bytes);
+	rand_fill(p_buffer, g_cfg.large_block_ops_bytes);
 
 	uint64_t offset = random_large_block_offset(p_device);
 	uint64_t start_time = cf_getns();
 	uint64_t stop_time = write_to_device(p_device, offset,
-		g_large_block_ops_bytes, p_buffer);
+		g_cfg.large_block_ops_bytes, p_buffer);
 
 	if (stop_time != -1) {
 		histogram_insert_data_point(g_p_large_block_write_histogram,

@@ -19,14 +19,13 @@ class RunCommand(cmd.Cmd):
 	def do_createconfig(self,line):
 
 		device_names = ''
-		queue_per_device = 'no'
 		num_queues = 8
 		threads_per_queue = 8
 		test_duration_sec = 86400
 		report_interval_sec = 1
 		record_bytes = 1536
 		large_block_op_kbytes = 128
-		use_valloc= 'no'
+		microsecond_histograms = 'no'
 		scheduler_mode = 'noop'
 		use_standard = True
 		device_load = -1
@@ -147,11 +146,8 @@ class RunCommand(cmd.Cmd):
 						act_file_fd.write('##########\n\n')
 						act_file_fd.write('# comma-separated list:\n')
 						act_file_fd.write('device-names: %s\n\n' % str(device_names))
-						act_file_fd.write('# yes|no - default is no:\n')
-						act_file_fd.write('queue-per-device: %s\n\n' % str(queue_per_device))
-						act_file_fd.write('# mandatory non-zero, ignored if queue-per-device is yes:\n')
-						act_file_fd.write('num-queues: %s\n\n' % str(num_queues))
 						act_file_fd.write('# mandatory non-zero:\n')
+						act_file_fd.write('num-queues: %s\n' % str(num_queues))
 						act_file_fd.write('threads-per-queue: %s\n' % str(threads_per_queue))
 						act_file_fd.write('test-duration-sec: %s\n' % str(test_duration_sec))
 						act_file_fd.write('report-interval-sec: %s\n' % str(report_interval_sec))
@@ -161,7 +157,7 @@ class RunCommand(cmd.Cmd):
 						act_file_fd.write('# usually non-zero:\n')
 						act_file_fd.write('write-reqs-per-sec: %s\n' % str(write_reqs_per_sec))
 						act_file_fd.write('# yes|no - default is no:\n')
-						act_file_fd.write('use-valloc: %s\n\n' % str(use_valloc))
+						act_file_fd.write('microsecond-histograms: %s\n\n' % str(microsecond_histograms))
 						act_file_fd.write('# noop|cfq - default is noop:\n')
 						act_file_fd.write('scheduler-mode: %s\n' % str(scheduler_mode))
 						act_file_fd.close()
