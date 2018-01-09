@@ -61,7 +61,7 @@
 // Constants
 //
 
-const char VERSION[] = "3.0";
+const char VERSION[] = "3.1";
 
 const uint32_t LO_IO_MIN_SIZE = 512;
 const uint32_t HI_IO_MIN_SIZE = 4096;
