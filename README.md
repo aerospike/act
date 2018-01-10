@@ -471,6 +471,33 @@ default is no.
 Size written and read in each
 large-block write and large-block read operation respectively, in Kbytes.
 
+**replication-factor**
+Simulate the device load you would see if this node was in a cluster with the
+specified replication-factor.  Increasing replication-factor increases the write
+load, e.g. replication-factor 2 doubles the write load, and therefore doubles
+the large-block read and write rates.  It does not ever affect the record-sized
+read rate, however, since replica writes are always replaces (not updates).
+The default replication-factor is 1.
+
+**update-pct**
+Simulate the device load you would see if this percentage of write requests were
+updates, as opposed to replaces.  Updates cause the current version of a record
+to be read before the modified version is written, while replaces do not need to
+read the current version.  Therefore a non-zero update-pct will generate a
+bigger internal record-sized read rate.  E.g. if read-reqs-per-sec is 2000 and
+write-reqs-per-sec is 1000, the internal read-req rate will be somewhere between
+2000 (update-pct 0), and 2000 + 1000 = 3000 (update-pct 100).
+The default update-pct is 0.
+
+**defrag-lwm-pct**
+Simulate the device load you would see if this was the defrag threshold. The
+lower the threshold, the emptier large blocks are when we defragment them (pack
+the remaining records into new blocks), and the lower the "write amplification"
+caused by defragmentation.  E.g. if defrag-lwm-pct is 50, the write
+amplification will be 2x, meaning defragmentation doubles the internal effective
+write rate, which for ACT is manifest as the large-block read and write rates.
+The default defrag-lwm-pct is 50.
+
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in
 the test run -- noop means no special scheduling is done for device I/O
