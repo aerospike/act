@@ -151,7 +151,7 @@ performance scales linearly with your connector/controller.
 **Download the ACT package through git:**
 
 ```
-$ git https://github.com/aerospike/act.git
+$ git clone https://github.com/aerospike/act.git
 ```
 This creates an /act directory.
 
