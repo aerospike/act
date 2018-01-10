@@ -7,7 +7,7 @@ This project is maintained by [Aerospike](http://www.aerospike.com)
 
 ACT is a program for testing and certifying flash/SSD devices' performance for
 Aerospike Database (with SATA, SAS and PCIe connectors).  ACT shows latency responses when you are reading from and writing to
-the database concurrently while modeling the Aerospike Database server's I/O 
+the database concurrently while modeling the Aerospike Database server's I/O
 pattern as closely as practical.
 
 ACT allows you to test a single drive or multiple drives, using your actual connector/controller hardware.
@@ -17,15 +17,15 @@ The purpose of this certification is:
 1. Determine if an SSD device(s) will stand up to the demands of a high-speed real-time database
 2. Evaluate the upper limits of the throughput you can expect from a drive(s)
 
-Not all SSDs can handle the high volume of transactions required by high 
-performance real-time databases like Aerospike Database.  Many SSDs are rated 
-for 100K+ reads/writes per second, but in production the actual load they 
+Not all SSDs can handle the high volume of transactions required by high
+performance real-time databases like Aerospike Database.  Many SSDs are rated
+for 100K+ reads/writes per second, but in production the actual load they
 can withstand for sustained periods of time is generally much lower.  In the process
 of testing many common SSDs in high-throughput tests, Aerospike developed this certification tool, ACT, that you can use to test/certify an SSD for yourself.
 
-We have found performance – especially latency – of SSDs to be highly 
-dependent on the write load the SSD is subjected to. Over the first few hours of a test, 
-performance can be excellent, but past the 4- to 10-hour mark (depending 
+We have found performance – especially latency – of SSDs to be highly
+dependent on the write load the SSD is subjected to. Over the first few hours of a test,
+performance can be excellent, but past the 4- to 10-hour mark (depending
 on the drive), performance can suffer.
 
 The ACT tool allows you to test an SSD device(s) for yourself.
@@ -38,10 +38,10 @@ For more information, visit the Aerospike Database documentation at:  http://www
 ACT performs a combination of large (128K) block reads and writes and small (1.5K) block reads, simulating
 standard real-time database read/write loads.
 
-Reads and write latency is measured for a long enough period of time (typically 24 hours) to evaluate drive stability and 
+Reads and write latency is measured for a long enough period of time (typically 24 hours) to evaluate drive stability and
 overall performance.
 
-**Traffic/Loading** 
+**Traffic/Loading**
 
 You can simulate:
 
@@ -49,9 +49,9 @@ You can simulate:
 * 3x - high load (6000 reads/sec and 3000 writes/sec per drive)
 * any other stress load or high-performance load (custom configurable)
 
-**Latency Rate Analysis**  
+**Latency Rate Analysis**
 
-ACT's output shows latency rates broken down by intervals of 1, 8 and 64 ms (configurable). 
+ACT's output shows latency rates broken down by intervals of 1, 8 and 64 ms (configurable).
 
 For example, the test might indicate that 0.25% of requests
 failed to complete in 1 ms or less and 0.01% of requests failed to complete in 8 ms or less.
@@ -78,8 +78,8 @@ the test based on your requirements.**
 
 To certify a drive(s) for 3x performance with Aerospike Database requires two stages:
 
-1. Test a single drive to determine performance using the hardware configuration and connectors. The single-device certification will help you determine individual drive performance. 
-2. If you will be using multiple drives, you can then run ACT to test multiple drives to see how 
+1. Test a single drive to determine performance using the hardware configuration and connectors. The single-device certification will help you determine individual drive performance.
+2. If you will be using multiple drives, you can then run ACT to test multiple drives to see how
 the results will be affected by the capacity of the bus or the throughput of the RAID controller that is managing your drives.
 
 The test process with ACT is the same for both stages, but in the first stage you are testing a drive and
@@ -127,12 +127,12 @@ Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The drives pass
 #### Determining Expected Performance at Higher Throughput
 -------------------------------------------------------
 
-If your application is going to have high volumes of transactions and your drive(s) passes the 3x certification, 
+If your application is going to have high volumes of transactions and your drive(s) passes the 3x certification,
 we recommend that you test your drive to determine its upper limit on transaction processing latency.  This will help
 you determine how many SSDs you will need to run your application when you are fully scaled up.
 
 To certify a drive(s) at higher levels of performance, do the certification process as described above, but use higher loads (12x, 24x, etc.).
-Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.  
+Test the drive(s) at progressively higher rates until more than 5% of operations fail in 1 ms.
 
 For example, if you test at 24x and less than 5% of operations fail to complete in 1 ms, re-run the test at 48x, etc.  When the drive completes
 the test at a particular speed with *more* than 5% of operations failing to complete in 1 ms (i.e., fails the test), then the drive is certified at the
@@ -151,9 +151,9 @@ performance scales linearly with your connector/controller.
 **Download the ACT package through git:**
 
 ```
-$ git clone git@github.com:aerospike/act.git
+$ git https://github.com/aerospike/act.git
 ```
-This creates an /act directory.  
+This creates an /act directory.
 
 Alternately you can download the ZIP or TAR file from the links at the left.
 When you unpack/untar the file, it acreates an /aerospike-act-<version> directory.
@@ -186,11 +186,11 @@ This will create 2 binaries:
 
 The root also contains a bash script called **runact** that runs actprep and act in a single process.
 
-### Running the ACT Certification Process 
+### Running the ACT Certification Process
 ---------------------
 
-To certify your drive(s), first determine what certification test you will run, 
-as described above in **Process for Certifying a Drive(s) for 3x Performance** or 
+To certify your drive(s), first determine what certification test you will run,
+as described above in **Process for Certifying a Drive(s) for 3x Performance** or
 **Determining Expected Performance at Higher Throughput**.
 
 For each certification test with ACT, you must perform the following steps:
@@ -240,7 +240,7 @@ $ sudo ./actprep /dev/sdc1 &
 -------------------------
 
 The ACT package includes a Python script act_config_helper.py which helps you create a configuration file you can
-use to run ACT. When you run this program it will: 
+use to run ACT. When you run this program it will:
 
 1. Ask you basic questions about the test you want to run
 2. Generate the correct config file, based on your answers
@@ -303,7 +303,7 @@ show latencies both for end-to-end transactions (which include time spent on the
 transaction queues) and for the device IO portion of transactions.
 
 The example output below shows a 12-hour test (each slice is an hour).  The **trans** table
-shows transaction latency (end to end) and the **device** table at the right shows device latency.  So for 
+shows transaction latency (end to end) and the **device** table at the right shows device latency.  So for
 example, in the 5th hour, 1.68% of transactions failed to complete in under 1ms.
 
 ```
@@ -340,7 +340,7 @@ In any one-hour period of an ACT performance test, we expect that:
 
 The **max** line of the output shows the highest values observed in any single slice (hour) of time
 and the values on the max line should not
-exceed the allowable error values specified above.  
+exceed the allowable error values specified above.
 
 In the example output above, we show only 12 hours of results, and the drive passes because the worst performance in any slice
 was 2.7% of transactions failing to complete within 1 ms, 0.73% of transactions failing to complete in less
@@ -348,9 +348,9 @@ than 8 ms and no transactions failing to complete within 64 ms.
 
 A device(s) which does not exceed these error thresholds in 24 hours passes the load test.
 
-##### Passing a Stress Test 
-When doing stress testing at a level ABOVE where the drive is certified, a device passes the test 
-if ACT runs to completion, regardless of the number of errors.  
+##### Passing a Stress Test
+When doing stress testing at a level ABOVE where the drive is certified, a device passes the test
+if ACT runs to completion, regardless of the number of errors.
 
 ## Tips and Tricks
 -----------------
@@ -366,7 +366,7 @@ speed may have degraded and performance may be much poorer than a new drive of t
 #### Modifying the Config File Manually
 -------------
 
-For ease of use, this package includes act_config_helper.py for creating config 
+For ease of use, this package includes act_config_helper.py for creating config
 files. **Using act_config_helper.py is the recommended method for creating config files.**
 
 If you are going to modify the config file manually, the package includes five example configuration files:
@@ -389,18 +389,18 @@ the actconfig_24x.txt file to specify the correct drive and the correct number o
 test of 8 drives at 6x, you would modify the actconfig_1x_4d.txt file to specify all of your drives AND to specify the
 number of reads/writes to perform (6x rather than 1x).
 
-The other fields in the configuration files should generally not be changed.  
+The other fields in the configuration files should generally not be changed.
 
 #### Format of Lines in the Config File
 -------------------
 
-All fields use a 
+All fields use a
 ```
 name-token: value
 ```
 format, and must be on a single line.
 Field order in the file is unimportant.  To
-add comments, add a line(s) that begin with '#'.  
+add comments, add a line(s) that begin with '#'.
 
 ### Fields that you Must Change:
 
