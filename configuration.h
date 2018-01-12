@@ -47,9 +47,10 @@ typedef struct _act_cfg {
 	uint64_t run_us;				// converted from literal units in seconds
 	uint64_t report_interval_us;	// converted from literal units in seconds
 	bool us_histograms;
-	uint64_t read_reqs_per_sec;
+	uint32_t read_reqs_per_sec;
 	uint32_t write_reqs_per_sec;
 	uint32_t record_bytes;
+	uint32_t record_bytes_rmx;
 	uint32_t large_block_ops_bytes;	// converted from literal units in Kbytes
 	uint32_t replication_factor;
 	uint32_t update_pct;
@@ -58,6 +59,8 @@ typedef struct _act_cfg {
 
 	// Derived from literal configuration:
 	uint32_t record_stored_bytes;
+	uint32_t record_stored_bytes_rmx;
+	uint64_t internal_read_reqs_per_sec;
 	double large_block_ops_per_sec;
 } act_cfg;
 

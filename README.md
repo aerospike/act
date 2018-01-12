@@ -467,6 +467,14 @@ Flag that specifies what time units the histogram buckets will use -- yes means
 use microseconds, no means use milliseconds.  If this field is left out, the
 default is no.
 
+**record-bytes-range-max**
+If set, simulate a range of record sizes from record-bytes up to
+record-bytes-range-max.  Therefore if set, it must be larger than record-bytes
+and smaller than or equal to large-block-op-kbytes.  The simulation models a
+linear distribution of sizes within the range.
+The default record-bytes-range-max is 0, meaning no range -- model all records
+with size record-bytes.
+
 **large-block-op-kbytes**
 Size written and read in each
 large-block write and large-block read operation respectively, in Kbytes.

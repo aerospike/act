@@ -22,9 +22,8 @@
  * SOFTWARE.
  */
 
-
 //==========================================================
-// Includes
+// Includes.
 //
 
 #include "queue.h"
@@ -40,14 +39,10 @@
 
 
 //==========================================================
-// Constants & Macros
+// Typedefs & constants.
 //
 
 #define CF_QUEUE_ALLOCSZ (64 * 1024)
-
-#define CF_Q_SZ(__q) (__q->write_offset - __q->read_offset)
-#define CF_Q_EMPTY(__q) (__q->write_offset == __q->read_offset)
-#define CF_Q_ELEM_PTR(__q, __i) (&q->queue[(__i % __q->allocsz) * q->elementsz])
 
 
 //==========================================================
@@ -59,7 +54,16 @@ void cf_queue_unwrap(cf_queue *q);
 
 
 //==========================================================
-// Public API
+// Inlines & macros.
+//
+
+#define CF_Q_SZ(__q) (__q->write_offset - __q->read_offset)
+#define CF_Q_EMPTY(__q) (__q->write_offset == __q->read_offset)
+#define CF_Q_ELEM_PTR(__q, __i) (&q->queue[(__i % __q->allocsz) * q->elementsz])
+
+
+//==========================================================
+// Public API.
 //
 
 //------------------------------------------------
@@ -254,7 +258,7 @@ cf_queue_pop(cf_queue *q, void *buf, int ms_wait)
 
 
 //==========================================================
-// Utilities
+// Local helpers.
 //
 
 //------------------------------------------------

@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 
-
 // Evidently the system call RAND_bytes() is not thread safe, in the sense that
 // it crashes randomly when used intensely by several threads. An alternative is
 // to use a xorshift+ generator.
@@ -31,7 +30,7 @@
 #ifdef USE_XORSHIFTPLUS_GENERATOR
 
 //==========================================================
-// Includes
+// Includes.
 //
 
 #include "random.h"
@@ -43,7 +42,7 @@
 
 
 //==========================================================
-// Forward Declarations
+// Forward declarations.
 //
 
 static inline uint64_t rand_64();
@@ -51,13 +50,15 @@ static inline uint64_t xorshift128plus(uint64_t* p0, uint64_t* p1);
 
 
 //==========================================================
-// Public API
+// Public API.
 //
 
 //------------------------------------------------
 // Seed for random fill.
 //
-bool rand_seed() {
+bool
+rand_seed()
+{
 	fprintf(stdout, "Using xorshift+ random generator.\n\n");
 	// Assumes parent program has called srand(), which is all we need here.
 	return true;
@@ -66,7 +67,9 @@ bool rand_seed() {
 //------------------------------------------------
 // Fill a buffer with random bits.
 //
-bool rand_fill(uint8_t* p_buffer, uint32_t size) {
+bool
+rand_fill(uint8_t* p_buffer, uint32_t size)
+{
 	uint64_t seed0 = rand_64();
 	uint64_t seed1 = rand_64();
 
@@ -83,13 +86,15 @@ bool rand_fill(uint8_t* p_buffer, uint32_t size) {
 
 
 //==========================================================
-// Helpers
+// Local helpers.
 //
 
 //------------------------------------------------
 // Get a mostly random uint64_t.
 //
-static inline uint64_t rand_64() {
+static inline uint64_t
+rand_64()
+{
 	// Doesn't need to be perfect, just not 0 and not the same as last time.
 	return ((uint64_t)rand() << 32) | (uint64_t)rand();
 }
@@ -97,7 +102,9 @@ static inline uint64_t rand_64() {
 //------------------------------------------------
 // One step in generating a random sequence.
 //
-static inline uint64_t xorshift128plus(uint64_t* p0, uint64_t* p1) {
+static inline uint64_t
+xorshift128plus(uint64_t* p0, uint64_t* p1)
+{
 	uint64_t s1 = *p0;
 	uint64_t s0 = *p1;
 
@@ -110,7 +117,7 @@ static inline uint64_t xorshift128plus(uint64_t* p0, uint64_t* p1) {
 #else // use system RAND_seed() and RAND_fill() calls
 
 //==========================================================
-// Includes
+// Includes.
 //
 
 #include <fcntl.h>
@@ -122,20 +129,22 @@ static inline uint64_t xorshift128plus(uint64_t* p0, uint64_t* p1) {
 
 
 //==========================================================
-// Constants
+// Typedefs & constants.
 //
 
 const uint32_t RAND_SEED_SIZE = 64;
 
 
 //==========================================================
-// Public API
+// Public API.
 //
 
 //------------------------------------------------
 // Seed for random fill.
 //
-bool rand_seed() {
+bool
+rand_seed()
+{
 	int fd = open("/dev/urandom", O_RDONLY);
 
 	if (fd == -1) {
@@ -161,7 +170,9 @@ bool rand_seed() {
 //------------------------------------------------
 // Fill a buffer with random bits.
 //
-bool rand_fill(uint8_t* p_buffer, uint32_t size) {
+bool
+rand_fill(uint8_t* p_buffer, uint32_t size)
+{
 	if (RAND_bytes(p_buffer, (int)size) != 1) {
 		fprintf(stdout, "ERROR: RAND_bytes() failed\n");
 		return false;
@@ -171,4 +182,3 @@ bool rand_fill(uint8_t* p_buffer, uint32_t size) {
 }
 
 #endif
-
