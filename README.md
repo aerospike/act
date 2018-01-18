@@ -506,6 +506,21 @@ amplification will be 2x, meaning defragmentation doubles the internal effective
 write rate, which for ACT is manifest as the large-block read and write rates.
 The default defrag-lwm-pct is 50.
 
+**commit-to-device**
+Flag to model the mode where Aerospike commits each record to device
+synchronously, instead of flushing large blocks full of records.  This causes a
+device IO load with many small, variable-sized writes.  Large block writes (and
+reads) still occur to model defragmentation, but the rate of these is reduced.
+The default commit-to-device is no.
+
+**commit-min-bytes**
+Minimum size of a write in commit-to-device mode. Must be a power of 2. Each
+write rounds the record size up to a multiple of commit-min-bytes. If
+commit-min-bytes is configured smaller than the minimum IO size allowed on the
+device, the record size will be rounded up to a multiple of the minimum IO size.
+The default commit-min-bytes is 0, meaning writes will round up to a multiple of
+the minimum IO size.
+
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in
 the test run -- noop means no special scheduling is done for device I/O
