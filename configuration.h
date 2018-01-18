@@ -55,13 +55,17 @@ typedef struct _act_cfg {
 	uint32_t replication_factor;
 	uint32_t update_pct;
 	uint32_t defrag_lwm_pct;
+	bool commit_to_device;
+	uint32_t commit_min_bytes;
 	uint32_t scheduler_mode;		// array index derived from literal string
 
 	// Derived from literal configuration:
 	uint32_t record_stored_bytes;
 	uint32_t record_stored_bytes_rmx;
 	uint64_t internal_read_reqs_per_sec;
-	double large_block_ops_per_sec;
+	uint64_t internal_write_reqs_per_sec;
+	double large_block_reads_per_sec;
+	double large_block_writes_per_sec;
 } act_cfg;
 
 extern const char* const SCHEDULER_MODES[];

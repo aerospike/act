@@ -67,13 +67,18 @@ typedef struct _device {
 	uint32_t n;
 	uint64_t num_large_blocks;
 	uint64_t num_read_offsets;
+	uint64_t num_write_offsets;
 	uint32_t min_op_bytes;
+	uint32_t min_commit_bytes;
 	uint32_t read_bytes;
+	uint32_t write_bytes;
 	uint32_t num_read_sizes;
+	uint32_t num_write_sizes;
 	cf_queue* p_fd_queue;
 	pthread_t large_block_read_thread;
 	pthread_t large_block_write_thread;
 	histogram* p_raw_read_histogram;
+	histogram* p_raw_write_histogram;
 	char histogram_tag[MAX_DEVICE_NAME_SIZE];
 } device;
 
@@ -81,6 +86,7 @@ typedef struct _trans_req {
 	device* p_device;
 	uint64_t offset;
 	uint32_t size;
+	bool is_write;
 	uint64_t start_time;
 } trans_req;
 
@@ -106,15 +112,18 @@ const uint64_t RW_STAGGER = 1000 / 2;
 // Forward declarations.
 //
 
-static void* run_add_read_reqs(void* pv_unused);
+static void* run_generate_read_reqs(void* pv_unused);
+static void* run_generate_write_reqs(void* pv_unused);
 static void* run_large_block_reads(void* pv_device);
 static void* run_large_block_writes(void* pv_device);
 static void* run_transactions(void* pv_req_queue);
 
 static inline uint8_t* align_4096(const uint8_t* stack_buffer);
 static inline uint8_t* cf_valloc(size_t size);
+static bool discover_device(device* p_device);
 static uint64_t discover_min_op_bytes(int fd, const char* name);
-static bool discover_num_blocks(device* p_device);
+static void discover_read_pattern(device* p_device);
+static void discover_write_pattern(device* p_device);
 static void fd_close_all(device* p_device);
 static int fd_get(device* p_device);
 static void fd_put(device* p_device, int fd);
@@ -123,12 +132,15 @@ static inline uint64_t rand_48();
 static inline uint64_t random_large_block_offset(const device* p_device);
 static inline uint64_t random_read_offset(const device* p_device);
 static inline uint32_t random_read_size(const device* p_device);
+static inline uint64_t random_write_offset(const device* p_device);
+static inline uint32_t random_write_size(const device* p_device);
 static void read_and_report(trans_req* p_read_req, uint8_t* p_buffer);
 static void read_and_report_large_block(device* p_device, uint8_t* p_buffer);
 static uint64_t read_from_device(device* p_device, uint64_t offset,
 		uint32_t size, uint8_t* p_buffer);
 static inline uint64_t safe_delta_ns(uint64_t start_ns, uint64_t stop_ns);
 static void set_schedulers();
+static void write_and_report(trans_req* p_write_req, uint8_t* p_buffer);
 static void write_and_report_large_block(device* p_device, uint8_t* p_buffer,
 		uint64_t count);
 static uint64_t write_to_device(device* p_device, uint64_t offset,
@@ -154,6 +166,8 @@ static histogram* g_p_large_block_read_histogram;
 static histogram* g_p_large_block_write_histogram;
 static histogram* g_p_raw_read_histogram;
 static histogram* g_p_read_histogram;
+static histogram* g_p_raw_write_histogram;
+static histogram* g_p_write_histogram;
 
 
 //==========================================================
@@ -197,6 +211,14 @@ main(int argc, char* argv[])
 		exit(-1);
 	}
 
+	bool do_commits = g_cfg.commit_to_device && g_cfg.write_reqs_per_sec != 0;
+
+	if (do_commits &&
+		(! (g_p_raw_write_histogram = histogram_create(scale)) ||
+		 ! (g_p_write_histogram = histogram_create(scale)))) {
+		exit(-1);
+	}
+
 	for (uint32_t n = 0; n < g_cfg.num_devices; n++) {
 		device* p_device = &g_devices[n];
 
@@ -204,8 +226,13 @@ main(int argc, char* argv[])
 		p_device->n = n;
 
 		if (! (p_device->p_fd_queue = cf_queue_create(sizeof(int), true)) ||
-			! discover_num_blocks(p_device) ||
+			! discover_device(p_device) ||
 			! (p_device->p_raw_read_histogram = histogram_create(scale))) {
+			exit(-1);
+		}
+
+		if (do_commits &&
+			! (p_device->p_raw_write_histogram = histogram_create(scale))) {
 			exit(-1);
 		}
 
@@ -225,7 +252,7 @@ main(int argc, char* argv[])
 			device* p_device = &g_devices[n];
 
 			if (pthread_create(&p_device->large_block_write_thread, NULL,
-					run_large_block_writes, (void*)p_device)) {
+					run_large_block_writes, (void*)p_device) != 0) {
 				fprintf(stdout, "ERROR: create large op write thread\n");
 				exit(-1);
 			}
@@ -235,7 +262,7 @@ main(int argc, char* argv[])
 			device* p_device = &g_devices[n];
 
 			if (pthread_create(&p_device->large_block_read_thread, NULL,
-					run_large_block_reads, (void*)p_device)) {
+					run_large_block_reads, (void*)p_device) != 0) {
 				fprintf(stdout, "ERROR: create large op read thread\n");
 				exit(-1);
 			}
@@ -258,17 +285,27 @@ main(int argc, char* argv[])
 
 		for (uint32_t j = 0; j < g_cfg.threads_per_queue; j++) {
 			if (pthread_create(&p_transq->threads[j], NULL, run_transactions,
-					(void*)p_transq->p_req_queue)) {
+					(void*)p_transq->p_req_queue) != 0) {
 				fprintf(stdout, "ERROR: create transaction thread\n");
 				exit(-1);
 			}
 		}
 	}
 
-	pthread_t thr_add_read_reqs;
+	pthread_t read_req_generator;
 
-	if (pthread_create(&thr_add_read_reqs, NULL, run_add_read_reqs, NULL)) {
+	if (pthread_create(&read_req_generator, NULL, run_generate_read_reqs,
+			NULL) != 0) {
 		fprintf(stdout, "ERROR: create read request generator thread\n");
+		exit(-1);
+	}
+
+	pthread_t write_req_generator;
+
+	if (do_commits &&
+			pthread_create(&write_req_generator, NULL, run_generate_write_reqs,
+					NULL) != 0) {
+		fprintf(stdout, "ERROR: create write request generator thread\n");
 		exit(-1);
 	}
 
@@ -304,6 +341,18 @@ main(int argc, char* argv[])
 		}
 
 		histogram_dump(g_p_read_histogram,              "READS             ");
+
+		if (do_commits) {
+			histogram_dump(g_p_raw_write_histogram,     "RAW WRITES        ");
+
+			for (uint32_t d = 0; d < g_cfg.num_devices; d++) {
+				histogram_dump(g_devices[d].p_raw_write_histogram,
+						g_devices[d].histogram_tag);
+			}
+
+			histogram_dump(g_p_write_histogram,         "WRITES            ");
+		}
+
 		fprintf(stdout, "\n");
 		fflush(stdout);
 	}
@@ -312,7 +361,11 @@ main(int argc, char* argv[])
 
 	void* pv_value;
 
-	pthread_join(thr_add_read_reqs, &pv_value);
+	pthread_join(read_req_generator, &pv_value);
+
+	if (do_commits) {
+		pthread_join(write_req_generator, &pv_value);
+	}
 
 	for (uint32_t i = 0; i < g_cfg.num_queues; i++) {
 		transq* p_transq = &g_transqs[i];
@@ -336,12 +389,21 @@ main(int argc, char* argv[])
 		fd_close_all(p_device);
 		cf_queue_destroy(p_device->p_fd_queue);
 		free(p_device->p_raw_read_histogram);
+
+		if (do_commits) {
+			free(p_device->p_raw_write_histogram);
+		}
 	}
 
 	free(g_p_large_block_read_histogram);
 	free(g_p_large_block_write_histogram);
 	free(g_p_raw_read_histogram);
 	free(g_p_read_histogram);
+
+	if (do_commits) {
+		free(g_p_raw_write_histogram);
+		free(g_p_write_histogram);
+	}
 
 	return 0;
 }
@@ -357,7 +419,7 @@ main(int argc, char* argv[])
 // fashion.
 //
 static void*
-run_add_read_reqs(void* pv_unused)
+run_generate_read_reqs(void* pv_unused)
 {
 	uint64_t count = 0;
 
@@ -377,6 +439,7 @@ run_add_read_reqs(void* pv_unused)
 				.p_device = p_random_device,
 				.offset = random_read_offset(p_random_device),
 				.size = random_read_size(p_random_device),
+				.is_write = false,
 				.start_time = cf_getns()
 		};
 
@@ -386,6 +449,52 @@ run_add_read_reqs(void* pv_unused)
 
 		int64_t sleep_us = (int64_t)
 				(((count * 1000000) / g_cfg.internal_read_reqs_per_sec) -
+						(cf_getus() - g_run_start_us));
+
+		if (sleep_us > 0) {
+			usleep((uint32_t)sleep_us);
+		}
+	}
+
+	return NULL;
+}
+
+//------------------------------------------------
+// Runs in single thread, adds write trans_req
+// objects to transaction queues in round-robin
+// fashion.
+//
+static void*
+run_generate_write_reqs(void* pv_unused)
+{
+	uint64_t count = 0;
+
+	while (g_running) {
+		if (cf_atomic32_incr(&g_reqs_queued) > MAX_REQS_QUEUED) {
+			fprintf(stdout, "ERROR: too many requests queued\n");
+			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
+			g_running = false;
+			break;
+		}
+
+		uint32_t queue_index = count % g_cfg.num_queues;
+		uint32_t random_device_index = rand_31() % g_cfg.num_devices;
+		device* p_random_device = &g_devices[random_device_index];
+
+		trans_req write_req = {
+				.p_device = p_random_device,
+				.offset = random_write_offset(p_random_device),
+				.size = random_write_size(p_random_device),
+				.is_write = true,
+				.start_time = cf_getns()
+		};
+
+		cf_queue_push(g_transqs[queue_index].p_req_queue, &write_req);
+
+		count++;
+
+		int64_t sleep_us = (int64_t)
+				(((count * 1000000) / g_cfg.internal_write_reqs_per_sec) -
 						(cf_getus() - g_run_start_us));
 
 		if (sleep_us > 0) {
@@ -422,7 +531,7 @@ run_large_block_reads(void* pv_device)
 
 		uint64_t target_us = (uint64_t)
 				((double)(count * 1000000 * g_cfg.num_devices) /
-						g_cfg.large_block_ops_per_sec);
+						g_cfg.large_block_reads_per_sec);
 
 		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - start_us));
 
@@ -467,7 +576,7 @@ run_large_block_writes(void* pv_device)
 
 		uint64_t target_us = (uint64_t)
 				((double)(count * 1000000 * g_cfg.num_devices) /
-						g_cfg.large_block_ops_per_sec);
+						g_cfg.large_block_writes_per_sec);
 
 		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - start_us));
 
@@ -505,7 +614,12 @@ run_transactions(void* pv_req_queue)
 		uint8_t stack_buffer[req.size + 4096];
 		uint8_t* p_buffer = align_4096(stack_buffer);
 
-		read_and_report(&req, p_buffer);
+		if (req.is_write) {
+			write_and_report(&req, p_buffer);
+		}
+		else {
+			read_and_report(&req, p_buffer);
+		}
 
 		cf_atomic32_decr(&g_reqs_queued);
 	}
@@ -536,6 +650,49 @@ cf_valloc(size_t size)
 	void* pv;
 
 	return posix_memalign(&pv, 4096, size) == 0 ? (uint8_t*)pv : 0;
+}
+
+//------------------------------------------------
+// Discover device storage capacity, etc.
+//
+static bool
+discover_device(device* p_device)
+{
+	int fd = fd_get(p_device);
+
+	if (fd == -1) {
+		return false;
+	}
+
+	uint64_t device_bytes = 0;
+
+	ioctl(fd, BLKGETSIZE64, &device_bytes);
+	p_device->num_large_blocks = device_bytes / g_cfg.large_block_ops_bytes;
+	p_device->min_op_bytes = discover_min_op_bytes(fd, p_device->name);
+	fd_put(p_device, fd);
+
+	if (p_device->num_large_blocks == 0) {
+		fprintf(stdout, "ERROR: %s ioctl to discover size\n", p_device->name);
+		return false;
+	}
+
+	if (p_device->min_op_bytes == 0) {
+		return false;
+	}
+
+	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks, "
+			"minimum IO size = " PRIu32 " bytes\n",
+			p_device->name, device_bytes, p_device->num_large_blocks,
+			p_device->min_op_bytes);
+
+	discover_read_pattern(p_device);
+
+	if (g_cfg.commit_to_device) {
+		discover_write_pattern(p_device);
+	}
+	// else - write load is all accounted for with large-block writes.
+
+	return true;
 }
 
 //------------------------------------------------
@@ -579,28 +736,11 @@ discover_min_op_bytes(int fd, const char* name)
 }
 
 //------------------------------------------------
-// Discover device storage capacity.
+// Discover device's read request pattern.
 //
-static bool
-discover_num_blocks(device* p_device)
+static void
+discover_read_pattern(device* p_device)
 {
-	int fd = fd_get(p_device);
-
-	if (fd == -1) {
-		return false;
-	}
-
-	uint64_t device_bytes = 0;
-
-	ioctl(fd, BLKGETSIZE64, &device_bytes);
-	p_device->num_large_blocks = device_bytes / g_cfg.large_block_ops_bytes;
-	p_device->min_op_bytes = discover_min_op_bytes(fd, p_device->name);
-	fd_put(p_device, fd);
-
-	if (! (p_device->num_large_blocks && p_device->min_op_bytes)) {
-		return false;
-	}
-
 	// Total number of "min-op"-sized blocks on the device. (Excluding
 	// fractional large block at end of device, if such.)
 	uint64_t num_min_op_blocks =
@@ -621,10 +761,6 @@ discover_num_blocks(device* p_device)
 			(g_cfg.record_stored_bytes_rmx + p_device->min_op_bytes - 1) /
 					p_device->min_op_bytes;
 
-	// Size in bytes per (largest) read request.
-	uint32_t read_bytes_rmx =
-			read_req_min_op_blocks_rmx * p_device->min_op_bytes;
-
 	// Number of read request sizes in configured range.
 	p_device->num_read_sizes =
 			read_req_min_op_blocks_rmx - read_req_min_op_blocks + 1;
@@ -633,15 +769,47 @@ discover_num_blocks(device* p_device)
 	// has room for largest possible read request.)
 	p_device->num_read_offsets =
 			num_min_op_blocks - read_req_min_op_blocks_rmx + 1;
+}
 
-	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks, %"
-			PRIu64 " %" PRIu32 "-byte blocks, reads are %" PRIu32 " bytes to %"
-			PRIu32 " bytes\n",
-			p_device->name, device_bytes, p_device->num_large_blocks,
-			num_min_op_blocks, p_device->min_op_bytes, p_device->read_bytes,
-			read_bytes_rmx);
+//------------------------------------------------
+// Discover device's write request pattern.
+//
+static void
+discover_write_pattern(device* p_device)
+{
+	// Use the larger of min-op bytes and configured commit-min-bytes.
+	p_device->min_commit_bytes =
+			p_device->min_op_bytes > g_cfg.commit_min_bytes ?
+					p_device->min_op_bytes : g_cfg.commit_min_bytes;
 
-	return true;
+	// Total number of "min-commit"-sized blocks on the device. (Excluding
+	// fractional large block at end of device, if such.)
+	uint64_t num_min_commit_blocks =
+			(p_device->num_large_blocks * g_cfg.large_block_ops_bytes) /
+					p_device->min_commit_bytes;
+
+	// Number of "min-commit"-sized blocks per (smallest) write request.
+	uint32_t write_req_min_commit_blocks =
+			(g_cfg.record_stored_bytes + p_device->min_commit_bytes - 1) /
+					p_device->min_commit_bytes;
+
+	// Size in bytes per (smallest) write request.
+	p_device->write_bytes =
+			write_req_min_commit_blocks * p_device->min_commit_bytes;
+
+	// Number of "min-commit"-sized blocks per (largest) write request.
+	uint32_t write_req_min_commit_blocks_rmx =
+			(g_cfg.record_stored_bytes_rmx + p_device->min_commit_bytes - 1) /
+					p_device->min_commit_bytes;
+
+	// Number of write request sizes in configured range.
+	p_device->num_write_sizes =
+			write_req_min_commit_blocks_rmx - write_req_min_commit_blocks + 1;
+
+	// Total number of sites on device to write to. (Make sure the last site
+	// has room for largest possible write request.)
+	p_device->num_write_offsets =
+			num_min_commit_blocks - write_req_min_commit_blocks_rmx + 1;
 }
 
 //------------------------------------------------
@@ -737,6 +905,31 @@ random_read_size(const device* p_device)
 
 	return p_device->read_bytes +
 			(p_device->min_op_bytes * (rand_31() % p_device->num_read_sizes));
+}
+
+//------------------------------------------------
+// Get a random write offset for a device.
+//
+static inline uint64_t
+random_write_offset(const device* p_device)
+{
+	return (rand_48() % p_device->num_write_offsets) *
+			p_device->min_commit_bytes;
+}
+
+//------------------------------------------------
+// Get a random write size for a device.
+//
+static inline uint32_t
+random_write_size(const device* p_device)
+{
+	if (p_device->num_write_sizes == 1) {
+		return p_device->write_bytes;
+	}
+
+	return p_device->write_bytes +
+			(p_device->min_commit_bytes *
+					(rand_31() % p_device->num_write_sizes));
 }
 
 //------------------------------------------------
@@ -847,6 +1040,27 @@ set_schedulers()
 		}
 
 		fclose(scheduler_file);
+	}
+}
+
+//------------------------------------------------
+// Do one transaction write operation and report.
+//
+static void
+write_and_report(trans_req* p_write_req, uint8_t* p_buffer)
+{
+	uint64_t raw_start_time = cf_getns();
+	uint64_t stop_time = write_to_device(p_write_req->p_device,
+			p_write_req->offset, p_write_req->size, p_buffer);
+
+	if (stop_time != -1) {
+		histogram_insert_data_point(g_p_raw_write_histogram,
+				safe_delta_ns(raw_start_time, stop_time));
+		histogram_insert_data_point(g_p_write_histogram,
+				safe_delta_ns(p_write_req->start_time, stop_time));
+		histogram_insert_data_point(
+				p_write_req->p_device->p_raw_write_histogram,
+				safe_delta_ns(raw_start_time, stop_time));
 	}
 }
 
