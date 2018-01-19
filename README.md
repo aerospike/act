@@ -521,6 +521,18 @@ device, the record size will be rounded up to a multiple of the minimum IO size.
 The default commit-min-bytes is 0, meaning writes will round up to a multiple of
 the minimum IO size.
 
+**tomb-raider**
+Flag to model the Aerospike tomb raider.  This simply spawns a thread per device
+in which the device is read from beginning to end, one large block at a time.
+The thread sleeps for tomb-raider-sleep-usec microseconds between each block.
+When the end of the device is reached, we repeat, reading from the beginning.
+(In other words, we don't model Aerospike's tomb-raider-period.)
+The default tomb-raider is no.
+
+**tomb-raider-sleep-usec**
+How long to sleep in each device's tomb raider thread between large block reads.
+The default tomb-raider-sleep-usec is 1000, or 1 millisecond.
+
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in
 the test run -- noop means no special scheduling is done for device I/O

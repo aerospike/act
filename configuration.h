@@ -57,6 +57,8 @@ typedef struct _act_cfg {
 	uint32_t defrag_lwm_pct;
 	bool commit_to_device;
 	uint32_t commit_min_bytes;
+	bool tomb_raider;
+	uint32_t tomb_raider_sleep_us;
 	uint32_t scheduler_mode;		// array index derived from literal string
 
 	// Derived from literal configuration:

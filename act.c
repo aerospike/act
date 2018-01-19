@@ -77,6 +77,7 @@ typedef struct _device {
 	cf_queue* p_fd_queue;
 	pthread_t large_block_read_thread;
 	pthread_t large_block_write_thread;
+	pthread_t tomb_raider_thread;
 	histogram* p_raw_read_histogram;
 	histogram* p_raw_write_histogram;
 	char histogram_tag[MAX_DEVICE_NAME_SIZE];
@@ -116,6 +117,7 @@ static void* run_generate_read_reqs(void* pv_unused);
 static void* run_generate_write_reqs(void* pv_unused);
 static void* run_large_block_reads(void* pv_device);
 static void* run_large_block_writes(void* pv_device);
+static void* run_tomb_raider(void* pv_req_queue);
 static void* run_transactions(void* pv_req_queue);
 
 static inline uint8_t* align_4096(const uint8_t* stack_buffer);
@@ -269,6 +271,18 @@ main(int argc, char* argv[])
 		}
 	}
 
+	if (g_cfg.tomb_raider) {
+		for (uint32_t n = 0; n < g_cfg.num_devices; n++) {
+			device* p_device = &g_devices[n];
+
+			if (pthread_create(&p_device->tomb_raider_thread, NULL,
+					run_tomb_raider, (void*)p_device) != 0) {
+				fprintf(stdout, "ERROR: create tomb raider thread\n");
+				exit(-1);
+			}
+		}
+	}
+
 	for (uint32_t i = 0; i < g_cfg.num_queues; i++) {
 		transq* p_transq = &g_transqs[i];
 
@@ -380,6 +394,10 @@ main(int argc, char* argv[])
 
 	for (uint32_t d = 0; d < g_cfg.num_devices; d++) {
 		device* p_device = &g_devices[d];
+
+		if (g_cfg.tomb_raider) {
+			pthread_join(p_device->tomb_raider_thread, &pv_value);
+		}
 
 		if (g_cfg.write_reqs_per_sec != 0) {
 			pthread_join(p_device->large_block_read_thread, &pv_value);
@@ -596,6 +614,45 @@ run_large_block_writes(void* pv_device)
 }
 
 //------------------------------------------------
+// Runs in every device tomb raider thread,
+// executes continuous large-block reads.
+//
+static void*
+run_tomb_raider(void* pv_device)
+{
+	device* p_device = (device*)pv_device;
+
+	uint8_t* p_buffer = cf_valloc(g_cfg.large_block_ops_bytes);
+
+	if (! p_buffer) {
+		fprintf(stdout, "ERROR: tomb raider buffer cf_valloc()\n");
+		return NULL;
+	}
+
+	uint64_t offset = 0;
+	uint64_t end = p_device->num_large_blocks * g_cfg.large_block_ops_bytes;
+
+	while (g_running) {
+		if (g_cfg.tomb_raider_sleep_us != 0) {
+			usleep(g_cfg.tomb_raider_sleep_us);
+		}
+
+		read_from_device(p_device, offset, g_cfg.large_block_ops_bytes,
+				p_buffer);
+
+		offset += g_cfg.large_block_ops_bytes;
+
+		if (offset == end) {
+			offset = 0;
+		}
+	}
+
+	free(p_buffer);
+
+	return NULL;
+}
+
+//------------------------------------------------
 // Runs in every transaction thread, pops
 // trans_req objects, does the transaction and
 // reports the duration.
@@ -681,7 +738,7 @@ discover_device(device* p_device)
 	}
 
 	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks, "
-			"minimum IO size = " PRIu32 " bytes\n",
+			"minimum IO size = %" PRIu32 " bytes\n",
 			p_device->name, device_bytes, p_device->num_large_blocks,
 			p_device->min_op_bytes);
 

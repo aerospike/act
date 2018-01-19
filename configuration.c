@@ -58,6 +58,8 @@ const char TAG_UPDATE_PCT[]				= "update-pct";
 const char TAG_DEFRAG_LWM_PCT[]			= "defrag-lwm-pct";
 const char TAG_COMMIT_TO_DEVICE[]		= "commit-to-device";
 const char TAG_COMMIT_MIN_BYTES[]		= "commit-min-bytes";
+const char TAG_TOMB_RAIDER[]			= "tomb-raider";
+const char TAG_TOMB_RAIDER_SLEEP_USEC[]	= "tomb-raider-sleep-usec";
 const char TAG_SCHEDULER_MODE[]			= "scheduler-mode";
 
 const char* const SCHEDULER_MODES[] = {
@@ -199,6 +201,12 @@ configure(int argc, char* argv[])
 		}
 		else if (strcmp(tag, TAG_COMMIT_MIN_BYTES) == 0) {
 			g_cfg.commit_min_bytes = parse_uint32();
+		}
+		else if (strcmp(tag, TAG_TOMB_RAIDER) == 0) {
+			g_cfg.tomb_raider = parse_yes_no();
+		}
+		else if (strcmp(tag, TAG_TOMB_RAIDER_SLEEP_USEC) == 0) {
+			g_cfg.tomb_raider_sleep_us = parse_uint32();
 		}
 		else if (strcmp(tag, TAG_SCHEDULER_MODE) == 0) {
 			parse_scheduler_mode();
@@ -395,6 +403,10 @@ echo_configuration()
 			g_cfg.commit_to_device ? "yes" : "no");
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMMIT_MIN_BYTES,
 			g_cfg.commit_min_bytes);
+	fprintf(stdout, "%s: %s\n", TAG_TOMB_RAIDER,
+			g_cfg.tomb_raider ? "yes" : "no");
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_TOMB_RAIDER_SLEEP_USEC,
+			g_cfg.tomb_raider_sleep_us);
 	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
 			SCHEDULER_MODES[g_cfg.scheduler_mode]);
 
