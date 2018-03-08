@@ -24,7 +24,7 @@
 
 
 //==========================================================
-// Includes
+// Includes.
 //
 
 #include "histogram.h"
@@ -40,7 +40,7 @@
 
 
 //==========================================================
-// Constants
+// Typedefs & constants.
 //
 
 //------------------------------------------------
@@ -76,21 +76,23 @@ static const char BYTE_MSB[] = {
 
 
 //==========================================================
-// Forward Declarations
+// Forward declarations.
 //
 
 static int msb(uint64_t n);
 
 
 //==========================================================
-// Public API
+// Public API.
 //
 
 //------------------------------------------------
 // Create a histogram. There's no destroy(), but
 // you can just free the histogram.
 //
-histogram* histogram_create(histogram_scale scale) {
+histogram*
+histogram_create(histogram_scale scale)
+{
 	histogram* h = malloc(sizeof(histogram));
 
 	if (! h) {
@@ -224,7 +226,7 @@ histogram_insert_data_point(histogram *h, uint64_t delta_ns)
 
 
 //==========================================================
-// Utilities
+// Local helpers.
 //
 
 //------------------------------------------------

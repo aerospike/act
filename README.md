@@ -467,6 +467,14 @@ Flag that specifies what time units the histogram buckets will use -- yes means
 use microseconds, no means use milliseconds.  If this field is left out, the
 default is no.
 
+**record-bytes-range-max**
+If set, simulate a range of record sizes from record-bytes up to
+record-bytes-range-max.  Therefore if set, it must be larger than record-bytes
+and smaller than or equal to large-block-op-kbytes.  The simulation models a
+linear distribution of sizes within the range.
+The default record-bytes-range-max is 0, meaning no range -- model all records
+with size record-bytes.
+
 **large-block-op-kbytes**
 Size written and read in each
 large-block write and large-block read operation respectively, in Kbytes.
@@ -497,6 +505,33 @@ caused by defragmentation.  E.g. if defrag-lwm-pct is 50, the write
 amplification will be 2x, meaning defragmentation doubles the internal effective
 write rate, which for ACT is manifest as the large-block read and write rates.
 The default defrag-lwm-pct is 50.
+
+**commit-to-device**
+Flag to model the mode where Aerospike commits each record to device
+synchronously, instead of flushing large blocks full of records.  This causes a
+device IO load with many small, variable-sized writes.  Large block writes (and
+reads) still occur to model defragmentation, but the rate of these is reduced.
+The default commit-to-device is no.
+
+**commit-min-bytes**
+Minimum size of a write in commit-to-device mode. Must be a power of 2. Each
+write rounds the record size up to a multiple of commit-min-bytes. If
+commit-min-bytes is configured smaller than the minimum IO size allowed on the
+device, the record size will be rounded up to a multiple of the minimum IO size.
+The default commit-min-bytes is 0, meaning writes will round up to a multiple of
+the minimum IO size.
+
+**tomb-raider**
+Flag to model the Aerospike tomb raider.  This simply spawns a thread per device
+in which the device is read from beginning to end, one large block at a time.
+The thread sleeps for tomb-raider-sleep-usec microseconds between each block.
+When the end of the device is reached, we repeat, reading from the beginning.
+(In other words, we don't model Aerospike's tomb-raider-period.)
+The default tomb-raider is no.
+
+**tomb-raider-sleep-usec**
+How long to sleep in each device's tomb raider thread between large block reads.
+The default tomb-raider-sleep-usec is 1000, or 1 millisecond.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in
