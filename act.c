@@ -60,7 +60,7 @@
 // Typedefs & constants.
 //
 
-const char VERSION[] = "3.1";
+const char VERSION[] = "4.0";
 
 typedef struct _device {
 	const char* name;
