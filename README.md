@@ -168,7 +168,7 @@ $ sudo yum install make gcc openssl-devel
 
 For Debian or Ubuntu:
 ```
-$ sudo apt-get install make gcc libc6-dev libssl-dev
+$ sudo apt-get install make gcc libc6-dev libssl-dev zlib1g-dev
 ```
 
 **Build the package.**
@@ -262,7 +262,7 @@ files in the /examples directory and modifying it, as described in the **ACT Con
 
 From the ACT installation directory, run:
 ```
-$ sudo ./act actconfig.txt > ouput.txt &
+$ sudo ./act actconfig.txt > output.txt &
 ```
 where:
 ```
