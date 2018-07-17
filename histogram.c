@@ -90,17 +90,17 @@ static int msb(uint64_t n);
 // Create a histogram. There's no destroy(), but
 // you can just free the histogram.
 //
-histogram*
+histogram *
 histogram_create(histogram_scale scale)
 {
-	histogram* h = malloc(sizeof(histogram));
+	histogram *h = malloc(sizeof(histogram));
 
 	if (! h) {
 		fprintf(stdout, "ERROR: creating histogram (malloc)\n");
 		return NULL;
 	}
 
-	memset(&h->counts, 0, sizeof(h->counts));
+	memset((void *)h->counts, 0, sizeof(h->counts));
 
 	switch (scale) {
 	case HIST_MILLISECONDS:
@@ -125,7 +125,7 @@ histogram_create(histogram_scale scale)
 // method - act_latency.py assumes this format.
 //
 void
-histogram_dump(histogram *h, const char* p_tag)
+histogram_dump(histogram *h, const char *p_tag)
 {
 	int b;
 	uint64_t counts[N_BUCKETS];
