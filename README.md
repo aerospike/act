@@ -262,7 +262,7 @@ files in the /examples directory and modifying it, as described in the **ACT Con
 
 From the ACT installation directory, run:
 ```
-$ sudo ./act actconfig.txt > ouput.txt &
+$ sudo ./act actconfig.txt > output.txt &
 ```
 where:
 ```
