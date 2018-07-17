@@ -168,7 +168,7 @@ $ sudo yum install make gcc openssl-devel
 
 For Debian or Ubuntu:
 ```
-$ sudo apt-get install make gcc libc6-dev libssl-dev
+$ sudo apt-get install make gcc libc6-dev libssl-dev zlib1g-dev
 ```
 
 **Build the package.**
