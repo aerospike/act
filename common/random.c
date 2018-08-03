@@ -22,13 +22,6 @@
  * SOFTWARE.
  */
 
-// Evidently the system call RAND_bytes() is not thread safe, in the sense that
-// it crashes randomly when used intensely by several threads. An alternative is
-// to use a xorshift+ generator.
-#define USE_XORSHIFTPLUS_GENERATOR
-
-#ifdef USE_XORSHIFTPLUS_GENERATOR
-
 //==========================================================
 // Includes.
 //
@@ -113,72 +106,3 @@ xorshift128plus(uint64_t* p0, uint64_t* p1)
 
 	return (*p1 = (s1 ^ s0 ^ (s1 >> 17) ^ (s0 >> 26))) + s0;
 }
-
-#else // use system RAND_seed() and RAND_fill() calls
-
-//==========================================================
-// Includes.
-//
-
-#include <fcntl.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <openssl/rand.h>
-
-
-//==========================================================
-// Typedefs & constants.
-//
-
-const uint32_t RAND_SEED_SIZE = 64;
-
-
-//==========================================================
-// Public API.
-//
-
-//------------------------------------------------
-// Seed for random fill.
-//
-bool
-rand_seed()
-{
-	int fd = open("/dev/urandom", O_RDONLY);
-
-	if (fd == -1) {
-		fprintf(stdout, "ERROR: can't open /dev/urandom\n");
-		return false;
-	}
-
-	uint8_t seed_buffer[RAND_SEED_SIZE];
-	ssize_t read_result = read(fd, seed_buffer, RAND_SEED_SIZE);
-
-	if (read_result != (ssize_t)RAND_SEED_SIZE) {
-		close(fd);
-		fprintf(stdout, "ERROR: can't seed random number generator\n");
-		return false;
-	}
-
-	close(fd);
-	RAND_seed(seed_buffer, read_result);
-
-	return true;
-}
-
-//------------------------------------------------
-// Fill a buffer with random bits.
-//
-bool
-rand_fill(uint8_t* p_buffer, uint32_t size)
-{
-	if (RAND_bytes(p_buffer, (int)size) != 1) {
-		fprintf(stdout, "ERROR: RAND_bytes() failed\n");
-		return false;
-	}
-
-	return true;
-}
-
-#endif

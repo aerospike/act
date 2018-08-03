@@ -1,7 +1,7 @@
 /*
- * configuration.h
+ * cfg.h
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,59 +29,35 @@
 //
 
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 
 
 //==========================================================
 // Typedefs & constants.
 //
 
-#define MAX_NUM_DEVICES 32
+#define WHITE_SPACE " \t\n\r"
+
 #define MAX_DEVICE_NAME_SIZE 64
 
-typedef struct _act_cfg {
-	char device_names[MAX_NUM_DEVICES][MAX_DEVICE_NAME_SIZE];
-	uint32_t num_devices;			// derived by counting device names
-	uint32_t num_queues;
-	uint32_t threads_per_queue;
-	uint64_t run_us;				// converted from literal units in seconds
-	uint64_t report_interval_us;	// converted from literal units in seconds
-	bool us_histograms;
-	uint32_t read_reqs_per_sec;
-	uint32_t write_reqs_per_sec;
-	uint32_t record_bytes;
-	uint32_t record_bytes_rmx;
-	uint32_t large_block_ops_bytes;	// converted from literal units in Kbytes
-	uint32_t replication_factor;
-	uint32_t update_pct;
-	uint32_t defrag_lwm_pct;
-	bool commit_to_device;
-	uint32_t commit_min_bytes;
-	bool tomb_raider;
-	uint32_t tomb_raider_sleep_us;
-	uint32_t scheduler_mode;		// array index derived from literal string
-
-	// Derived from literal configuration:
-	uint32_t record_stored_bytes;
-	uint32_t record_stored_bytes_rmx;
-	uint64_t internal_read_reqs_per_sec;
-	uint64_t internal_write_reqs_per_sec;
-	double large_block_reads_per_sec;
-	double large_block_writes_per_sec;
-} act_cfg;
-
 extern const char* const SCHEDULER_MODES[];
-
-
-//==========================================================
-// Globals.
-//
-
-extern act_cfg g_cfg;
+extern const uint32_t NUM_SCHEDULER_MODES;
 
 
 //==========================================================
 // Public API.
 //
 
-bool configure(int argc, char* argv[]);
+void parse_device_names(size_t max_num_devices,
+		char names[][MAX_DEVICE_NAME_SIZE], uint32_t* p_num_devices);
+uint32_t parse_scheduler_mode();
+uint32_t parse_uint32();
+bool parse_yes_no();
+
+static inline void
+configuration_error(const char* tag)
+{
+	fprintf(stdout, "ERROR: invalid or missing configuration of '%s'\n", tag);
+}

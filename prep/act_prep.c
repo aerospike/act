@@ -43,7 +43,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-#include "random.h"
+#include "common/random.h"
 
 
 //==========================================================
