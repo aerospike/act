@@ -1,5 +1,5 @@
 /*
- * ict.c
+ * act_index.c
  *
  * Aerospike Index Certifiction Tool - Simulates and validates primary index
  * SSDs for real-time database use.
