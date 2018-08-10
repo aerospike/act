@@ -28,11 +28,9 @@
 //
 
 #include <dirent.h>
-#include <execinfo.h>	// for debugging
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
-#include <signal.h>		// for debugging
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -44,6 +42,7 @@
 #include <sys/ioctl.h>
 
 #include "common/random.h"
+#include "common/trace.h"
 
 
 //==========================================================
@@ -87,17 +86,13 @@ static bool				discover_num_blocks();
 static inline int		fd_get();
 static void				set_scheduler();
 
-static void				as_sig_handle_segv(int sig_num);
-static void				as_sig_handle_term(int sig_num);
-
 
 //==========================================================
 // Main
 //
 
 int main(int argc, char* argv[]) {
-	signal(SIGSEGV, as_sig_handle_segv);
-	signal(SIGTERM , as_sig_handle_term);
+	signal_setup();
 
 	if (argc != 2) {
 		fprintf(stdout, "usage: salt [device name]\n");
@@ -410,45 +405,4 @@ static void set_scheduler() {
 	}
 
 	fclose(scheduler_file);
-}
-
-
-//==========================================================
-// Debugging Helpers
-//
-
-static void as_sig_handle_segv(int sig_num) {
-	fprintf(stdout, "Signal SEGV received: stack trace\n");
-
-	void* bt[50];
-	uint sz = backtrace(bt, 50);
-	
-	char** strings = backtrace_symbols(bt, sz);
-
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
-	}
-
-	free(strings);
-	
-	fflush(stdout);
-	_exit(-1);
-}
-
-static void as_sig_handle_term(int sig_num) {
-	fprintf(stdout, "Signal TERM received, aborting\n");
-
-  	void* bt[50];
-	uint sz = backtrace(bt, 50);
-
-	char** strings = backtrace_symbols(bt, sz);
-
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
-	}
-
-	free(strings);
-
-	fflush(stdout);
-	_exit(0);
 }

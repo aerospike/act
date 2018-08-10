@@ -7,12 +7,12 @@ DIR_BIN = $(DIR_TARGET)/bin
 SRC_DIRS = common index prep storage
 OBJ_DIRS = $(SRC_DIRS:%=$(DIR_OBJ)/src/%)
 
-COMMON_SRC = cfg.c histogram.c queue.c random.c
+COMMON_SRC = cfg.c histogram.c queue.c random.c trace.c
 INDEX_SRC = act_index.c cfg_index.c
 STORAGE_SRC = act_storage.c cfg_storage.c
 
 INDEX_SOURCES = $(COMMON_SRC:%=src/common/%) $(INDEX_SRC:%=src/index/%)
-PREP_SOURCES = src/common/random.c src/prep/act_prep.c
+PREP_SOURCES = src/common/random.c src/common/trace.c src/prep/act_prep.c
 STORAGE_SOURCES = $(COMMON_SRC:%=src/common/%) $(STORAGE_SRC:%=src/storage/%)
 
 INDEX_OBJECTS = $(INDEX_SOURCES:%.c=$(DIR_OBJ)/%.o)

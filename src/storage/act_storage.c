@@ -32,12 +32,10 @@
 //
 
 #include <dirent.h>
-#include <execinfo.h>	// for debugging
 #include <errno.h>
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
-#include <signal.h>		// for debugging
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -54,6 +52,7 @@
 #include "common/histogram.h"
 #include "common/queue.h"
 #include "common/random.h"
+#include "common/trace.h"
 #include "common/version.h"
 
 #include "cfg_storage.h"
@@ -149,9 +148,6 @@ static void write_and_report_large_block(device* p_device, uint8_t* p_buffer,
 static uint64_t write_to_device(device* p_device, uint64_t offset,
 		uint32_t size, uint8_t* p_buffer);
 
-static void as_sig_handle_segv(int sig_num);
-static void as_sig_handle_term(int sig_num);
-
 
 //==========================================================
 // Globals.
@@ -180,8 +176,7 @@ static histogram* g_p_write_histogram;
 int
 main(int argc, char* argv[])
 {
-	signal(SIGSEGV, as_sig_handle_segv);
-	signal(SIGTERM , as_sig_handle_term);
+	signal_setup();
 
 	fprintf(stdout, "\nAerospike act version %s\n", VERSION);
 	fprintf(stdout, "Storage device IO test\n");
@@ -1170,49 +1165,4 @@ write_to_device(device* p_device, uint64_t offset, uint32_t size,
 	fd_put(p_device, fd);
 
 	return stop_ns;
-}
-
-
-//==========================================================
-// Local helpers - debugging only.
-//
-
-static void
-as_sig_handle_segv(int sig_num)
-{
-	fprintf(stdout, "Signal SEGV received: stack trace\n");
-
-	void* bt[50];
-	uint sz = backtrace(bt, 50);
-	
-	char** strings = backtrace_symbols(bt, sz);
-
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
-	}
-
-	free(strings);
-	
-	fflush(stdout);
-	_exit(-1);
-}
-
-static void
-as_sig_handle_term(int sig_num)
-{
-	fprintf(stdout, "Signal TERM received, aborting\n");
-
-  	void* bt[50];
-	uint sz = backtrace(bt, 50);
-
-	char** strings = backtrace_symbols(bt, sz);
-
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
-	}
-
-	free(strings);
-
-	fflush(stdout);
-	_exit(0);
 }
