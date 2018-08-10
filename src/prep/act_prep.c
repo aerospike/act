@@ -32,10 +32,11 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <linux/fs.h>
 #include <sys/stat.h>
@@ -91,7 +92,9 @@ static void				set_scheduler();
 // Main
 //
 
-int main(int argc, char* argv[]) {
+int
+main(int argc, char* argv[])
+{
 	signal_setup();
 
 	if (argc != 2) {
@@ -142,11 +145,7 @@ int main(int argc, char* argv[]) {
 
 	fprintf(stdout, "salting device %s\n", g_device_name);
 
-	srand(time(NULL));
-
-	if (! rand_seed()) {
-		exit(-1);
-	}
+	rand_seed();
 
 	pthread_t salt_threads[NUM_SALT_THREADS];
 
@@ -176,7 +175,11 @@ int main(int argc, char* argv[]) {
 // Runs in all (NUM_SALT_THREADS) salt_threads,
 // salts a portion of the device.
 //
-static void* run_salt(void* pv_n) {
+static void*
+run_salt(void* pv_n)
+{
+	rand_seed_thread();
+
 	uint32_t n = (uint32_t)(uint64_t)pv_n;
 
 	uint64_t offset = n * g_blocks_per_salt_thread * LARGE_BLOCK_BYTES;
@@ -250,7 +253,9 @@ static void* run_salt(void* pv_n) {
 // Runs in all (NUM_ZERO_THREADS) zero_threads,
 // zeros a portion of the device.
 //
-static void* run_zero(void* pv_n) {
+static void*
+run_zero(void* pv_n)
+{
 	uint32_t n = (uint32_t)(uint64_t)pv_n;
 
 	uint64_t offset = n * g_blocks_per_zero_thread * LARGE_BLOCK_BYTES;
@@ -320,7 +325,9 @@ static void* run_zero(void* pv_n) {
 //------------------------------------------------
 // Aligned memory allocation.
 //
-static inline uint8_t* cf_valloc(size_t size) {
+static inline uint8_t*
+cf_valloc(size_t size)
+{
 	void* pv;
 
 	return posix_memalign(&pv, 4096, size) == 0 ? (uint8_t*)pv : 0;
@@ -329,7 +336,9 @@ static inline uint8_t* cf_valloc(size_t size) {
 //------------------------------------------------
 // Allocate and zero one large block sized buffer.
 //
-static bool create_zero_buffer() {
+static bool
+create_zero_buffer()
+{
 	g_p_zero_buffer = cf_valloc(LARGE_BLOCK_BYTES);
 
 	if (! g_p_zero_buffer) {
@@ -345,7 +354,9 @@ static bool create_zero_buffer() {
 //------------------------------------------------
 // Discover device storage capacity.
 //
-static bool discover_num_blocks() {
+static bool
+discover_num_blocks()
+{
 	int fd = fd_get();
 
 	if (fd == -1) {
@@ -376,14 +387,18 @@ static bool discover_num_blocks() {
 //------------------------------------------------
 // Get a file descriptor.
 //
-static inline int fd_get() {
+static inline int
+fd_get()
+{
 	return open(g_device_name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
 }
 
 //------------------------------------------------
 // Set device's system block scheduler to noop.
 //
-static void set_scheduler() {
+static void
+set_scheduler()
+{
 	const char* p_slash = strrchr(g_device_name, '/');
 	const char* device_tag = p_slash ? p_slash + 1 : g_device_name;
 

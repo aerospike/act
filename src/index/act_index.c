@@ -37,6 +37,7 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -109,8 +110,6 @@ static bool discover_device(device* p_device);
 static void fd_close_all(device* p_device);
 static int fd_get(device* p_device);
 static void fd_put(device* p_device, int fd);
-static inline uint32_t rand_31();
-static inline uint64_t rand_48();
 static inline uint64_t random_io_offset(const device* p_device);
 static void read_and_report(trans_req* p_read_req, uint8_t* p_buffer);
 static void read_cache_and_report(uint8_t* p_buffer);
@@ -158,12 +157,7 @@ main(int argc, char* argv[])
 	}
 
 	set_schedulers();
-
-	srand(time(NULL));
-
-	if (! rand_seed()) {
-		exit(-1);
-	}
+	rand_seed();
 
 	device devices[g_icfg.num_devices];
 	transq transqs[g_icfg.num_queues];
@@ -340,6 +334,8 @@ main(int argc, char* argv[])
 static void*
 run_cache_simulation(void* pv_unused)
 {
+	rand_seed_thread();
+
 	uint8_t stack_buffer[IO_SIZE + 4096];
 	uint8_t* p_buffer = align_4096(stack_buffer);
 
@@ -380,6 +376,8 @@ run_cache_simulation(void* pv_unused)
 static void*
 run_generate_rw_reqs(void* pv_unused)
 {
+	rand_seed_thread();
+
 	uint64_t count = 0;
 
 	while (g_running) {
@@ -391,7 +389,7 @@ run_generate_rw_reqs(void* pv_unused)
 		}
 
 		uint32_t queue_index = count % g_icfg.num_queues;
-		uint32_t random_device_index = rand_31() % g_icfg.num_devices;
+		uint32_t random_device_index = rand_32() % g_icfg.num_devices;
 		device* p_random_device = &g_devices[random_device_index];
 
 		trans_req rw_req = {
@@ -532,30 +530,12 @@ fd_put(device* p_device, int fd)
 }
 
 //------------------------------------------------
-// Get a random 31-bit uint32_t.
-//
-static inline uint32_t
-rand_31()
-{
-	return (uint32_t)rand();
-}
-
-//------------------------------------------------
-// Get a random 48-bit uint64_t.
-//
-static inline uint64_t
-rand_48()
-{
-	return ((uint64_t)rand() << 16) | ((uint64_t)rand() & 0xffffULL);
-}
-
-//------------------------------------------------
 // Get a random read offset for a device.
 //
 static inline uint64_t
 random_io_offset(const device* p_device)
 {
-	return (rand_48() % p_device->num_io_offsets) * IO_SIZE;
+	return (rand_64() % p_device->num_io_offsets) * IO_SIZE;
 }
 
 //------------------------------------------------
@@ -584,7 +564,7 @@ read_and_report(trans_req* p_read_req, uint8_t* p_buffer)
 static void
 read_cache_and_report(uint8_t* p_buffer)
 {
-	uint32_t random_device_index = rand_31() % g_icfg.num_devices;
+	uint32_t random_device_index = rand_32() % g_icfg.num_devices;
 	device* p_device = &g_devices[random_device_index];
 	uint64_t offset = random_io_offset(p_device);
 
@@ -681,7 +661,7 @@ write_cache_and_report(uint8_t* p_buffer)
 	// Salt the buffer each time.
 	rand_fill(p_buffer, IO_SIZE);
 
-	uint32_t random_device_index = rand_31() % g_icfg.num_devices;
+	uint32_t random_device_index = rand_32() % g_icfg.num_devices;
 	device* p_device = &g_devices[random_device_index];
 	uint64_t offset = random_io_offset(p_device);
 

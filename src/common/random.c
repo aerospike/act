@@ -32,14 +32,22 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 
 //==========================================================
 // Forward declarations.
 //
 
-static inline uint64_t rand_64();
-static inline uint64_t xorshift128plus(uint64_t* p0, uint64_t* p1);
+static inline uint64_t xorshift128plus();
+
+
+//==========================================================
+// Globals.
+//
+
+static __thread uint64_t tl_seed0;
+static __thread uint64_t tl_seed1;
 
 
 //==========================================================
@@ -47,14 +55,40 @@ static inline uint64_t xorshift128plus(uint64_t* p0, uint64_t* p1);
 //
 
 //------------------------------------------------
-// Seed for random fill.
+// Seed for system rand() call.
 //
-bool
+void
 rand_seed()
 {
-	fprintf(stdout, "Using xorshift+ random generator.\n\n");
-	// Assumes parent program has called srand(), which is all we need here.
-	return true;
+	srand(time(NULL));
+}
+
+//------------------------------------------------
+// Seed a thread for generating a random sequence.
+//
+void
+rand_seed_thread()
+{
+	tl_seed0 = ((uint64_t)rand() << 32) | (uint64_t)rand();
+	tl_seed1 = ((uint64_t)rand() << 32) | (uint64_t)rand();
+}
+
+//------------------------------------------------
+// Get a random uint32_t.
+//
+uint32_t
+rand_32()
+{
+	return (uint32_t)xorshift128plus();
+}
+
+//------------------------------------------------
+// Get a random uint64_t.
+//
+uint64_t
+rand_64()
+{
+	return xorshift128plus();
 }
 
 //------------------------------------------------
@@ -63,15 +97,12 @@ rand_seed()
 bool
 rand_fill(uint8_t* p_buffer, uint32_t size)
 {
-	uint64_t seed0 = rand_64();
-	uint64_t seed1 = rand_64();
-
 	uint64_t* p_write = (uint64_t*)p_buffer;
 	uint64_t* p_end = (uint64_t*)(p_buffer + size);
 	// ... relies on size being a multiple of 8, which it will be.
 
 	while (p_write < p_end) {
-		*p_write++ = xorshift128plus(&seed0, &seed1);
+		*p_write++ = xorshift128plus();
 	}
 
 	return true;
@@ -83,26 +114,16 @@ rand_fill(uint8_t* p_buffer, uint32_t size)
 //
 
 //------------------------------------------------
-// Get a mostly random uint64_t.
-//
-static inline uint64_t
-rand_64()
-{
-	// Doesn't need to be perfect, just not 0 and not the same as last time.
-	return ((uint64_t)rand() << 32) | (uint64_t)rand();
-}
-
-//------------------------------------------------
 // One step in generating a random sequence.
 //
 static inline uint64_t
-xorshift128plus(uint64_t* p0, uint64_t* p1)
+xorshift128plus()
 {
-	uint64_t s1 = *p0;
-	uint64_t s0 = *p1;
+	uint64_t s1 = tl_seed0;
+	uint64_t s0 = tl_seed1;
 
-	*p0 = s0;
+	tl_seed0 = s0;
 	s1 ^= s1 << 23;
 
-	return (*p1 = (s1 ^ s0 ^ (s1 >> 17) ^ (s0 >> 26))) + s0;
+	return (tl_seed1 = (s1 ^ s0 ^ (s1 >> 17) ^ (s0 >> 26))) + s0;
 }

@@ -37,6 +37,7 @@
 #include <inttypes.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -129,8 +130,6 @@ static void discover_write_pattern(device* p_device);
 static void fd_close_all(device* p_device);
 static int fd_get(device* p_device);
 static void fd_put(device* p_device, int fd);
-static inline uint32_t rand_31();
-static inline uint64_t rand_48();
 static inline uint64_t random_large_block_offset(const device* p_device);
 static inline uint64_t random_read_offset(const device* p_device);
 static inline uint32_t random_read_size(const device* p_device);
@@ -187,12 +186,7 @@ main(int argc, char* argv[])
 	}
 
 	set_schedulers();
-
-	srand(time(NULL));
-
-	if (! rand_seed()) {
-		exit(-1);
-	}
+	rand_seed();
 
 	device devices[g_scfg.num_devices];
 	transq transqs[g_scfg.num_queues];
@@ -436,6 +430,8 @@ main(int argc, char* argv[])
 static void*
 run_generate_read_reqs(void* pv_unused)
 {
+	rand_seed_thread();
+
 	uint64_t count = 0;
 
 	while (g_running) {
@@ -447,7 +443,7 @@ run_generate_read_reqs(void* pv_unused)
 		}
 
 		uint32_t queue_index = count % g_scfg.num_queues;
-		uint32_t random_device_index = rand_31() % g_scfg.num_devices;
+		uint32_t random_device_index = rand_32() % g_scfg.num_devices;
 		device* p_random_device = &g_devices[random_device_index];
 
 		trans_req read_req = {
@@ -482,6 +478,8 @@ run_generate_read_reqs(void* pv_unused)
 static void*
 run_generate_write_reqs(void* pv_unused)
 {
+	rand_seed_thread();
+
 	uint64_t count = 0;
 
 	while (g_running) {
@@ -493,7 +491,7 @@ run_generate_write_reqs(void* pv_unused)
 		}
 
 		uint32_t queue_index = count % g_scfg.num_queues;
-		uint32_t random_device_index = rand_31() % g_scfg.num_devices;
+		uint32_t random_device_index = rand_32() % g_scfg.num_devices;
 		device* p_random_device = &g_devices[random_device_index];
 
 		trans_req write_req = {
@@ -527,6 +525,8 @@ run_generate_write_reqs(void* pv_unused)
 static void*
 run_large_block_reads(void* pv_device)
 {
+	rand_seed_thread();
+
 	device* p_device = (device*)pv_device;
 
 	uint8_t* p_buffer = cf_valloc(g_scfg.large_block_ops_bytes);
@@ -572,6 +572,8 @@ run_large_block_reads(void* pv_device)
 static void*
 run_large_block_writes(void* pv_device)
 {
+	rand_seed_thread();
+
 	device* p_device = (device*)pv_device;
 
 	uint8_t* p_buffer = cf_valloc(g_scfg.large_block_ops_bytes);
@@ -657,6 +659,8 @@ run_tomb_raider(void* pv_device)
 static void*
 run_transactions(void* pv_req_queue)
 {
+	rand_seed_thread();
+
 	cf_queue* p_req_queue = (cf_queue*)pv_req_queue;
 	trans_req req;
 
@@ -911,30 +915,12 @@ fd_put(device* p_device, int fd)
 }
 
 //------------------------------------------------
-// Get a random 31-bit uint32_t.
-//
-static inline uint32_t
-rand_31()
-{
-	return (uint32_t)rand();
-}
-
-//------------------------------------------------
-// Get a random 48-bit uint64_t.
-//
-static inline uint64_t
-rand_48()
-{
-	return ((uint64_t)rand() << 16) | ((uint64_t)rand() & 0xffffULL);
-}
-
-//------------------------------------------------
 // Get a random large block offset for a device.
 //
 static inline uint64_t
 random_large_block_offset(const device* p_device)
 {
-	return (rand_48() % p_device->num_large_blocks) *
+	return (rand_64() % p_device->num_large_blocks) *
 			g_scfg.large_block_ops_bytes;
 }
 
@@ -944,7 +930,7 @@ random_large_block_offset(const device* p_device)
 static inline uint64_t
 random_read_offset(const device* p_device)
 {
-	return (rand_48() % p_device->num_read_offsets) * p_device->min_op_bytes;
+	return (rand_64() % p_device->num_read_offsets) * p_device->min_op_bytes;
 }
 
 //------------------------------------------------
@@ -958,7 +944,7 @@ random_read_size(const device* p_device)
 	}
 
 	return p_device->read_bytes +
-			(p_device->min_op_bytes * (rand_31() % p_device->num_read_sizes));
+			(p_device->min_op_bytes * (rand_32() % p_device->num_read_sizes));
 }
 
 //------------------------------------------------
@@ -967,7 +953,7 @@ random_read_size(const device* p_device)
 static inline uint64_t
 random_write_offset(const device* p_device)
 {
-	return (rand_48() % p_device->num_write_offsets) *
+	return (rand_64() % p_device->num_write_offsets) *
 			p_device->min_commit_bytes;
 }
 
@@ -983,7 +969,7 @@ random_write_size(const device* p_device)
 
 	return p_device->write_bytes +
 			(p_device->min_commit_bytes *
-					(rand_31() % p_device->num_write_sizes));
+					(rand_32() % p_device->num_write_sizes));
 }
 
 //------------------------------------------------
@@ -1103,6 +1089,9 @@ set_schedulers()
 static void
 write_and_report(trans_req* p_write_req, uint8_t* p_buffer)
 {
+	// Salt each record.
+	rand_fill(p_buffer, p_write_req->size);
+
 	uint64_t raw_start_time = cf_getns();
 	uint64_t stop_time = write_to_device(p_write_req->p_device,
 			p_write_req->offset, p_write_req->size, p_buffer);
