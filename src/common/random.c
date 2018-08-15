@@ -124,6 +124,7 @@ xorshift128plus()
 
 	tl_seed0 = s0;
 	s1 ^= s1 << 23;
+	tl_seed1 = s1 ^ s0 ^ (s1 >> 17) ^ (s0 >> 26);
 
-	return (tl_seed1 = (s1 ^ s0 ^ (s1 >> 17) ^ (s0 >> 26))) + s0;
+	return tl_seed1 + s0;
 }

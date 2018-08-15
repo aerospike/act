@@ -72,9 +72,7 @@ void q_unwrap(queue* q);
 queue*
 queue_create(size_t ele_size, bool thread_safe)
 {
-	queue* q = NULL;
-
-	q = malloc( sizeof(queue));
+	queue* q = malloc( sizeof(queue));
 
 	if (! q) {
 		fprintf(stdout, "ERROR: creating queue (malloc)\n");
