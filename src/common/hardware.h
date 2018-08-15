@@ -1,7 +1,7 @@
 /*
- * queue.h
+ * hardware.h
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,43 +28,16 @@
 // Includes.
 //
 
-#include <pthread.h>
-#include <stdbool.h>
-#include <stddef.h>
 #include <stdint.h>
 
-
-//==========================================================
-// Typedefs & constants.
-//
-
-typedef struct queue_s {
-	bool thread_safe;
-	uint32_t alloc_sz;          // number of elements currently allocated
-	uint32_t read_offset;       // head of queue
-	uint32_t write_offset;      // tail of queue - write is always >= read
-	size_t ele_size;            // size of (every) element in bytes
-	pthread_mutex_t lock;       // the lock - used in thread-safe mode
-	pthread_cond_t cond_var;    // the conditional variable
-	uint8_t* elements;          // the elements' bytes
-} queue;
-
-// Returned by queue_push() and/or queue_pop():
-#define QUEUE_EMPTY -2
-#define QUEUE_ERR -1
-#define QUEUE_OK 0
-
-// Possible ms_wait values to pass to queue_pop():
-#define QUEUE_FOREVER -1
-#define QUEUE_NO_WAIT 0
+#include "cfg.h"
 
 
 //==========================================================
 // Public API.
 //
 
-queue* queue_create(size_t ele_size, bool thread_safe);
-void queue_destroy(queue* q);
-uint32_t queue_sz(queue* q);
-int queue_push(queue* q, const void* ele_ptr);
-int queue_pop(queue* q, void* ele_ptr, int ms_wait);
+uint32_t num_cpus();
+void set_scheduler(const char* device_name, const char* mode);
+void set_schedulers(char device_names[][MAX_DEVICE_NAME_SIZE],
+		uint32_t num_devices, uint32_t scheduler_mode);

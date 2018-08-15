@@ -22,9 +22,8 @@
  * SOFTWARE.
  */
 
-
 //==========================================================
-// Includes
+// Includes.
 //
 
 #include <dirent.h>
@@ -42,12 +41,13 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
+#include "common/hardware.h"
 #include "common/random.h"
 #include "common/trace.h"
 
 
 //==========================================================
-// Constants
+// Typedefs & constants.
 //
 
 const uint32_t NUM_SALT_THREADS = 8;
@@ -61,7 +61,19 @@ const uint32_t LARGE_BLOCK_BYTES = 1024 * 128;
 
 
 //==========================================================
-// Globals
+// Forward declarations.
+//
+
+static void* run_salt(void* pv_n);
+static void* run_zero(void* pv_n);
+
+static uint8_t* act_valloc(size_t size);
+static bool create_zero_buffer();
+static bool discover_num_blocks();
+
+
+//==========================================================
+// Globals.
 //
 
 static char* g_device_name = NULL;
@@ -75,21 +87,18 @@ static uint64_t g_extra_bytes_to_zero = 0;
 
 
 //==========================================================
-// Forward Declarations
+// Inlines & macros.
 //
 
-static void*			run_salt(void* pv_n);
-static void*			run_zero(void* pv_n);
-
-static inline uint8_t*	cf_valloc(size_t size);
-static bool				create_zero_buffer();
-static bool				discover_num_blocks();
-static inline int		fd_get();
-static void				set_scheduler();
+static inline int
+fd_get()
+{
+	return open(g_device_name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
+}
 
 
 //==========================================================
-// Main
+// Main.
 //
 
 int
@@ -107,7 +116,7 @@ main(int argc, char* argv[])
 	strcpy(device_name, argv[1]);
 	g_device_name = device_name;
 
-	set_scheduler();
+	set_scheduler(g_device_name, "noop");
 
 	if (! discover_num_blocks()) {
 		exit(-1);
@@ -168,7 +177,7 @@ main(int argc, char* argv[])
 
 
 //==========================================================
-// Thread "Run" Functions
+// Local helpers - thread "run" functions.
 //
 
 //------------------------------------------------
@@ -199,9 +208,9 @@ run_salt(void* pv_n)
 //	fprintf(stdout, "thread %d: blks-to-salt = %" PRIu64 ", prg-blks = %"
 //		PRIu64 "\n", n, blocks_to_salt, progress_blocks);
 
-	uint8_t* p_buffer = cf_valloc(LARGE_BLOCK_BYTES);
+	uint8_t* buf = act_valloc(LARGE_BLOCK_BYTES);
 
-	if (! p_buffer) {
+	if (! buf) {
 		fprintf(stdout, "ERROR: valloc in salt thread %" PRIu32 "\n", n);
 		return NULL;
 	}
@@ -210,25 +219,24 @@ run_salt(void* pv_n)
 
 	if (fd == -1) {
 		fprintf(stdout, "ERROR: open in salt thread %" PRIu32 "\n", n);
-		free(p_buffer);
+		free(buf);
 		return NULL;
 	}
 
 	if (lseek(fd, offset, SEEK_SET) != offset) {
 		fprintf(stdout, "ERROR: seek in salt thread %" PRIu32 "\n", n);
 		close(fd);
-		free(p_buffer);
+		free(buf);
 		return NULL;
 	}
 
 	for (uint64_t b = 0; b < blocks_to_salt; b++) {
-		if (! rand_fill(p_buffer, LARGE_BLOCK_BYTES)) {
+		if (! rand_fill(buf, LARGE_BLOCK_BYTES)) {
 			fprintf(stdout, "ERROR: rand fill in salt thread %" PRIu32 "\n", n);
 			break;
 		}
 
-		if (write(fd, p_buffer, LARGE_BLOCK_BYTES) !=
-				(ssize_t)LARGE_BLOCK_BYTES) {
+		if (write(fd, buf, LARGE_BLOCK_BYTES) != (ssize_t)LARGE_BLOCK_BYTES) {
 			fprintf(stdout, "ERROR: write in salt thread %" PRIu32 "\n", n);
 			break;
 		}
@@ -244,7 +252,7 @@ run_salt(void* pv_n)
 	}
 
 	close(fd);
-	free(p_buffer);
+	free(buf);
 
 	return NULL;
 }
@@ -319,18 +327,18 @@ run_zero(void* pv_n)
 
 
 //==========================================================
-// Helpers
+// Local helpers - generic.
 //
 
 //------------------------------------------------
 // Aligned memory allocation.
 //
-static inline uint8_t*
-cf_valloc(size_t size)
+static uint8_t*
+act_valloc(size_t size)
 {
 	void* pv;
 
-	return posix_memalign(&pv, 4096, size) == 0 ? (uint8_t*)pv : 0;
+	return posix_memalign(&pv, 4096, size) == 0 ? (uint8_t*)pv : NULL;
 }
 
 //------------------------------------------------
@@ -339,10 +347,10 @@ cf_valloc(size_t size)
 static bool
 create_zero_buffer()
 {
-	g_p_zero_buffer = cf_valloc(LARGE_BLOCK_BYTES);
+	g_p_zero_buffer = act_valloc(LARGE_BLOCK_BYTES);
 
 	if (! g_p_zero_buffer) {
-		fprintf(stdout, "ERROR: zero buffer cf_valloc()\n");
+		fprintf(stdout, "ERROR: zero buffer act_valloc()\n");
 		return false;
 	}
 
@@ -382,42 +390,4 @@ discover_num_blocks()
 		g_device_name, device_bytes, g_num_large_blocks);
 
 	return true;
-}
-
-//------------------------------------------------
-// Get a file descriptor.
-//
-static inline int
-fd_get()
-{
-	return open(g_device_name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
-}
-
-//------------------------------------------------
-// Set device's system block scheduler to noop.
-//
-static void
-set_scheduler()
-{
-	const char* p_slash = strrchr(g_device_name, '/');
-	const char* device_tag = p_slash ? p_slash + 1 : g_device_name;
-
-	char scheduler_file_name[128];
-
-	strcpy(scheduler_file_name, "/sys/block/");
-	strcat(scheduler_file_name, device_tag);
-	strcat(scheduler_file_name, "/queue/scheduler");
-
-	FILE* scheduler_file = fopen(scheduler_file_name, "w");
-
-	if (! scheduler_file) {
-		fprintf(stdout, "ERROR: couldn't open %s\n", scheduler_file_name);
-		return;
-	}
-
-	if (fwrite("noop", 4, 1, scheduler_file) != 1) {
-		fprintf(stdout, "ERROR: writing noop to %s\n", scheduler_file_name);
-	}
-
-	fclose(scheduler_file);
 }

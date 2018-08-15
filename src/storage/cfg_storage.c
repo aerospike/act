@@ -37,6 +37,7 @@
 #include <inttypes.h>
 
 #include "common/cfg.h"
+#include "common/hardware.h"
 
 
 //==========================================================
@@ -61,6 +62,8 @@ static const char TAG_COMMIT_TO_DEVICE[]        = "commit-to-device";
 static const char TAG_COMMIT_MIN_BYTES[]        = "commit-min-bytes";
 static const char TAG_TOMB_RAIDER[]             = "tomb-raider";
 static const char TAG_TOMB_RAIDER_SLEEP_USEC[]  = "tomb-raider-sleep-usec";
+static const char TAG_MAX_REQS_QUEUED[]         = "max-reqs-queued";
+static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
 static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
 
 #define RBLOCK_SIZE 128 // must be power of 2
@@ -81,8 +84,11 @@ static void echo_configuration();
 
 // Configuration instance, showing non-zero defaults.
 storage_cfg g_scfg = {
+		.threads_per_queue = 4,
 		.replication_factor = 1,
-		.defrag_lwm_pct = 50
+		.defrag_lwm_pct = 50,
+		.max_reqs_queued = 100000,
+		.max_lag_usec = 1000000 * 10
 };
 
 
@@ -191,6 +197,12 @@ storage_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_TOMB_RAIDER_SLEEP_USEC) == 0) {
 			g_scfg.tomb_raider_sleep_us = parse_uint32();
 		}
+		else if (strcmp(tag, TAG_MAX_REQS_QUEUED) == 0) {
+			g_scfg.max_reqs_queued = parse_uint32();
+		}
+		else if (strcmp(tag, TAG_MAX_LAG_SEC) == 0) {
+			g_scfg.max_lag_usec = (uint64_t)parse_uint32() * 1000000;
+		}
 		else if (strcmp(tag, TAG_SCHEDULER_MODE) == 0) {
 			g_scfg.scheduler_mode = parse_scheduler_mode();
 		}
@@ -221,7 +233,7 @@ check_configuration()
 		return false;
 	}
 
-	if (g_scfg.num_queues == 0) {
+	if (g_scfg.num_queues == 0 && (g_scfg.num_queues = num_cpus()) == 0) {
 		configuration_error(TAG_NUM_QUEUES);
 		return false;
 	}
@@ -390,6 +402,10 @@ echo_configuration()
 			g_scfg.tomb_raider ? "yes" : "no");
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_TOMB_RAIDER_SLEEP_USEC,
 			g_scfg.tomb_raider_sleep_us);
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_MAX_REQS_QUEUED,
+			g_scfg.max_reqs_queued);
+	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
+			g_scfg.max_lag_usec / 1000000);
 	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
 			SCHEDULER_MODES[g_scfg.scheduler_mode]);
 

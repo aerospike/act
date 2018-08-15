@@ -42,18 +42,20 @@
 
 typedef struct index_cfg_s {
 	char device_names[MAX_NUM_INDEX_DEVICES][MAX_DEVICE_NAME_SIZE];
-	uint32_t num_devices;			// derived by counting device names
+	uint32_t num_devices;           // derived by counting device names
 	uint32_t num_queues;
 	uint32_t threads_per_queue;
 	uint32_t num_cache_threads;
-	uint64_t run_us;				// converted from literal units in seconds
-	uint64_t report_interval_us;	// converted from literal units in seconds
+	uint64_t run_us;                // converted from literal units in seconds
+	uint64_t report_interval_us;    // converted from literal units in seconds
 	bool us_histograms;
 	uint32_t read_reqs_per_sec;
 	uint32_t write_reqs_per_sec;
 	uint32_t replication_factor;
 	uint32_t defrag_lwm_pct;
-	uint32_t scheduler_mode;		// array index derived from literal string
+	uint32_t max_reqs_queued;
+	uint64_t max_lag_usec;          // converted from literal units in seconds
+	uint32_t scheduler_mode;        // array index derived from literal string
 
 	// Derived from literal configuration:
 	uint64_t trans_thread_reads_per_sec;

@@ -7,12 +7,12 @@ DIR_BIN = $(DIR_TARGET)/bin
 SRC_DIRS = common index prep storage
 OBJ_DIRS = $(SRC_DIRS:%=$(DIR_OBJ)/src/%)
 
-COMMON_SRC = cfg.c histogram.c queue.c random.c trace.c
+COMMON_SRC = cfg.c hardware.c histogram.c queue.c random.c trace.c
 INDEX_SRC = act_index.c cfg_index.c
 STORAGE_SRC = act_storage.c cfg_storage.c
 
 INDEX_SOURCES = $(COMMON_SRC:%=src/common/%) $(INDEX_SRC:%=src/index/%)
-PREP_SOURCES = src/common/random.c src/common/trace.c src/prep/act_prep.c
+PREP_SOURCES = $(COMMON_SRC:%=src/common/%) src/prep/act_prep.c
 STORAGE_SOURCES = $(COMMON_SRC:%=src/common/%) $(STORAGE_SRC:%=src/storage/%)
 
 INDEX_OBJECTS = $(INDEX_SOURCES:%.c=$(DIR_OBJ)/%.o)
@@ -28,7 +28,7 @@ ALL_DEPENDENCIES = $(ALL_OBJECTS:%.o=%.d)
 
 CC = gcc
 CFLAGS = -g -fno-common -std=gnu99 -Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64
-CFLAGS += -MMD
+CFLAGS += -D_GNU_SOURCE -MMD
 LDFLAGS = $(CFLAGS)
 INCLUDES = -Isrc -I/usr/include
 LIBRARIES = -lpthread -lrt
