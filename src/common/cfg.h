@@ -39,11 +39,7 @@
 //
 
 #define WHITE_SPACE " \t\n\r"
-
 #define MAX_DEVICE_NAME_SIZE 64
-
-extern const char* const SCHEDULER_MODES[];
-extern const uint32_t NUM_SCHEDULER_MODES;
 
 
 //==========================================================
@@ -52,7 +48,7 @@ extern const uint32_t NUM_SCHEDULER_MODES;
 
 void parse_device_names(size_t max_num_devices,
 		char names[][MAX_DEVICE_NAME_SIZE], uint32_t* p_num_devices);
-uint32_t parse_scheduler_mode();
+const char* parse_scheduler_mode();
 uint32_t parse_uint32();
 bool parse_yes_no();
 

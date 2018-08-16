@@ -62,7 +62,7 @@ typedef struct storage_cfg_s {
 	uint32_t tomb_raider_sleep_us;
 	uint32_t max_reqs_queued;
 	uint64_t max_lag_usec;          // converted from literal units in seconds
-	uint32_t scheduler_mode;        // array index derived from literal string
+	const char* scheduler_mode;
 
 	// Derived from literal configuration:
 	uint32_t record_stored_bytes;

@@ -40,8 +40,6 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "cfg.h"
-
 
 //==========================================================
 // Typedefs & constants.
@@ -120,17 +118,6 @@ void
 set_scheduler(const char* device_name, const char* mode)
 {
 	// FIXME - implement.
-}
-
-void
-set_schedulers(char device_names[][MAX_DEVICE_NAME_SIZE], uint32_t num_devices,
-		uint32_t scheduler_mode)
-{
-	const char* mode = SCHEDULER_MODES[scheduler_mode];
-
-	for (uint32_t d = 0; d < num_devices; d++) {
-		set_scheduler(device_names[d], mode);
-	}
 }
 
 

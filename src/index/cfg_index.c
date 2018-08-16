@@ -80,7 +80,8 @@ index_cfg g_icfg = {
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
 		.max_reqs_queued = 100000,
-		.max_lag_usec = 1000000 * 10
+		.max_lag_usec = 1000000 * 10,
+		.scheduler_mode = "noop"
 };
 
 
@@ -289,7 +290,7 @@ echo_configuration()
 	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
 			g_icfg.max_lag_usec / 1000000);
 	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
-			SCHEDULER_MODES[g_icfg.scheduler_mode]);
+			g_icfg.scheduler_mode);
 
 	fprintf(stdout, "\n");
 

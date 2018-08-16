@@ -26,25 +26,27 @@
 // Includes.
 //
 
+#include "cfg.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
-
-#include "cfg.h"
 
 
 //==========================================================
 // Typedefs & constants.
 //
 
-const char* const SCHEDULER_MODES[] = {
-	"noop",
+static const char* const SCHEDULER_MODES[] = {
+	"noop", // default
 	"cfq"
 };
 
-const uint32_t NUM_SCHEDULER_MODES = sizeof(SCHEDULER_MODES) / sizeof(char*);
+static const uint32_t N_SCHEDULER_MODES =
+		(uint32_t)(sizeof(SCHEDULER_MODES) / sizeof(const char*));
 
 
 //==========================================================
@@ -58,16 +60,16 @@ parse_device_names(size_t max_num_devices, char names[][MAX_DEVICE_NAME_SIZE],
 	const char* val;
 
 	while ((val = strtok(NULL, ",;" WHITE_SPACE)) != NULL) {
-		size_t name_len = strlen(val);
-
-		if (name_len == 0 || name_len >= MAX_DEVICE_NAME_SIZE) {
-			// FIXME - log
+		if (*p_num_devices == max_num_devices) {
+			fprintf(stdout, "ERROR: too many device names\n");
 			*p_num_devices = 0;
 			return;
 		}
 
-		if (*p_num_devices == max_num_devices) {
-			// FIXME - log
+		size_t name_len = strlen(val);
+
+		if (name_len == 0 || name_len >= MAX_DEVICE_NAME_SIZE) {
+			fprintf(stdout, "ERROR: bad device name '%s'\n", val);
 			*p_num_devices = 0;
 			return;
 		}
@@ -77,23 +79,24 @@ parse_device_names(size_t max_num_devices, char names[][MAX_DEVICE_NAME_SIZE],
 	}
 }
 
-uint32_t
+const char*
 parse_scheduler_mode()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
 	if (! val) {
-		return 0; // default is noop
+		return SCHEDULER_MODES[0]; // default is noop
 	}
 
-	for (uint32_t m = 0; m < NUM_SCHEDULER_MODES; m++) {
+	for (uint32_t m = 0; m < N_SCHEDULER_MODES; m++) {
 		if (strcmp(val, SCHEDULER_MODES[m]) == 0) {
-			return m;
+			return SCHEDULER_MODES[m];
 		}
 	}
 
-	// FIXME - log
-	return 0; // default is noop
+	fprintf(stdout, "ERROR: unknown scheduler mode '%s' - using 'noop'\n", val);
+
+	return SCHEDULER_MODES[0]; // default is noop
 }
 
 uint32_t

@@ -165,9 +165,6 @@ main(int argc, char* argv[])
 		exit(-1);
 	}
 
-	set_schedulers(g_icfg.device_names, g_icfg.num_devices,
-			g_icfg.scheduler_mode);
-
 	device devices[g_icfg.num_devices];
 	queue* trans_qs[g_icfg.num_queues];
 
@@ -186,7 +183,8 @@ main(int argc, char* argv[])
 	for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
 		device* dev = &g_devices[d];
 
-		dev->name = g_icfg.device_names[d];
+		dev->name = (const char*)g_icfg.device_names[d];
+		set_scheduler(dev->name, g_icfg.scheduler_mode);
 
 		if (! (dev->fd_q = queue_create(sizeof(int), true)) ||
 			! discover_device(dev) ||

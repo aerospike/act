@@ -30,8 +30,6 @@
 
 #include <stdint.h>
 
-#include "cfg.h"
-
 
 //==========================================================
 // Public API.
@@ -39,5 +37,3 @@
 
 uint32_t num_cpus();
 void set_scheduler(const char* device_name, const char* mode);
-void set_schedulers(char device_names[][MAX_DEVICE_NAME_SIZE],
-		uint32_t num_devices, uint32_t scheduler_mode);
