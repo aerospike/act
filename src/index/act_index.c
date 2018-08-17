@@ -93,7 +93,7 @@ typedef struct trans_req_s {
 //
 
 static void* run_cache_simulation(void* pv_unused);
-static void* run_generate_rw_reqs(void* pv_unused);
+static void* run_generate_read_reqs(void* pv_unused);
 static void* run_transactions(void* pv_req_q);
 
 static bool discover_device(device* dev);
@@ -236,7 +236,7 @@ main(int argc, char* argv[])
 
 	pthread_t rw_req_generator;
 
-	if (pthread_create(&rw_req_generator, NULL, run_generate_rw_reqs,
+	if (pthread_create(&rw_req_generator, NULL, run_generate_read_reqs,
 			NULL) != 0) {
 		fprintf(stdout, "ERROR: create read request generator thread\n");
 		exit(-1);
@@ -368,12 +368,12 @@ run_cache_simulation(void* pv_unused)
 }
 
 //------------------------------------------------
-// Runs in single thread, adds r/w trans_req
+// Runs in single thread, adds read trans_req
 // objects to transaction queues in round-robin
 // fashion.
 //
 static void*
-run_generate_rw_reqs(void* pv_unused)
+run_generate_read_reqs(void* pv_unused)
 {
 	rand_seed_thread();
 
@@ -391,13 +391,13 @@ run_generate_rw_reqs(void* pv_unused)
 		uint32_t random_dev_index = rand_32() % g_icfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 
-		trans_req rw_req = {
+		trans_req read_req = {
 				.dev = random_dev,
 				.offset = random_io_offset(random_dev),
 				.start_time = get_ns()
 		};
 
-		queue_push(g_trans_qs[queue_index], &rw_req);
+		queue_push(g_trans_qs[queue_index], &read_req);
 
 		count++;
 
@@ -422,17 +422,17 @@ static void*
 run_transactions(void* pv_req_q)
 {
 	queue* req_q = (queue*)pv_req_q;
-	trans_req req;
+	trans_req read_req;
 
 	while (g_running) {
-		if (queue_pop(req_q, (void*)&req, 100) != QUEUE_OK) {
+		if (queue_pop(req_q, (void*)&read_req, 100) != QUEUE_OK) {
 			continue;
 		}
 
 		uint8_t stack_buffer[IO_SIZE + 4096];
 		uint8_t* buf = align_4096(stack_buffer);
 
-		read_and_report(&req, buf);
+		read_and_report(&read_req, buf);
 
 		atomic32_decr(&g_reqs_queued);
 	}
