@@ -24,8 +24,18 @@
 
 #pragma once
 
+//==========================================================
+// Includes.
+//
+
 #include <stdint.h>
+
 #include "atomic.h"
+
+
+//==========================================================
+// Typedefs & constants.
+//
 
 #define N_BUCKETS (1 + 64)
 
@@ -35,11 +45,16 @@ typedef enum {
 	HIST_SCALE_MAX_PLUS_1
 } histogram_scale;
 
-typedef struct _histogram {
+typedef struct histogram_s {
 	uint32_t time_div;
-	cf_atomic64 counts[N_BUCKETS];
+	atomic64 counts[N_BUCKETS];
 } histogram;
 
-extern histogram* histogram_create(histogram_scale scale);
-extern void histogram_dump(histogram* h, const char* p_tag);
-extern void histogram_insert_data_point(histogram* h, uint64_t delta_ns);
+
+//==========================================================
+// Public API.
+//
+
+histogram* histogram_create(histogram_scale scale);
+void histogram_dump(histogram* h, const char* tag);
+void histogram_insert_data_point(histogram* h, uint64_t delta_ns);

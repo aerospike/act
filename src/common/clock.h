@@ -24,11 +24,20 @@
 
 #pragma once
 
+//==========================================================
+// Includes.
+//
+
 #include <stdint.h>
 #include <time.h>
 
+
+//==========================================================
+// Public API.
+//
+
 static inline uint64_t
-cf_getms()
+get_ms()
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -36,7 +45,7 @@ cf_getms()
 }
 
 static inline uint64_t
-cf_getus()
+get_us()
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);
@@ -44,7 +53,7 @@ cf_getus()
 }
 
 static inline uint64_t
-cf_getns()
+get_ns()
 {
 	struct timespec ts;
 	clock_gettime(CLOCK_MONOTONIC, &ts);

@@ -118,7 +118,7 @@ static queue** g_trans_qs;
 static volatile bool g_running;
 static uint64_t g_run_start_us;
 
-static cf_atomic32 g_reqs_queued = 0;
+static atomic32 g_reqs_queued = 0;
 
 static histogram* g_raw_read_hist;
 static histogram* g_raw_write_hist;
@@ -157,7 +157,7 @@ main(int argc, char* argv[])
 {
 	signal_setup();
 
-	fprintf(stdout, "\nAerospike act version %s\n", VERSION);
+	fprintf(stdout, "\nAerospike ACT version %s\n", VERSION);
 	fprintf(stdout, "Index device IO test\n");
 	fprintf(stdout, "Copyright 2018 by Aerospike. All rights reserved.\n\n");
 
@@ -198,7 +198,7 @@ main(int argc, char* argv[])
 
 	rand_seed();
 
-	g_run_start_us = cf_getus();
+	g_run_start_us = get_us();
 
 	uint64_t run_stop_us = g_run_start_us + g_icfg.run_us;
 
@@ -247,7 +247,7 @@ main(int argc, char* argv[])
 	uint64_t now_us = 0;
 	uint64_t count = 0;
 
-	while (g_running && (now_us = cf_getus()) < run_stop_us) {
+	while (g_running && (now_us = get_us()) < run_stop_us) {
 		count++;
 
 		int64_t sleep_us = (int64_t)
@@ -262,7 +262,7 @@ main(int argc, char* argv[])
 				(count * g_icfg.report_interval_us) / 1000000);
 
 		fprintf(stdout, "requests queued: %" PRIu32 "\n",
-				cf_atomic32_get(g_reqs_queued));
+				atomic32_get(g_reqs_queued));
 
 		histogram_dump(g_raw_read_hist,      "RAW READS  ");
 
@@ -352,7 +352,7 @@ run_cache_simulation(void* pv_unused)
 				((double)(count * 1000000 * g_icfg.num_devices) /
 						g_icfg.cache_thread_reads_and_writes_per_sec);
 
-		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - g_run_start_us));
+		int64_t sleep_us = (int64_t)(target_us - (get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
@@ -380,7 +380,7 @@ run_generate_rw_reqs(void* pv_unused)
 	uint64_t count = 0;
 
 	while (g_running) {
-		if (cf_atomic32_incr(&g_reqs_queued) > g_icfg.max_reqs_queued) {
+		if (atomic32_incr(&g_reqs_queued) > g_icfg.max_reqs_queued) {
 			fprintf(stdout, "ERROR: too many requests queued\n");
 			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
 			g_running = false;
@@ -394,7 +394,7 @@ run_generate_rw_reqs(void* pv_unused)
 		trans_req rw_req = {
 				.dev = random_dev,
 				.offset = random_io_offset(random_dev),
-				.start_time = cf_getns()
+				.start_time = get_ns()
 		};
 
 		queue_push(g_trans_qs[queue_index], &rw_req);
@@ -403,7 +403,7 @@ run_generate_rw_reqs(void* pv_unused)
 
 		int64_t sleep_us = (int64_t)
 				(((count * 1000000) / g_icfg.trans_thread_reads_per_sec) -
-						(cf_getus() - g_run_start_us));
+						(get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
@@ -434,7 +434,7 @@ run_transactions(void* pv_req_q)
 
 		read_and_report(&req, buf);
 
-		cf_atomic32_decr(&g_reqs_queued);
+		atomic32_decr(&g_reqs_queued);
 	}
 
 	return NULL;
@@ -522,7 +522,7 @@ fd_put(device* dev, int fd)
 static void
 read_and_report(trans_req* read_req, uint8_t* buf)
 {
-	uint64_t raw_start_time = cf_getns();
+	uint64_t raw_start_time = get_ns();
 	uint64_t stop_time = read_from_device(read_req->dev, read_req->offset, buf);
 
 	if (stop_time != -1) {
@@ -545,7 +545,7 @@ read_cache_and_report(uint8_t* buf)
 	device* p_device = &g_devices[random_device_index];
 	uint64_t offset = random_io_offset(p_device);
 
-	uint64_t raw_start_time = cf_getns();
+	uint64_t raw_start_time = get_ns();
 	uint64_t stop_time = read_from_device(p_device, offset, buf);
 
 	if (stop_time != -1) {
@@ -575,7 +575,7 @@ read_from_device(device* dev, uint64_t offset, uint8_t* buf)
 		return -1;
 	}
 
-	uint64_t stop_ns = cf_getns();
+	uint64_t stop_ns = get_ns();
 
 	fd_put(dev, fd);
 
@@ -595,7 +595,7 @@ write_cache_and_report(uint8_t* buf)
 	device* p_device = &g_devices[random_device_index];
 	uint64_t offset = random_io_offset(p_device);
 
-	uint64_t raw_start_time = cf_getns();
+	uint64_t raw_start_time = get_ns();
 	uint64_t stop_time = write_to_device(p_device, offset, buf);
 
 	if (stop_time != -1) {
@@ -625,7 +625,7 @@ write_to_device(device* dev, uint64_t offset, const uint8_t* buf)
 		return -1;
 	}
 
-	uint64_t stop_ns = cf_getns();
+	uint64_t stop_ns = get_ns();
 
 	fd_put(dev, fd);
 

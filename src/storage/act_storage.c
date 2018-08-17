@@ -141,7 +141,7 @@ static queue** g_trans_qs;
 static volatile bool g_running;
 static uint64_t g_run_start_us;
 
-static cf_atomic32 g_reqs_queued = 0;
+static atomic32 g_reqs_queued = 0;
 
 static histogram* g_large_block_read_hist;
 static histogram* g_large_block_write_hist;
@@ -217,7 +217,7 @@ main(int argc, char* argv[])
 {
 	signal_setup();
 
-	fprintf(stdout, "\nAerospike act version %s\n", VERSION);
+	fprintf(stdout, "\nAerospike ACT version %s\n", VERSION);
 	fprintf(stdout, "Storage device IO test\n");
 	fprintf(stdout, "Copyright 2018 by Aerospike. All rights reserved.\n\n");
 
@@ -270,7 +270,7 @@ main(int argc, char* argv[])
 
 	rand_seed();
 
-	g_run_start_us = cf_getus();
+	g_run_start_us = get_us();
 
 	uint64_t run_stop_us = g_run_start_us + g_scfg.run_us;
 
@@ -345,7 +345,7 @@ main(int argc, char* argv[])
 	uint64_t now_us = 0;
 	uint64_t count = 0;
 
-	while (g_running && (now_us = cf_getus()) < run_stop_us) {
+	while (g_running && (now_us = get_us()) < run_stop_us) {
 		count++;
 
 		int64_t sleep_us = (int64_t)
@@ -360,7 +360,7 @@ main(int argc, char* argv[])
 				(count * g_scfg.report_interval_us) / 1000000);
 
 		fprintf(stdout, "requests queued: %" PRIu32 "\n",
-				cf_atomic32_get(g_reqs_queued));
+				atomic32_get(g_reqs_queued));
 
 		histogram_dump(g_large_block_read_hist,  "LARGE BLOCK READS ");
 		histogram_dump(g_large_block_write_hist, "LARGE BLOCK WRITES");
@@ -456,7 +456,7 @@ run_generate_read_reqs(void* pv_unused)
 	uint64_t count = 0;
 
 	while (g_running) {
-		if (cf_atomic32_incr(&g_reqs_queued) > g_scfg.max_reqs_queued) {
+		if (atomic32_incr(&g_reqs_queued) > g_scfg.max_reqs_queued) {
 			fprintf(stdout, "ERROR: too many requests queued\n");
 			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
 			g_running = false;
@@ -472,7 +472,7 @@ run_generate_read_reqs(void* pv_unused)
 				.offset = random_read_offset(random_dev),
 				.size = random_read_size(random_dev),
 				.is_write = false,
-				.start_time = cf_getns()
+				.start_time = get_ns()
 		};
 
 		queue_push(g_trans_qs[q_index], &read_req);
@@ -481,7 +481,7 @@ run_generate_read_reqs(void* pv_unused)
 
 		int64_t sleep_us = (int64_t)
 				(((count * 1000000) / g_scfg.internal_read_reqs_per_sec) -
-						(cf_getus() - g_run_start_us));
+						(get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
@@ -504,7 +504,7 @@ run_generate_write_reqs(void* pv_unused)
 	uint64_t count = 0;
 
 	while (g_running) {
-		if (cf_atomic32_incr(&g_reqs_queued) > g_scfg.max_reqs_queued) {
+		if (atomic32_incr(&g_reqs_queued) > g_scfg.max_reqs_queued) {
 			fprintf(stdout, "ERROR: too many requests queued\n");
 			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
 			g_running = false;
@@ -520,7 +520,7 @@ run_generate_write_reqs(void* pv_unused)
 				.offset = random_write_offset(random_dev),
 				.size = random_write_size(random_dev),
 				.is_write = true,
-				.start_time = cf_getns()
+				.start_time = get_ns()
 		};
 
 		queue_push(g_trans_qs[q_index], &write_req);
@@ -529,7 +529,7 @@ run_generate_write_reqs(void* pv_unused)
 
 		int64_t sleep_us = (int64_t)
 				(((count * 1000000) / g_scfg.internal_write_reqs_per_sec) -
-						(cf_getus() - g_run_start_us));
+						(get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
@@ -568,7 +568,7 @@ run_large_block_reads(void* pv_dev)
 				((double)(count * 1000000 * g_scfg.num_devices) /
 						g_scfg.large_block_reads_per_sec);
 
-		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - g_run_start_us));
+		int64_t sleep_us = (int64_t)(target_us - (get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
@@ -614,7 +614,7 @@ run_large_block_writes(void* pv_dev)
 				((double)(count * 1000000 * g_scfg.num_devices) /
 						g_scfg.large_block_writes_per_sec);
 
-		int64_t sleep_us = (int64_t)(target_us - (cf_getus() - g_run_start_us));
+		int64_t sleep_us = (int64_t)(target_us - (get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
@@ -697,7 +697,7 @@ run_transactions(void* pv_req_q)
 			read_and_report(&req, buf);
 		}
 
-		cf_atomic32_decr(&g_reqs_queued);
+		atomic32_decr(&g_reqs_queued);
 	}
 
 	return NULL;
@@ -915,7 +915,7 @@ fd_put(device* dev, int fd)
 static void
 read_and_report(trans_req* read_req, uint8_t* buf)
 {
-	uint64_t raw_start_time = cf_getns();
+	uint64_t raw_start_time = get_ns();
 	uint64_t stop_time = read_from_device(read_req->dev, read_req->offset,
 			read_req->size, buf);
 
@@ -936,7 +936,7 @@ static void
 read_and_report_large_block(device* dev, uint8_t* buf)
 {
 	uint64_t offset = random_large_block_offset(dev);
-	uint64_t start_time = cf_getns();
+	uint64_t start_time = get_ns();
 	uint64_t stop_time = read_from_device(dev, offset,
 			g_scfg.large_block_ops_bytes, buf);
 
@@ -965,7 +965,7 @@ read_from_device(device* dev, uint64_t offset, uint32_t size, uint8_t* buf)
 		return -1;
 	}
 
-	uint64_t stop_ns = cf_getns();
+	uint64_t stop_ns = get_ns();
 
 	fd_put(dev, fd);
 
@@ -981,7 +981,7 @@ write_and_report(trans_req* write_req, uint8_t* buf)
 	// Salt each record.
 	rand_fill(buf, write_req->size);
 
-	uint64_t raw_start_time = cf_getns();
+	uint64_t raw_start_time = get_ns();
 	uint64_t stop_time = write_to_device(write_req->dev, write_req->offset,
 			write_req->size, buf);
 
@@ -1005,7 +1005,7 @@ write_and_report_large_block(device* dev, uint8_t* buf, uint64_t count)
 	rand_fill(buf, g_scfg.large_block_ops_bytes);
 
 	uint64_t offset = random_large_block_offset(dev);
-	uint64_t start_time = cf_getns();
+	uint64_t start_time = get_ns();
 	uint64_t stop_time = write_to_device(dev, offset,
 			g_scfg.large_block_ops_bytes, buf);
 
@@ -1034,7 +1034,7 @@ write_to_device(device* dev, uint64_t offset, uint32_t size, const uint8_t* buf)
 		return -1;
 	}
 
-	uint64_t stop_ns = cf_getns();
+	uint64_t stop_ns = get_ns();
 
 	fd_put(dev, fd);
 
