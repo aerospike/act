@@ -92,8 +92,8 @@ typedef struct trans_req_s {
 	uint64_t start_time;
 } trans_req;
 
-const uint32_t LO_IO_MIN_SIZE = 512;
-const uint32_t HI_IO_MIN_SIZE = 4096;
+#define LO_IO_MIN_SIZE 512
+#define HI_IO_MIN_SIZE 4096
 
 // Linux has removed O_DIRECT, but not its functionality.
 #ifndef O_DIRECT
@@ -107,10 +107,10 @@ const uint32_t HI_IO_MIN_SIZE = 4096;
 
 static void* run_generate_read_reqs(void* pv_unused);
 static void* run_generate_write_reqs(void* pv_unused);
-static void* run_large_block_reads(void* pv_device);
-static void* run_large_block_writes(void* pv_device);
-static void* run_tomb_raider(void* pv_req_queue);
-static void* run_transactions(void* pv_req_queue);
+static void* run_large_block_reads(void* pv_dev);
+static void* run_large_block_writes(void* pv_dev);
+static void* run_tomb_raider(void* pv_dev);
+static void* run_transactions(void* pv_req_q);
 
 static uint8_t* act_valloc(size_t size);
 static bool discover_device(device* dev);
@@ -390,16 +390,14 @@ main(int argc, char* argv[])
 
 	g_running = false;
 
-	void* pv_value;
-
-	pthread_join(read_req_generator, &pv_value);
+	pthread_join(read_req_generator, NULL);
 
 	if (do_commits) {
-		pthread_join(write_req_generator, &pv_value);
+		pthread_join(write_req_generator, NULL);
 	}
 
 	for (uint32_t j = 0; j < n_trans_tids; j++) {
-		pthread_join(trans_tids[j], &pv_value);
+		pthread_join(trans_tids[j], NULL);
 	}
 
 	for (uint32_t i = 0; i < g_scfg.num_queues; i++) {
@@ -410,12 +408,12 @@ main(int argc, char* argv[])
 		device* dev = &g_devices[d];
 
 		if (g_scfg.tomb_raider) {
-			pthread_join(dev->tomb_raider_thread, &pv_value);
+			pthread_join(dev->tomb_raider_thread, NULL);
 		}
 
 		if (g_scfg.write_reqs_per_sec != 0) {
-			pthread_join(dev->large_block_read_thread, &pv_value);
-			pthread_join(dev->large_block_write_thread, &pv_value);
+			pthread_join(dev->large_block_read_thread, NULL);
+			pthread_join(dev->large_block_write_thread, NULL);
 		}
 
 		fd_close_all(dev);
@@ -546,11 +544,11 @@ run_generate_write_reqs(void* pv_unused)
 // executes large-block reads at a constant rate.
 //
 static void*
-run_large_block_reads(void* pv_device)
+run_large_block_reads(void* pv_dev)
 {
 	rand_seed_thread();
 
-	device* dev = (device*)pv_device;
+	device* dev = (device*)pv_dev;
 
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
@@ -592,11 +590,11 @@ run_large_block_reads(void* pv_device)
 // executes large-block writes at a constant rate.
 //
 static void*
-run_large_block_writes(void* pv_device)
+run_large_block_writes(void* pv_dev)
 {
 	rand_seed_thread();
 
-	device* dev = (device*)pv_device;
+	device* dev = (device*)pv_dev;
 
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
@@ -638,9 +636,9 @@ run_large_block_writes(void* pv_device)
 // executes continuous large-block reads.
 //
 static void*
-run_tomb_raider(void* pv_device)
+run_tomb_raider(void* pv_dev)
 {
-	device* dev = (device*)pv_device;
+	device* dev = (device*)pv_dev;
 
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
@@ -677,11 +675,11 @@ run_tomb_raider(void* pv_device)
 // reports the duration.
 //
 static void*
-run_transactions(void* pv_req_queue)
+run_transactions(void* pv_req_q)
 {
 	rand_seed_thread();
 
-	queue* req_q = (queue*)pv_req_queue;
+	queue* req_q = (queue*)pv_req_q;
 	trans_req req;
 
 	while (g_running) {
@@ -770,14 +768,6 @@ discover_device(device* dev)
 static uint64_t
 discover_min_op_bytes(int fd, const char* name)
 {
-	off_t off = lseek(fd, 0, SEEK_SET);
-
-	if (off != 0) {
-		fprintf(stdout, "ERROR: %s seek errno %d '%s'\n", name, errno,
-				strerror(errno));
-		return 0;
-	}
-
 	uint8_t* buf = act_valloc(HI_IO_MIN_SIZE);
 
 	if (! buf) {
@@ -788,7 +778,7 @@ discover_min_op_bytes(int fd, const char* name)
 	size_t read_sz = LO_IO_MIN_SIZE;
 
 	while (read_sz <= HI_IO_MIN_SIZE) {
-		if (read(fd, (void*)buf, read_sz) == (ssize_t)read_sz) {
+		if (pread(fd, (void*)buf, read_sz, 0) == (ssize_t)read_sz) {
 			free(buf);
 			return read_sz;
 		}
@@ -968,10 +958,9 @@ read_from_device(device* dev, uint64_t offset, uint32_t size, uint8_t* buf)
 		return -1;
 	}
 
-	if (lseek(fd, offset, SEEK_SET) != offset ||
-			read(fd, buf, size) != (ssize_t)size) {
+	if (pread(fd, buf, size, offset) != (ssize_t)size) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & read errno %d '%s'\n", errno,
+		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));
 		return -1;
 	}
@@ -1038,10 +1027,9 @@ write_to_device(device* dev, uint64_t offset, uint32_t size, const uint8_t* buf)
 		return -1;
 	}
 
-	if (lseek(fd, offset, SEEK_SET) != offset ||
-			write(fd, buf, size) != (ssize_t)size) {
+	if (pwrite(fd, buf, size, offset) != (ssize_t)size) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & write errno %d '%s'\n", errno,
+		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));
 		return -1;
 	}

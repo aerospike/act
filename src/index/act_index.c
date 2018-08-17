@@ -94,7 +94,7 @@ typedef struct trans_req_s {
 
 static void* run_cache_simulation(void* pv_unused);
 static void* run_generate_rw_reqs(void* pv_unused);
-static void* run_transactions(void* pv_req_queue);
+static void* run_transactions(void* pv_req_q);
 
 static bool discover_device(device* dev);
 static void fd_close_all(device* dev);
@@ -288,12 +288,10 @@ main(int argc, char* argv[])
 
 	g_running = false;
 
-	void* pv_value;
-
-	pthread_join(rw_req_generator, &pv_value);
+	pthread_join(rw_req_generator, NULL);
 
 	for (uint32_t j = 0; j < n_trans_tids; j++) {
-		pthread_join(trans_tids[j], &pv_value);
+		pthread_join(trans_tids[j], NULL);
 	}
 
 	for (uint32_t i = 0; i < g_icfg.num_queues; i++) {
@@ -302,7 +300,7 @@ main(int argc, char* argv[])
 
 	if (has_write_load) {
 		for (uint32_t n = 0; n < g_icfg.num_cache_threads; n++) {
-			pthread_join(cache_threads[n], &pv_value);
+			pthread_join(cache_threads[n], NULL);
 		}
 	}
 
@@ -421,9 +419,9 @@ run_generate_rw_reqs(void* pv_unused)
 // reports the duration.
 //
 static void*
-run_transactions(void* pv_req_queue)
+run_transactions(void* pv_req_q)
 {
-	queue* req_q = (queue*)pv_req_queue;
+	queue* req_q = (queue*)pv_req_q;
 	trans_req req;
 
 	while (g_running) {
@@ -570,10 +568,9 @@ read_from_device(device* dev, uint64_t offset, uint8_t* buf)
 		return -1;
 	}
 
-	if (lseek(fd, offset, SEEK_SET) != offset ||
-			read(fd, buf, IO_SIZE) != IO_SIZE) {
+	if (pread(fd, buf, IO_SIZE, offset) != IO_SIZE) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & read errno %d '%s'\n", errno,
+		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));
 		return -1;
 	}
@@ -621,10 +618,9 @@ write_to_device(device* dev, uint64_t offset, const uint8_t* buf)
 		return -1;
 	}
 
-	if (lseek(fd, offset, SEEK_SET) != offset ||
-			write(fd, buf, IO_SIZE) != IO_SIZE) {
+	if (pwrite(fd, buf, IO_SIZE, offset) != IO_SIZE) {
 		close(fd);
-		fprintf(stdout, "ERROR: seek & write errno %d '%s'\n", errno,
+		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));
 		return -1;
 	}

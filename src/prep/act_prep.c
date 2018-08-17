@@ -1,5 +1,5 @@
 /*
- * salt.c
+ * act_prep.c
  *
  * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
  *
@@ -50,9 +50,9 @@
 // Typedefs & constants.
 //
 
-const uint32_t NUM_SALT_THREADS = 8;
-const uint32_t NUM_ZERO_THREADS = 8;
-const uint32_t LARGE_BLOCK_BYTES = 1024 * 128;
+#define NUM_SALT_THREADS 8
+#define NUM_ZERO_THREADS 8
+#define LARGE_BLOCK_BYTES (1024 * 128)
 
 // Linux has removed O_DIRECT, but not its functionality.
 #ifndef O_DIRECT
@@ -135,16 +135,14 @@ main(int argc, char* argv[])
 
 	for (uint32_t n = 0; n < NUM_ZERO_THREADS; n++) {
 		if (pthread_create(&zero_threads[n], NULL, run_zero,
-				(void*)(uint64_t)n)) {
+				(void*)(uint64_t)n) != 0) {
 			fprintf(stdout, "ERROR: creating zero thread %" PRIu32 "\n", n);
 			exit(-1);
 		}
 	}
 
 	for (uint32_t n = 0; n < NUM_ZERO_THREADS; n++) {
-		void* pv_value;
-
-		pthread_join(zero_threads[n], &pv_value);
+		pthread_join(zero_threads[n], NULL);
 	}
 
 	free(g_p_zero_buffer);
@@ -160,16 +158,14 @@ main(int argc, char* argv[])
 
 	for (uint32_t n = 0; n < NUM_SALT_THREADS; n++) {
 		if (pthread_create(&salt_threads[n], NULL, run_salt,
-				(void*)(uint64_t)n)) {
+				(void*)(uint64_t)n) != 0) {
 			fprintf(stdout, "ERROR: creating salt thread %" PRIu32 "\n", n);
 			exit(-1);
 		}
 	}
 
 	for (uint32_t n = 0; n < NUM_SALT_THREADS; n++) {
-		void* pv_value;
-
-		pthread_join(salt_threads[n], &pv_value);
+		pthread_join(salt_threads[n], NULL);
 	}
 
 	return 0;
@@ -206,7 +202,7 @@ run_salt(void* pv_n)
 	}
 
 //	fprintf(stdout, "thread %d: blks-to-salt = %" PRIu64 ", prg-blks = %"
-//		PRIu64 "\n", n, blocks_to_salt, progress_blocks);
+//			PRIu64 "\n", n, blocks_to_salt, progress_blocks);
 
 	uint8_t* buf = act_valloc(LARGE_BLOCK_BYTES);
 
@@ -281,7 +277,7 @@ run_zero(void* pv_n)
 	}
 
 //	fprintf(stdout, "thread %d: blks-to-zero = %" PRIu64 ", prg-blks = %"
-//		PRIu64 "\n", n, blocks_to_zero, progress_blocks);
+//			PRIu64 "\n", n, blocks_to_zero, progress_blocks);
 
 	int fd = fd_get();
 
@@ -387,7 +383,7 @@ discover_num_blocks()
 	g_extra_blocks_to_salt = g_num_large_blocks % NUM_SALT_THREADS;
 
 	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks\n",
-		g_device_name, device_bytes, g_num_large_blocks);
+			g_device_name, device_bytes, g_num_large_blocks);
 
 	return true;
 }
