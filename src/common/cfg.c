@@ -85,7 +85,8 @@ parse_scheduler_mode()
 	const char* val = strtok(NULL, WHITE_SPACE);
 
 	if (! val) {
-		return SCHEDULER_MODES[0]; // default is noop
+		fprintf(stdout, "ERROR: missing scheduler mode - using 'noop'\n");
+		return "noop";
 	}
 
 	for (uint32_t m = 0; m < N_SCHEDULER_MODES; m++) {
@@ -96,7 +97,7 @@ parse_scheduler_mode()
 
 	fprintf(stdout, "ERROR: unknown scheduler mode '%s' - using 'noop'\n", val);
 
-	return SCHEDULER_MODES[0]; // default is noop
+	return "noop";
 }
 
 uint32_t
@@ -104,7 +105,19 @@ parse_uint32()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
-	return val ? strtoul(val, NULL, 10) : 0;
+	if (! val) {
+		fprintf(stdout, "ERROR: missing integer config value\n");
+		return 0;
+	}
+
+	uint64_t u64_val = strtoul(val, NULL, 10);
+
+	if (u64_val > UINT32_MAX) {
+		fprintf(stdout, "ERROR: %s overflows unsigned int\n", val);
+		return 0;
+	}
+
+	return (uint32_t)u64_val;
 }
 
 bool

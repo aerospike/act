@@ -133,8 +133,10 @@ storage_configure(int argc, char* argv[])
 	char line[1024];
 
 	while (fgets(line, sizeof(line), config_file)) {
-		if (*line == '#') {
-			continue;
+		char* comment = strchr(line, '#');
+
+		if (comment) {
+			*comment = '\0';
 		}
 
 		const char* tag = strtok(line, ":" WHITE_SPACE);
@@ -206,6 +208,9 @@ storage_configure(int argc, char* argv[])
 		}
 		else if (strcmp(tag, TAG_SCHEDULER_MODE) == 0) {
 			g_scfg.scheduler_mode = parse_scheduler_mode();
+		}
+		else {
+			fprintf(stdout, "ERROR: ignoring unknown config item '%s'\n", tag);
 		}
 	}
 
