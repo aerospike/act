@@ -31,16 +31,72 @@
 #include <execinfo.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
+
+
+//==========================================================
+// Typedefs & constants.
+//
+
+typedef void (*action_t)(int sig, siginfo_t* info, void* ctx);
+
+#define MAX_BACKTRACE_DEPTH 50
 
 
 //==========================================================
 // Forward declarations.
 //
 
-static void act_sig_handle_segv(int sig_num);
-static void act_sig_handle_term(int sig_num);
+static void act_sig_handle_abort(int sig_num, siginfo_t* info, void* ctx);
+static void act_sig_handle_bus(int sig_num, siginfo_t* info, void* ctx);
+static void act_sig_handle_fpe(int sig_num, siginfo_t* info, void* ctx);
+static void act_sig_handle_ill(int sig_num, siginfo_t* info, void* ctx);
+static void act_sig_handle_segv(int sig_num, siginfo_t* info, void* ctx);
+
+static void reraise_signal(int sig_num);
+static void set_action(int sig_num, action_t act);
+static void set_handler(int sig_num, sighandler_t hand);
+
+extern char __executable_start;
+
+
+//==========================================================
+// Inlines & macros.
+//
+
+// Macro instead of inline just to be sure it can't affect the stack?
+#define PRINT_BACKTRACE() \
+do { \
+	void* bt[MAX_BACKTRACE_DEPTH]; \
+	int sz = backtrace(bt, MAX_BACKTRACE_DEPTH); \
+	\
+	char trace[MAX_BACKTRACE_DEPTH * 20]; \
+	int off = 0; \
+	\
+	for (int i = 0; i < sz; i++) { \
+		off += snprintf(trace + off, sizeof(trace) - off, " 0x%lx", \
+				(uint64_t)bt[i]); \
+	} \
+	\
+	fprintf(stdout, "stacktrace: found %d frames:%s offset 0x%lx\n", sz, \
+			trace, (uint64_t)&__executable_start); \
+	\
+	char** syms = backtrace_symbols(bt, sz); \
+	\
+	if (syms) { \
+		for (int i = 0; i < sz; ++i) { \
+			fprintf(stdout, "stacktrace: frame %d: %s\n", i, syms[i]); \
+		} \
+	} \
+	else { \
+		fprintf(stdout, "stacktrace: found no symbols\n"); \
+	} \
+	\
+	fflush(stdout); \
+} while (0);
 
 
 //==========================================================
@@ -50,51 +106,104 @@ static void act_sig_handle_term(int sig_num);
 void
 signal_setup()
 {
-	signal(SIGSEGV, act_sig_handle_segv);
-	signal(SIGTERM , act_sig_handle_term);
+	set_action(SIGABRT, act_sig_handle_abort);
+	set_action(SIGBUS, act_sig_handle_bus);
+	set_action(SIGFPE, act_sig_handle_fpe);
+	set_action(SIGILL, act_sig_handle_ill);
+	set_action(SIGSEGV, act_sig_handle_segv);
 }
 
 
 //==========================================================
-// Local helpers.
+// Local helpers - signal handlers.
 //
 
 static void
-act_sig_handle_segv(int sig_num)
+act_sig_handle_abort(int sig_num, siginfo_t* info, void* ctx)
 {
-	fprintf(stdout, "SIGSEGV received\n");
-
-	void* bt[50];
-	int sz = backtrace(bt, 50);
-
-	char** strings = backtrace_symbols(bt, sz);
-
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
-	}
-
-	free(strings);
-
-	fflush(stdout);
-	_exit(-1);
+	fprintf(stdout, "SIGABRT received\n");
+	PRINT_BACKTRACE();
+	reraise_signal(sig_num);
 }
 
 static void
-act_sig_handle_term(int sig_num)
+act_sig_handle_bus(int sig_num, siginfo_t* info, void* ctx)
 {
-	fprintf(stdout, "SIGTERM received\n");
+	fprintf(stdout, "SIGBUS received\n");
+	PRINT_BACKTRACE();
+	reraise_signal(sig_num);
+}
 
-  	void* bt[50];
-	int sz = backtrace(bt, 50);
+static void
+act_sig_handle_fpe(int sig_num, siginfo_t* info, void* ctx)
+{
+	fprintf(stdout, "SIGFPE received\n");
+	PRINT_BACKTRACE();
+	reraise_signal(sig_num);
+}
 
-	char** strings = backtrace_symbols(bt, sz);
+static void
+act_sig_handle_ill(int sig_num, siginfo_t* info, void* ctx)
+{
+	fprintf(stdout, "SIGILL received\n");
+	PRINT_BACKTRACE();
+	reraise_signal(sig_num);
+}
 
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
+static void
+act_sig_handle_segv(int sig_num, siginfo_t* info, void* ctx)
+{
+	fprintf(stdout, "SIGSEGV received\n");
+	PRINT_BACKTRACE();
+	reraise_signal(sig_num);
+}
+
+
+//==========================================================
+// Local helpers - signal handling.
+//
+
+static void
+reraise_signal(int sig_num)
+{
+	set_handler(sig_num, SIG_DFL);
+	raise(sig_num);
+}
+
+static void
+set_action(int sig_num, action_t act)
+{
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
+
+	sa.sa_sigaction = act;
+	sigemptyset(&sa.sa_mask);
+	// SA_SIGINFO prefers sa_sigaction over sa_handler.
+	sa.sa_flags = SA_RESTART | SA_SIGINFO;
+
+	if (sigaction(sig_num, &sa, NULL) < 0) {
+		fprintf(stdout, "ERROR: could not register signal handler for %d\n",
+				sig_num);
+		fflush(stdout);
+		_exit(-1);
 	}
+}
 
-	free(strings);
+static void
+set_handler(int sig_num, sighandler_t hand)
+{
+	struct sigaction sa;
+	memset(&sa, 0, sizeof(sa));
 
-	fflush(stdout);
-	_exit(0);
+	sa.sa_handler = hand;
+	sigemptyset(&sa.sa_mask);
+	// No SA_SIGINFO; use sa_handler.
+	sa.sa_flags = SA_RESTART;
+
+	if (sigaction(sig_num, &sa, NULL) < 0) {
+		fprintf(stdout, "ERROR: could not register signal handler for %d\n",
+				sig_num);
+		fflush(stdout);
+		_exit(-1);
+	}
 }
