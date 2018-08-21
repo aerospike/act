@@ -107,7 +107,7 @@ main(int argc, char* argv[])
 	signal_setup();
 
 	if (argc != 2) {
-		fprintf(stdout, "usage: salt [device name]\n");
+		fprintf(stdout, "usage: act_prep [device name]\n");
 		exit(0);
 	}
 
