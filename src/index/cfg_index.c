@@ -77,6 +77,8 @@ static void echo_configuration();
 // Configuration instance, showing non-zero defaults.
 index_cfg g_icfg = {
 		.threads_per_queue = 4,
+		.num_cache_threads = 8,
+		.report_interval_us = 1000000,
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
 		.max_reqs_queued = 100000,

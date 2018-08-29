@@ -117,7 +117,32 @@ num_cpus()
 void
 set_scheduler(const char* device_name, const char* mode)
 {
-	// FIXME - implement.
+	// TODO - could be much more general, like the latest Aerospike server, but
+	// for now let's just keep it really simple.
+
+	const char* last_slash = strrchr(device_name, '/');
+	const char* device_tag = last_slash ? last_slash + 1 : device_name;
+
+	char scheduler_file_name[128];
+
+	strcpy(scheduler_file_name, "/sys/block/");
+	strcat(scheduler_file_name, device_tag);
+	strcat(scheduler_file_name, "/queue/scheduler");
+
+	FILE* scheduler_file = fopen(scheduler_file_name, "w");
+
+	if (! scheduler_file) {
+		fprintf(stdout, "ERROR: couldn't open %s errno %d '%s'\n",
+				scheduler_file_name, errno, strerror(errno));
+		return;
+	}
+
+	if (fwrite(mode, strlen(mode), 1, scheduler_file) != 1) {
+		fprintf(stdout, "ERROR: writing %s to %s errno %d '%s'\n", mode,
+				scheduler_file_name, errno, strerror(errno));
+	}
+
+	fclose(scheduler_file);
 }
 
 

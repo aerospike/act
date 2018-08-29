@@ -554,6 +554,7 @@ run_large_block_reads(void* pv_dev)
 
 	if (! buf) {
 		fprintf(stdout, "ERROR: large block read buffer act_valloc()\n");
+		g_running = false;
 		return NULL;
 	}
 
@@ -600,6 +601,7 @@ run_large_block_writes(void* pv_dev)
 
 	if (! buf) {
 		fprintf(stdout, "ERROR: large block write buffer act_valloc()\n");
+		g_running = false;
 		return NULL;
 	}
 
@@ -644,6 +646,7 @@ run_tomb_raider(void* pv_dev)
 
 	if (! buf) {
 		fprintf(stdout, "ERROR: tomb raider buffer act_valloc()\n");
+		g_running = false;
 		return NULL;
 	}
 

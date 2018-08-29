@@ -85,6 +85,9 @@ static void echo_configuration();
 // Configuration instance, showing non-zero defaults.
 storage_cfg g_scfg = {
 		.threads_per_queue = 4,
+		.report_interval_us = 1000000,
+		.record_bytes = 1536,
+		.large_block_ops_bytes = 1024 * 128,
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
 		.max_reqs_queued = 100000,
@@ -415,7 +418,7 @@ echo_configuration()
 	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
 			g_scfg.scheduler_mode);
 
-	fprintf(stdout, "\n");
+	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
 
 	fprintf(stdout, "internal read requests per sec: %" PRIu64 "\n",
 			g_scfg.internal_read_reqs_per_sec);
