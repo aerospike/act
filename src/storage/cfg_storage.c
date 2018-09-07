@@ -367,7 +367,7 @@ derive_configuration()
 static void
 echo_configuration()
 {
-	fprintf(stdout, "ACT_STORAGE CONFIGURATION\n");
+	fprintf(stdout, "ACT-STORAGE CONFIGURATION\n");
 
 	fprintf(stdout, "%s:", TAG_DEVICE_NAMES);
 
@@ -420,15 +420,15 @@ echo_configuration()
 
 	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
 
-	fprintf(stdout, "internal read requests per sec: %" PRIu64 "\n",
+	fprintf(stdout, "internal-read-reqs-per-sec: %" PRIu64 "\n",
 			g_scfg.internal_read_reqs_per_sec);
-	fprintf(stdout, "internal write requests per sec: %" PRIu64 "\n",
+	fprintf(stdout, "internal-write-reqs-per-sec: %" PRIu64 "\n",
 			g_scfg.internal_write_reqs_per_sec);
-	fprintf(stdout, "bytes per stored record: %" PRIu32 " ... %" PRIu32 "\n",
+	fprintf(stdout, "record-stored-bytes: %" PRIu32 " ... %" PRIu32 "\n",
 			g_scfg.record_stored_bytes, g_scfg.record_stored_bytes_rmx);
-	fprintf(stdout, "large block reads per sec: %.2lf\n",
+	fprintf(stdout, "large-block-reads-per-sec: %.2lf\n",
 			g_scfg.large_block_reads_per_sec);
-	fprintf(stdout, "large block writes per sec: %.2lf\n",
+	fprintf(stdout, "large-block-writes-per-sec: %.2lf\n",
 			g_scfg.large_block_writes_per_sec);
 
 	fprintf(stdout, "\n");

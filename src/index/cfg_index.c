@@ -264,7 +264,7 @@ derive_configuration()
 static void
 echo_configuration()
 {
-	fprintf(stdout, "ACT_INDEX CONFIGURATION\n");
+	fprintf(stdout, "ACT-INDEX CONFIGURATION\n");
 
 	fprintf(stdout, "%s:", TAG_DEVICE_NAMES);
 
@@ -299,11 +299,11 @@ echo_configuration()
 	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
 			g_icfg.scheduler_mode);
 
-	fprintf(stdout, "\n");
+	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
 
-	fprintf(stdout, "trans thread reads per sec: %" PRIu64 "\n",
+	fprintf(stdout, "trans-thread-reads-per-sec: %" PRIu64 "\n",
 			g_icfg.trans_thread_reads_per_sec);
-	fprintf(stdout, "cache thread reads and writes per sec: %" PRIu64 "\n",
+	fprintf(stdout, "cache-thread-reads-and-writes-per-sec: %" PRIu64 "\n",
 			g_icfg.cache_thread_reads_and_writes_per_sec);
 
 	fprintf(stdout, "\n");

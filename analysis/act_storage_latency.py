@@ -115,15 +115,6 @@ def bucket_percentages_over(total, values, max_bucket):
 	return percentages
 
 #-------------------------------------------------
-# Generate padding.
-#
-def repeat(what, n):
-	pad = ""
-	for i in range(n):
-		pad += what
-	return pad
-
-#-------------------------------------------------
 # Print a latency data output line.
 #
 def print_line(slice_tag, trans_overs, raw_overs, start_bucket, max_bucket,
@@ -276,14 +267,14 @@ def main(arg_log, arg_slice, arg_start_bucket, arg_num_buckets, arg_every_nth,
 		threshold_labels = threshold_labels + "%7s" % (pow(2, i))
 		threshold_underline = threshold_underline + " ------"
 	len_justify = len(threshold_labels) - 7
-	prefix_pad = repeat(" ", len_labels_prefix)
-	justify_pad = repeat(" ", len_justify)
+	prefix_pad = " " * len_labels_prefix
+	justify_pad = " " * len_justify
 	print prefix_pad + GAP_PAD + " trans " + justify_pad + GAP_PAD + " device"
 	print prefix_pad + GAP_PAD + scale_label + justify_pad + GAP_PAD + \
 		scale_label
 	print labels_prefix + GAP_PAD + threshold_labels + GAP_PAD + \
 		threshold_labels
-	underline = repeat("-", len_labels_prefix) + GAP_PAD + \
+	underline = ("-" * len_labels_prefix) + GAP_PAD + \
 		threshold_underline + GAP_PAD + threshold_underline
 	print underline
 
@@ -375,6 +366,7 @@ def main(arg_log, arg_slice, arg_start_bucket, arg_num_buckets, arg_every_nth,
 # Execution.
 #
 
+# Echo the command line arguments.
 print "act_storage_latency.py " + " ".join(sys.argv[1:])
 
 # Read the input arguments:

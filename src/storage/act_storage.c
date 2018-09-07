@@ -217,7 +217,7 @@ main(int argc, char* argv[])
 {
 	signal_setup();
 
-	fprintf(stdout, "\nAerospike ACT version %s\n", VERSION);
+	fprintf(stdout, "\nACT version %s\n", VERSION);
 	fprintf(stdout, "Storage device IO test\n");
 	fprintf(stdout, "Copyright 2018 by Aerospike. All rights reserved.\n\n");
 
