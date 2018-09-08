@@ -70,7 +70,8 @@ typedef struct device_s {
 	queue* fd_q;
 	histogram* raw_read_hist;
 	histogram* raw_write_hist;
-	char hist_tag[MAX_DEVICE_NAME_SIZE];
+	char read_hist_tag[MAX_DEVICE_NAME_SIZE + 1 + 5];
+	char write_hist_tag[MAX_DEVICE_NAME_SIZE + 1 + 6];
 } device;
 
 typedef struct trans_req_s {
@@ -193,7 +194,8 @@ main(int argc, char* argv[])
 			exit(-1);
 		}
 
-		sprintf(dev->hist_tag, "%-18s", dev->name);
+		sprintf(dev->read_hist_tag, "%s-reads", dev->name);
+		sprintf(dev->write_hist_tag, "%s-writes", dev->name);
 	}
 
 	rand_seed();
@@ -242,6 +244,23 @@ main(int argc, char* argv[])
 		exit(-1);
 	}
 
+	fprintf(stdout, "\nHISTOGRAM NAMES\n");
+
+	fprintf(stdout, "trans-reads\n");
+	fprintf(stdout, "device-reads\n");
+
+	for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+		fprintf(stdout, "%s\n", g_devices[d].read_hist_tag);
+	}
+
+	if (has_write_load) {
+		fprintf(stdout, "device-writes\n");
+
+		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+			fprintf(stdout, "%s\n", g_devices[d].write_hist_tag);
+		}
+	}
+
 	fprintf(stdout, "\n");
 
 	uint64_t now_us = 0;
@@ -258,27 +277,26 @@ main(int argc, char* argv[])
 			usleep((uint32_t)sleep_us);
 		}
 
-		fprintf(stdout, "After %" PRIu64 " sec:\n",
+		fprintf(stdout, "after %" PRIu64 " sec:\n",
 				(count * g_icfg.report_interval_us) / 1000000);
 
-		fprintf(stdout, "requests queued: %" PRIu32 "\n",
+		fprintf(stdout, "requests-queued: %" PRIu32 "\n",
 				atomic32_get(g_reqs_queued));
 
-		histogram_dump(g_raw_read_hist,      "RAW READS  ");
+		histogram_dump(g_trans_read_hist, "trans-reads");
+		histogram_dump(g_raw_read_hist, "device-reads");
 
 		for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
 			histogram_dump(g_devices[d].raw_read_hist,
-					g_devices[d].hist_tag);
+					g_devices[d].read_hist_tag);
 		}
 
-		histogram_dump(g_trans_read_hist,    "TRANS READS");
-
 		if (has_write_load) {
-			histogram_dump(g_raw_write_hist, "RAW WRITES ");
+			histogram_dump(g_raw_write_hist, "device-writes");
 
 			for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
 				histogram_dump(g_devices[d].raw_write_hist,
-						g_devices[d].hist_tag);
+						g_devices[d].write_hist_tag);
 			}
 		}
 

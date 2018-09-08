@@ -112,35 +112,40 @@ def get_args():
     for o, a in opts:
         if o == "-l" or o == "--log":
             Args.log = a
-        if o == "-h" or o == "--histogram":
+        elif o == "-h" or o == "--histogram":
             Args.histograms.append(a)
-        if o == "-t" or o == "--slice":
+        elif o == "-t" or o == "--slice":
             Args.slice = long(a)
-        if o == "-s" or o == "--start_bucket":
+        elif o == "-s" or o == "--start_bucket":
             Args.start_bucket = int(a)
-        if o == "-n" or o == "--num_buckets":
+        elif o == "-n" or o == "--num_buckets":
             Args.num_buckets = int(a)
-        if o == "-e" or o == "--every_nth":
+        elif o == "-e" or o == "--every_nth":
             Args.every_nth = int(a)
-        if o == "-x" or o == "--extra":
+        elif o == "-x" or o == "--extra":
             Args.extra = True
 
     # Sanity-check the arguments:
     if Args.log is None:
         print_usage()
         sys.exit(-1)
+
     if Args.slice < 1:
         print "slice must be more than 0"
         sys.exit(-1)
+
     if Args.start_bucket < 0 or Args.start_bucket >= ALL_BUCKETS:
         print "start_bucket must be non-negative and less than " + ALL_BUCKETS
         sys.exit(-1)
+
     if Args.num_buckets < 1:
         print "num_buckets must be more than 0"
         sys.exit(-1)
+
     if Args.every_nth < 1:
         print "every_nth must be more than 0"
         sys.exit(-1)
+
 
 #-------------------------------------------------
 # Print usage.
@@ -163,6 +168,7 @@ def print_usage():
     print " -x (show extra information for each slice)"
     print "    default: not set"
 
+
 #-------------------------------------------------
 # Open log file and validate header information.
 #
@@ -176,26 +182,34 @@ def open_log_file():
 
     # Find and echo the version:
     line = file_id.readline()
+
     while line and not line.startswith("ACT version"):
         line = file_id.readline()
+
     if not line:
         print Args.log + " ACT version not found"
         sys.exit(-1)
+
     version = line.split(" ")[2].strip()
     print Args.log + " is ACT version " + version + "\n"
     numeric_version = float(version)
+
     if numeric_version < 5.0 or numeric_version >= 6.0:
         print Args.log + " ACT version not compatible"
         sys.exit(-1)
 
     # Find the reporting interval:
     line = file_id.readline()
+
     while line and not line.startswith("report-interval-sec"):
         line = file_id.readline()
+
     if not line:
         print "can't find report interval"
         sys.exit(-1)
+
     interval = long(line.split(" ")[1])
+
     if interval < 1:
         print "reporting interval must be more than 0"
         sys.exit(-1)
@@ -204,8 +218,10 @@ def open_log_file():
     Hist.scale_label = " %>(ms)"
     file_id.seek(0, 0)
     line = file_id.readline()
+
     while line and not line.startswith("microsecond-histograms"):
         line = file_id.readline()
+
     if not line:
         print "can't find histograms' scale, assuming milliseconds"
         file_id.seek(0, 0)
@@ -214,44 +230,77 @@ def open_log_file():
 
     # Adjust the slice time if necessary:
     Hist.slice_time = ((Args.slice + interval - 1) / interval) * interval
+
     if Hist.slice_time != Args.slice:
         print "analyzing time slices of " + str(Hist.slice_time) + " seconds"
 
     # Echo the config from the log file:
     file_id.seek(0, 0)
     line = file_id.readline()
+
     while line and not line.endswith("CONFIGURATION\n"):
         line = file_id.readline()
+
     if not line:
         print "can't find configuration"
         sys.exit(-1)
-    line = line.strip()
+
     if line.startswith("ACT-STORAGE"):
         if not Args.histograms:
-            Args.histograms = ["READS", "RAW READS"]
+            Args.histograms = ["reads", "device-reads"]
     elif line.startswith("ACT-INDEX"):
         if not Args.histograms:
-            Args.histograms = ["TRANS READS", "RAW READS"]
+            Args.histograms = ["trans-reads", "device-reads"]
     else:
         print "can't recognize configuration"
         sys.exit(-1)
+
+    line = line.strip()
+
     while line:
         print line
         line = file_id.readline().strip()
+
     print ""
+
     line = file_id.readline()
+
     while line and not line.startswith("DERIVED CONFIGURATION"):
         line = file_id.readline()
+
     if not line:
         print "can't find derived configuration"
         sys.exit(-1)
+
     line = line.strip()
+
     while line:
         print line
         line = file_id.readline().strip()
+
+    print ""
+
+    # Echo the histogram names from the log file:
+    file_id.seek(0, 0)
+    line = file_id.readline()
+
+    while line and not line.startswith("HISTOGRAM NAMES\n"):
+        line = file_id.readline()
+
+    if not line:
+        print "can't find histogram names"
+        sys.exit(-1)
+
+    line = line.strip()
+
+    while line:
+        print line
+        line = file_id.readline().strip()
+
     print ""
     
     return file_id
+
 
 #-------------------------------------------------
 # Find index + 1 of last bucket to display.
@@ -259,13 +308,16 @@ def open_log_file():
 def find_max_bucket():
     for b in range(Args.start_bucket, ALL_BUCKETS, Args.every_nth):
         Hist.max_bucket = b + 1
+
         if Args.num_buckets == 1:
             break
         else:
             Args.num_buckets -= 1
+
     Hist.bucket_range = range(Hist.max_bucket)
     Hist.display_range = range(
         Args.start_bucket, Hist.max_bucket, Args.every_nth)
+
 
 #-------------------------------------------------
 # Print table header.
@@ -274,30 +326,39 @@ def print_table_header(hists):
     prefix = "slice"
     threshold_labels = ""
     threshold_underline = ""
+
     for i in Hist.display_range:
         threshold_labels += "%7s" % (pow(2, i))
         threshold_underline += " ------"
+
     if Args.extra:
         threshold_labels += "       rate"
         threshold_underline += " ----------"
+
     len_table = len(threshold_labels)
+
     for i in range(1, len(hists)):
         prev_name_len = 1 + len(hists[i - 1].name)
+
         if prev_name_len > len_table:
             hists[i].pre_pad = " " * (prev_name_len - len_table)
+
     names_out = " " * len(prefix)
     units_out = " " * len(prefix)
     labels_out = prefix
     Hist.underline = "-" * len(prefix)
+
     for hist in hists:
         names_out += GAP + " " + hist.name.ljust(len_table - 1)
         units_out += GAP + hist.pre_pad + Hist.scale_label.ljust(len_table)
         labels_out += GAP + hist.pre_pad + threshold_labels
         Hist.underline += GAP + hist.pre_pad + threshold_underline
+
     print names_out
     print units_out
     print labels_out
     print Hist.underline
+
 
 #-------------------------------------------------
 # Generate latency lines.
@@ -320,37 +381,47 @@ def print_latency_slices(hists, file_id):
         # Prepare for next slice:
         after_time += Hist.slice_time
 
+    if which_slice == 0:
+        print "could not find " + str(Hist.slice_time) + " seconds of data"
+        sys.exit(-1)
+
     return which_slice
 
+
 #-------------------------------------------------
-# Generate latency lines.
+# Generate latency aggregate lines.
 #
 def print_latency_aggregates(hists, num_slices):
-    if num_slices != 0:
-        for hist in hists:
-            if Args.extra:
-                hist.avg_rate /= num_slices
-            for i in Hist.display_range:
-                hist.avg_overs[i] /= num_slices
-        print Hist.underline
-        print_avg_line(hists)
-        print_max_line(hists)
-    else:
-        print "could not find " + str(Hist.slice_time) + " seconds of data"
+    for hist in hists:
+        if Args.extra:
+            hist.avg_rate /= num_slices
+
+        for i in Hist.display_range:
+            hist.avg_overs[i] /= num_slices
+
+    print Hist.underline
+    print_avg_line(hists)
+    print_max_line(hists)
+
 
 #-------------------------------------------------
 # Get the data chunk reported by act at the specified after_time.
 #
 def read_chunk(file_id, after_time, hists):
-    find_line = "After " + str(after_time) + " "
+    find_line = "after " + str(after_time) + " "
+
     while True:
         line = file_id.readline()
+
         if not line:
             return False
+
         if line.startswith(find_line):
             break
+
     got_chunk = False
     line = file_id.readline()
+
     while line and line.strip():
         for hist in hists:
             if line.startswith(hist.name):
@@ -359,49 +430,63 @@ def read_chunk(file_id, after_time, hists):
                 break
         else:
             line = file_id.readline()
+
     return got_chunk
+
 
 #-------------------------------------------------
 # Print a latency data output line.
 #
 def print_slice_line(slice_tag, hists):
     output = "%5s" % (slice_tag)
+
     for hist in hists:
-        output += GAP
-        output += hist.pre_pad
+        output += GAP + hist.pre_pad
+
         for i in Hist.display_range:
             output += "%7.2f" % (hist.overs[i])
+
         if Args.extra:
             output += "%11.1f" % (hist.rate)
+
     print output
+
 
 #-------------------------------------------------
 # Print a latency average data output line.
 #
 def print_avg_line(hists):
     output = "  avg"
+
     for hist in hists:
-        output += GAP
-        output += hist.pre_pad
+        output += GAP + hist.pre_pad
+
         for i in Hist.display_range:
             output += "%7.2f" % (hist.avg_overs[i])
+
         if Args.extra:
             output += "%11.1f" % (hist.avg_rate)
+
     print output
+
 
 #-------------------------------------------------
 # Print a latency maximum data output line.
 #
 def print_max_line(hists):
     output = "  max"
+
     for hist in hists:
-        output += GAP
-        output += hist.pre_pad
+        output += GAP + hist.pre_pad
+
         for i in Hist.display_range:
             output += "%7.2f" % (hist.max_overs[i])
+
         if Args.extra:
             output += "%11.1f" % (hist.max_rate)
+
     print output
+
 
 #-------------------------------------------------
 # Get one set of bucket values.
@@ -410,24 +495,32 @@ def read_bucket_values(line, file_id, hist):
     values = [0] * Hist.max_bucket
     total, line = read_total_ops(line, file_id)
     b_min = 0
+
     while True:
         found = 0
+
         for b in Hist.bucket_range[b_min:]:
             r = BUCKET_PATTERNS[b]
+
             if r.search(line):
                 found += 1
                 values[b] = long(r.search(line).group(1))
+
         if found == 0:
             break
+
         line = file_id.readline()
         b_min += found
+
     hist.slice_total = total - hist.old_total
     hist.slice_values = [a - b for a,b in zip(values, hist.old_values)]
     hist.old_total = total
     hist.old_values = values
     bucket_percentages_over(hist)
     bucket_aggregations(hist)
+
     return line
+
 
 #-------------------------------------------------
 # Parse a histogram total from a act output line.
@@ -435,32 +528,42 @@ def read_bucket_values(line, file_id, hist):
 def read_total_ops(line, file_id):
     total = long(line[line.find("(") + 1: line.find(" total)")])
     line = file_id.readline()
+
     return total, line
+
 
 #-------------------------------------------------
 # Get the percentage excesses for every bucket.
 #
 def bucket_percentages_over(hist):
     hist.overs = [0.0] * Hist.max_bucket
+
     if hist.slice_total == 0:
         return
+
     delta = 0
+
     for b in Hist.bucket_range:
         delta += hist.slice_values[b]
         hist.overs[b] = round(
             ((hist.slice_total - delta) * 100.0) / hist.slice_total, 2)
+
 
 #-------------------------------------------------
 # Track the .
 #
 def bucket_aggregations(hist):
     hist.rate = round(float(hist.slice_total) / Hist.slice_time, 1)
+
     if Args.extra:
         hist.avg_rate += hist.rate
+
         if hist.rate > hist.max_rate:
             hist.max_rate = hist.rate
+
     for i in Hist.display_range:
         hist.avg_overs[i] += hist.overs[i]
+
         if hist.overs[i] > hist.max_overs[i]:
             hist.max_overs[i] = hist.overs[i]
 

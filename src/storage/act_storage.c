@@ -81,7 +81,8 @@ typedef struct device_s {
 	pthread_t tomb_raider_thread;
 	histogram* raw_read_hist;
 	histogram* raw_write_hist;
-	char hist_tag[MAX_DEVICE_NAME_SIZE];
+	char read_hist_tag[MAX_DEVICE_NAME_SIZE + 1 + 5];
+	char write_hist_tag[MAX_DEVICE_NAME_SIZE + 1 + 6];
 } device;
 
 typedef struct trans_req_s {
@@ -265,7 +266,8 @@ main(int argc, char* argv[])
 			exit(-1);
 		}
 
-		sprintf(dev->hist_tag, "%-18s", dev->name);
+		sprintf(dev->read_hist_tag, "%s-reads", dev->name);
+		sprintf(dev->write_hist_tag, "%s-writes", dev->name);
 	}
 
 	rand_seed();
@@ -340,6 +342,29 @@ main(int argc, char* argv[])
 		exit(-1);
 	}
 
+	fprintf(stdout, "\nHISTOGRAM NAMES\n");
+
+	fprintf(stdout, "reads\n");
+	fprintf(stdout, "device-reads\n");
+
+	for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+		fprintf(stdout, "%s\n", g_devices[d].read_hist_tag);
+	}
+
+	if (g_scfg.write_reqs_per_sec != 0) {
+		fprintf(stdout, "large-block-reads\n");
+		fprintf(stdout, "large-block-writes\n");
+	}
+
+	if (do_commits) {
+		fprintf(stdout, "writes\n");
+		fprintf(stdout, "device-writes\n");
+
+		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+			fprintf(stdout, "%s\n", g_devices[d].write_hist_tag);
+		}
+	}
+
 	fprintf(stdout, "\n");
 
 	uint64_t now_us = 0;
@@ -356,32 +381,33 @@ main(int argc, char* argv[])
 			usleep((uint32_t)sleep_us);
 		}
 
-		fprintf(stdout, "After %" PRIu64 " sec:\n",
+		fprintf(stdout, "after %" PRIu64 " sec:\n",
 				(count * g_scfg.report_interval_us) / 1000000);
 
-		fprintf(stdout, "requests queued: %" PRIu32 "\n",
+		fprintf(stdout, "requests-queued: %" PRIu32 "\n",
 				atomic32_get(g_reqs_queued));
 
-		histogram_dump(g_large_block_read_hist,  "LARGE BLOCK READS ");
-		histogram_dump(g_large_block_write_hist, "LARGE BLOCK WRITES");
-		histogram_dump(g_raw_read_hist,          "RAW READS         ");
+		histogram_dump(g_read_hist, "reads");
+		histogram_dump(g_raw_read_hist, "device-reads");
 
 		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
 			histogram_dump(g_devices[d].raw_read_hist,
-					g_devices[d].hist_tag);
+					g_devices[d].read_hist_tag);
 		}
 
-		histogram_dump(g_read_hist,              "READS             ");
+		if (g_scfg.write_reqs_per_sec != 0) {
+			histogram_dump(g_large_block_read_hist, "large-block-reads");
+			histogram_dump(g_large_block_write_hist, "large-block-writes");
+		}
 
 		if (do_commits) {
-			histogram_dump(g_raw_write_hist,     "RAW WRITES        ");
+			histogram_dump(g_write_hist, "writes");
+			histogram_dump(g_raw_write_hist, "device-writes");
 
 			for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
 				histogram_dump(g_devices[d].raw_write_hist,
-						g_devices[d].hist_tag);
+						g_devices[d].write_hist_tag);
 			}
-
-			histogram_dump(g_write_hist,         "WRITES            ");
 		}
 
 		fprintf(stdout, "\n");
