@@ -176,7 +176,7 @@ def open_log_file():
     # Open the log file:
     try:
         file_id = open(Args.log, "r")
-    except:
+    except IOError:
         print "log file " + Args.log + " not found"
         sys.exit(-1)
 
@@ -298,7 +298,7 @@ def open_log_file():
         line = file_id.readline().strip()
 
     print ""
-    
+
     return file_id
 
 
@@ -515,7 +515,7 @@ def read_bucket_values(line, file_id, hist):
         b_min += found
 
     hist.slice_total = total - hist.old_total
-    hist.slice_values = [a - b for a,b in zip(values, hist.old_values)]
+    hist.slice_values = [a - b for a, b in zip(values, hist.old_values)]
     hist.old_total = total
     hist.old_values = values
     bucket_percentages_over(hist)
