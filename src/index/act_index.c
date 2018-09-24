@@ -356,6 +356,9 @@ run_cache_simulation(void* pv_unused)
 	uint8_t stack_buffer[IO_SIZE + 4096];
 	uint8_t* buf = align_4096(stack_buffer);
 
+	uint64_t target_factor =
+			1000000ull * g_icfg.num_devices * g_icfg.num_cache_threads;
+
 	uint64_t count = 0;
 
 	while (g_running) {
@@ -366,9 +369,9 @@ run_cache_simulation(void* pv_unused)
 
 		count += BUNDLE_SIZE;
 
-		uint64_t target_us = (uint64_t)
-				((double)(count * 1000000 * g_icfg.num_devices) /
-						g_icfg.cache_thread_reads_and_writes_per_sec);
+		// TODO - someday (count * target_factor) may overflow a uint64_t.
+		uint64_t target_us = (count * target_factor) /
+				g_icfg.cache_thread_reads_and_writes_per_sec;
 
 		int64_t sleep_us = (int64_t)(target_us - (get_us() - g_run_start_us));
 
