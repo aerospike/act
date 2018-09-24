@@ -306,13 +306,15 @@ def open_log_file():
 # Find index + 1 of last bucket to display.
 #
 def find_max_bucket():
+    num_buckets = Args.num_buckets
+
     for b in range(Args.start_bucket, ALL_BUCKETS, Args.every_nth):
         Hist.max_bucket = b + 1
 
-        if Args.num_buckets == 1:
+        if num_buckets == 1:
             break
         else:
-            Args.num_buckets -= 1
+            num_buckets -= 1
 
     Hist.bucket_range = range(Hist.max_bucket)
     Hist.display_range = range(
@@ -550,7 +552,7 @@ def bucket_percentages_over(hist):
 
 
 #-------------------------------------------------
-# Track the .
+# Track maximums and totals to calculate averages.
 #
 def bucket_aggregations(hist):
     hist.rate = round(float(hist.slice_total) / Hist.slice_time, 1)
