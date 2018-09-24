@@ -249,14 +249,14 @@ main(int argc, char* argv[])
 	fprintf(stdout, "trans-reads\n");
 	fprintf(stdout, "device-reads\n");
 
-	for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+	for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
 		fprintf(stdout, "%s\n", g_devices[d].read_hist_tag);
 	}
 
 	if (has_write_load) {
 		fprintf(stdout, "device-writes\n");
 
-		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+		for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
 			fprintf(stdout, "%s\n", g_devices[d].write_hist_tag);
 		}
 	}
