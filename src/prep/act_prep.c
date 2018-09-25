@@ -42,6 +42,7 @@
 #include <sys/ioctl.h>
 
 #include "common/hardware.h"
+#include "common/io.h"
 #include "common/random.h"
 #include "common/trace.h"
 
@@ -232,7 +233,7 @@ run_salt(void* pv_n)
 			break;
 		}
 
-		if (write(fd, buf, LARGE_BLOCK_BYTES) != (ssize_t)LARGE_BLOCK_BYTES) {
+		if (! write_all(fd, buf, LARGE_BLOCK_BYTES)) {
 			fprintf(stdout, "ERROR: write in salt thread %" PRIu32 "\n", n);
 			break;
 		}
@@ -293,8 +294,7 @@ run_zero(void* pv_n)
 	}
 
 	for (uint64_t b = 0; b < blocks_to_zero; b++) {
-		if (write(fd, g_p_zero_buffer, LARGE_BLOCK_BYTES) !=
-				(ssize_t)LARGE_BLOCK_BYTES) {
+		if (! write_all(fd, g_p_zero_buffer, LARGE_BLOCK_BYTES)) {
 			fprintf(stdout, "ERROR: write in zero thread %" PRIu32 "\n", n);
 			break;
 		}
@@ -310,8 +310,7 @@ run_zero(void* pv_n)
 	}
 
 	if (last_thread) {
-		if (write(fd, g_p_zero_buffer, g_extra_bytes_to_zero) !=
-				(ssize_t)g_extra_bytes_to_zero) {
+		if (! write_all(fd, g_p_zero_buffer, g_extra_bytes_to_zero)) {
 			fprintf(stdout, "ERROR: write in zero thread %" PRIu32 "\n", n);
 		}
 	}

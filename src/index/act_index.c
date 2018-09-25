@@ -52,6 +52,7 @@
 #include "common/clock.h"
 #include "common/hardware.h"
 #include "common/histogram.h"
+#include "common/io.h"
 #include "common/queue.h"
 #include "common/random.h"
 #include "common/trace.h"
@@ -589,7 +590,7 @@ read_from_device(device* dev, uint64_t offset, uint8_t* buf)
 		return -1;
 	}
 
-	if (pread(fd, buf, IO_SIZE, offset) != IO_SIZE) {
+	if (! pread_all(fd, buf, IO_SIZE, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));
@@ -639,7 +640,7 @@ write_to_device(device* dev, uint64_t offset, const uint8_t* buf)
 		return -1;
 	}
 
-	if (pwrite(fd, buf, IO_SIZE, offset) != IO_SIZE) {
+	if (! pwrite_all(fd, buf, IO_SIZE, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));

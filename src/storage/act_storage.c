@@ -52,6 +52,7 @@
 #include "common/clock.h"
 #include "common/hardware.h"
 #include "common/histogram.h"
+#include "common/io.h"
 #include "common/queue.h"
 #include "common/random.h"
 #include "common/trace.h"
@@ -807,7 +808,7 @@ discover_min_op_bytes(int fd, const char* name)
 	size_t read_sz = LO_IO_MIN_SIZE;
 
 	while (read_sz <= HI_IO_MIN_SIZE) {
-		if (pread(fd, (void*)buf, read_sz, 0) == (ssize_t)read_sz) {
+		if (pread_all(fd, (void*)buf, read_sz, 0)) {
 			free(buf);
 			return read_sz;
 		}
@@ -987,7 +988,7 @@ read_from_device(device* dev, uint64_t offset, uint32_t size, uint8_t* buf)
 		return -1;
 	}
 
-	if (pread(fd, buf, size, offset) != (ssize_t)size) {
+	if (! pread_all(fd, buf, size, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));
@@ -1056,7 +1057,7 @@ write_to_device(device* dev, uint64_t offset, uint32_t size, const uint8_t* buf)
 		return -1;
 	}
 
-	if (pwrite(fd, buf, size, offset) != (ssize_t)size) {
+	if (! pwrite_all(fd, buf, size, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
 				strerror(errno));
