@@ -43,6 +43,7 @@
 typedef struct storage_cfg_s {
 	char device_names[MAX_NUM_STORAGE_DEVICES][MAX_DEVICE_NAME_SIZE];
 	uint32_t num_devices;           // derived by counting device names
+	uint64_t file_size;             // undocumented feature - use files
 	uint32_t num_queues;
 	uint32_t threads_per_queue;
 	uint64_t run_us;                // converted from literal units in seconds

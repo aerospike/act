@@ -255,7 +255,10 @@ main(int argc, char* argv[])
 		device* dev = &g_devices[n];
 
 		dev->name = (const char*)g_scfg.device_names[n];
-		set_scheduler(dev->name, g_scfg.scheduler_mode);
+
+		if (g_scfg.file_size == 0) { // normally 0
+			set_scheduler(dev->name, g_scfg.scheduler_mode);
+		}
 
 		if (! (dev->fd_q = queue_create(sizeof(int), true)) ||
 			! discover_device(dev) ||
@@ -761,9 +764,22 @@ discover_device(device* dev)
 		return false;
 	}
 
-	uint64_t device_bytes = 0;
+	uint64_t device_bytes;
 
-	ioctl(fd, BLKGETSIZE64, &device_bytes);
+	if (g_scfg.file_size == 0) {
+		ioctl(fd, BLKGETSIZE64, &device_bytes);
+	}
+	else { // undocumented file mode
+		device_bytes = g_scfg.file_size;
+
+		if (ftruncate(fd, (off_t)device_bytes) != 0) {
+			fprintf(stdout, "ERROR: ftruncate file %s errno %d '%s'\n",
+					dev->name, errno, strerror(errno));
+			fd_put(dev, fd);
+			return false;
+		}
+	}
+
 	dev->n_large_blocks = device_bytes / g_scfg.large_block_ops_bytes;
 	dev->min_op_bytes = discover_min_op_bytes(fd, dev->name);
 	fd_put(dev, fd);
@@ -919,7 +935,9 @@ fd_get(device* dev)
 	int fd = -1;
 
 	if (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) != QUEUE_OK) {
-		fd = open(dev->name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
+		int flags = O_RDWR | (g_scfg.file_size == 0 ? O_DIRECT : O_CREAT);
+
+		fd = open(dev->name, flags, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {
 			fprintf(stdout, "ERROR: open device %s errno %d '%s'\n", dev->name,

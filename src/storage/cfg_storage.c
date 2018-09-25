@@ -45,6 +45,7 @@
 //
 
 static const char TAG_DEVICE_NAMES[]            = "device-names";
+static const char TAG_FILE_SIZE_MBYTES[]        = "file-size-mbytes";
 static const char TAG_NUM_QUEUES[]              = "num-queues";
 static const char TAG_THREADS_PER_QUEUE[]       = "threads-per-queue";
 static const char TAG_TEST_DURATION_SEC[]       = "test-duration-sec";
@@ -151,6 +152,9 @@ storage_configure(int argc, char* argv[])
 		if (strcmp(tag, TAG_DEVICE_NAMES) == 0) {
 			parse_device_names(MAX_NUM_STORAGE_DEVICES, g_scfg.device_names,
 					&g_scfg.num_devices);
+		}
+		else if (strcmp(tag, TAG_FILE_SIZE_MBYTES) == 0) {
+			g_scfg.file_size = (uint64_t)parse_uint32() << 20;
 		}
 		else if (strcmp(tag, TAG_NUM_QUEUES) == 0) {
 			g_scfg.num_queues = parse_uint32();
@@ -377,6 +381,12 @@ echo_configuration()
 
 	fprintf(stdout, "\nnum-devices: %" PRIu32 "\n",
 			g_scfg.num_devices);
+
+	if (g_scfg.file_size != 0) { // undocumented - don't always expose
+		fprintf(stdout, "%s: %" PRIu64 "\n", TAG_FILE_SIZE_MBYTES,
+				g_scfg.file_size >> 20);
+	}
+
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_NUM_QUEUES,
 			g_scfg.num_queues);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_THREADS_PER_QUEUE,
