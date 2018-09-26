@@ -55,11 +55,6 @@
 #define NUM_ZERO_THREADS 8
 #define LARGE_BLOCK_BYTES (1024 * 128)
 
-// Linux has removed O_DIRECT, but not its functionality.
-#ifndef O_DIRECT
-#define O_DIRECT 040000 // the leading 0 is necessary - this is octal
-#endif
-
 
 //==========================================================
 // Forward declarations.
@@ -94,7 +89,7 @@ static uint64_t g_extra_bytes_to_zero = 0;
 static inline int
 fd_get()
 {
-	return open(g_device_name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
+	return open(g_device_name, O_DIRECT | O_DSYNC | O_RDWR, S_IRUSR | S_IWUSR);
 }
 
 

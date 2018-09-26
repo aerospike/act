@@ -97,11 +97,6 @@ typedef struct trans_req_s {
 #define LO_IO_MIN_SIZE 512
 #define HI_IO_MIN_SIZE 4096
 
-// Linux has removed O_DIRECT, but not its functionality.
-#ifndef O_DIRECT
-#define O_DIRECT 040000 // the leading 0 is necessary - this is octal
-#endif
-
 
 //==========================================================
 // Forward declarations.
@@ -935,7 +930,8 @@ fd_get(device* dev)
 	int fd = -1;
 
 	if (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) != QUEUE_OK) {
-		int flags = O_RDWR | (g_scfg.file_size == 0 ? O_DIRECT : O_CREAT);
+		int flags = O_RDWR |
+				(g_scfg.file_size == 0 ? O_DIRECT | O_DSYNC : O_CREAT);
 
 		fd = open(dev->name, flags, S_IRUSR | S_IWUSR);
 

@@ -35,6 +35,16 @@
 
 
 //==========================================================
+// Typedefs & constants.
+//
+
+// Linux has removed O_DIRECT, but not its functionality.
+#ifndef O_DIRECT
+#define O_DIRECT 040000 // the leading 0 is necessary - this is octal
+#endif
+
+
+//==========================================================
 // Public API.
 //
 
@@ -48,7 +58,7 @@ pread_all(int fd, void* buf, size_t size, off_t offset)
 			return false; // let the caller log errors
 		}
 
-		if (result == 0) { // should be impossible
+		if (result == 0) { // should only happen if caller passed 0 size
 			fprintf(stdout, "ERROR: pread() returned 0\n");
 			return false;
 		}
@@ -71,7 +81,7 @@ pwrite_all(int fd, const void* buf, size_t size, off_t offset)
 			return false; // let the caller log errors
 		}
 
-		if (result == 0) { // should be impossible
+		if (result == 0) { // should only happen if caller passed 0 size
 			fprintf(stdout, "ERROR: pwrite() returned 0\n");
 			return false;
 		}
@@ -94,7 +104,7 @@ write_all(int fd, const void* buf, size_t size)
 			return false; // let the caller log errors
 		}
 
-		if (result == 0) { // should be impossible
+		if (result == 0) { // should only happen if caller passed 0 size
 			fprintf(stdout, "ERROR: write() returned 0\n");
 			return false;
 		}
