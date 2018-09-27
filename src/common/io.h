@@ -35,16 +35,6 @@
 
 
 //==========================================================
-// Typedefs & constants.
-//
-
-// Linux has removed O_DIRECT, but not its functionality.
-#ifndef O_DIRECT
-#define O_DIRECT 040000 // the leading 0 is necessary - this is octal
-#endif
-
-
-//==========================================================
 // Public API.
 //
 
