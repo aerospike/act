@@ -67,7 +67,7 @@ static const char TAG_MAX_REQS_QUEUED[]         = "max-reqs-queued";
 static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
 static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
 
-#define RBLOCK_SIZE 128 // must be power of 2
+#define RBLOCK_SIZE 16 // must be power of 2
 
 
 //==========================================================
