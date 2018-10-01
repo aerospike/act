@@ -492,6 +492,10 @@ large discrepancy between transaction and device speeds from the ACT test you
 can try increasing the number of threads.  Default is 4 threads/queue.
 
 **num-cache-threads (act_index ONLY)**
+Number of threads from which to execute all 4K writes, and 4K reads due to
+index access during defragmentation.  These threads model the system threads
+that would do these device I/O operations behind mmap.  The default
+num-cache-threads is 8.
 
 **report-interval-sec**
 Interval between generating observations, in seconds. This is the smallest
@@ -585,8 +589,16 @@ How long to sleep in each device's tomb raider thread between large-block reads.
 The default tomb-raider-sleep-usec is 1000, or 1 millisecond.
 
 **max-reqs-queued**
+How much the transaction queues are allowed to back up before the ACT test
+fails.  This is a total across all queues.  You may want to try increasing this
+limit if your tests fail this way -- some devices may see the queues
+periodically back up very quickly, but then clear again very quickly.  The
+default max-reqs-queued is 100000.
 
 **max-lag-sec**
+How much the large-block operations (act_storage) or cache-thread operations
+(act_index) are allowed to lag behind their target rates before the ACT test
+fails.  The default max-lag-sec is 10.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in the test run.
