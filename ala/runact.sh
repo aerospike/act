@@ -12,7 +12,7 @@ then
 fi
 
 echo "testing ${upto}X - ${downto}X configs"
-exit
+
 while `pidof actprep>/dev/null`; do echo "waiting for actprep: $(ps aux|grep -v grep|grep actprep)";sleep 60;done;sleep 60
 for n in {12..1}; do
   let x=n*10;
