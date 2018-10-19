@@ -6,7 +6,7 @@
 1. act_install.sh - install act on deb/el systems
     * Usage: `sudo bash act_install.sh`
 2. act_make_configs.rb - create config files using ruby.
-    * This script will create config files based off the passed parameters to run act against. By default it will create 1 actconfig for every 10X increments. By default it will create files for 10X-120X so you will have 12 files generated. 10x,20x,..etc...120x.
+    * This script will create config files for storage testing (not index) based off the passed parameters to run act against. By default it will create 1 actconfig for every 10X increments. By default it will create files for 10X-120X so you will have 12 files generated. 10x,20x,..etc...120x.
     * You will need to have ruby installed and run 'gem install optimist' for this to work. 
     * Usage: `apt install ruby || yum install ruby; gem install optimist; ruby act_make_configs.rb -d /dev/drive1p1,/dev/drive2p1`,etc... for help run without args or `ruby act_make_configs.rb -h`
 3. runact.sh - run through a series of act configs and save the output.
