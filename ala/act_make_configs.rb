@@ -1,10 +1,9 @@
 #!/usr/bin/env ruby
 require 'optimist' #for options parsing
-require 'fileutils' #for recursive dir creation when specifying directory
 
 opts = Optimist::options do
-    opt :devices, "REQUIRED: List of devices to test. Ex: /dev/nvme3n1p1,/dev/nvme1n1p4", :type => :string
-    opt :directory, "Directory to save config files to. (No trailing /)", :type => string, :default => "/opt"
+    opt :devices, "REQUIRED: List of devices to test. Ex: /dev/nvme3n1p1,/dev/nvme1n1p4", :default => ""
+    opt :directory, "Directory to save config files to. (No trailing /, directory must exist)", :default => "/opt"
     opt :x, "How many 'X' configs you want to generate. At the default of 120, it will generate 120 actconfigs.", :default => 120
     opt :duration, "How long to run the act test for (hours).", :default => 24
     opt :threads_per_queue, "How many threads per queue? Defaults to 4.", :default => 4
@@ -31,13 +30,11 @@ opts = Optimist::options do
 
     EOS
 end
+Optimist::educate if(opts[:devices]==false) #print help if no devices passed, or if -h passed.
 
-Optimist::educate if(opts[:devices]==nil)
+raise "Direcotry: #{opts[:directory]} does not exist." if(!File.directory?(opts[:directory]))
 
-test_duration_sec=opts[:duration].to_i * 60 * 60
-
-FileUtils.mkdir_p(opts[:directory])
-
+test_duration_sec=opts[:duration].to_i * 60 * 60 #nobody really wants to write test duration in seconds do they?
 (10..opts[:x]).each do |x|
   reads=2000*x
   writes=1000*x
