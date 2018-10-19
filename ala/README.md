@@ -4,7 +4,7 @@
 ### Overview
 ------------
 1. act_install.sh - install act on deb/el systems
-    * Usage: sudo bash act_install.sh
+    * Usage: `sudo bash act_install.sh`
 2. act_make_configs.rb - create config files using ruby.
     * You will need to have ruby installed and run 'gem install optimist' for this to work.
     * Usage: `apt install ruby || yum install ruby; gem install optimist; ruby act_make_configs.rb -d /dev/drive1p1,/dev/drive2p1`,etc... for help run without args or `ruby act_make_configs.rb -h`
