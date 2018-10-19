@@ -47,7 +47,7 @@ report-interval-sec: #{opts[:report_interval_sec].to_i}
 record-bytes: #{opts[:record_bytes].to_i}
 record-bytes-range-max: #{opts[:record_bytes_range_max].to_i}
 large-block-op-kbytes: #{opts[:large_block_op_kbytes].to_i}
-replication-factor: #{opts[:replication_facotr].to_i}
+replication-factor: #{opts[:replication_factor].to_i}
 update-pct: #{opts[:update_pct].to_i}
 defrag-lwm-pct: #{opts[:defrag_lwm_pct].to_i}
 commit-to-device: #{opts[:commit_to_device]}
