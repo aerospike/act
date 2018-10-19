@@ -30,7 +30,7 @@ opts = Optimist::options do
 
     EOS
 end
-Optimist::educate if(opts[:devices]==false) #print help if no devices passed, or if -h passed.
+Optimist::educate if(opts[:devices]=="") #print help if no devices passed, or if -h passed.
 
 raise "Direcotry: #{opts[:directory]} does not exist." if(!File.directory?(opts[:directory]))
 
