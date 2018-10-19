@@ -8,13 +8,13 @@ fi
 set +e #continue on any errors
 
 #Work with EL/Deb
-apt-get -y install make gcc libc6-dev libssl-dev zlib1g-dev || yum install -y make gcc openssl-devel sysstat git 
+apt-get -y install make gcc libc6-dev libssl-dev zlib1g-dev git || yum install -y make gcc openssl-devel sysstat git 
 cd /opt
 #git clone https://github.com/brendangregg/perf-tools.git
 git clone https://github.com/aerospike/act.git
 #export PATH="$PATH:/opt/perf-tools"
 cd /opt/act
 make
-make -f Makesalt
+#make -f Makesalt #not required with latest dev branch
 
 echo "ACT built at /opt/act. Use "act_make_configs.rb" to build config files in cwd."
