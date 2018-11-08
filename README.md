@@ -5,11 +5,10 @@ This project is maintained by [Aerospike](http://www.aerospike.com)
 ### Overview
 ------------
 
-ACT is a pair of programs for testing and certifying flash/SSD devices'
-performance for Aerospike Database data and index storage.  ACT shows latency
-responses when you are reading from and writing to the database concurrently
-while modeling the Aerospike Database server's I/O pattern as closely as
-practical.
+ACT provides a pair of programs for testing and certifying flash/SSD devices'
+performance for Aerospike Database data and index storage.  ACT measures latency
+during a mixed load of read and write operations while modeling the Aerospike
+Database server's I/O pattern as closely as practical.
 
 ACT allows you to test a single device or multiple devices, using your actual
 connector/controller hardware.
@@ -90,6 +89,11 @@ access during defragmentation.
 
 The "cache threads" also execute all the 4k device writes, which model index
 element changes due to client write requests and defragmentation.
+
+Unlike the Aerospike Database "All Flash" mode, act_index does not mmap files in
+mounted directories on the devices - it models the raw device I/O pattern,
+assuming no caching benefit from mmap. Therefore to confgiure act_index we
+simply specify the devices.
 
 #### Process for Certifying Device(s) for 3x Performance
 --------------------------------------------------------
