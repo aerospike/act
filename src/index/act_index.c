@@ -517,7 +517,7 @@ fd_get(device* dev)
 
 		if (fd == -1) {
 			fprintf(stdout, "ERROR: open device %s errno %d '%s'\n", dev->name,
-					errno, strerror(errno));
+					errno, act_strerror(errno));
 		}
 	}
 
@@ -588,7 +588,7 @@ read_from_device(device* dev, uint64_t offset, uint8_t* buf)
 	if (! pread_all(fd, buf, IO_SIZE, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
-				strerror(errno));
+				act_strerror(errno));
 		return -1;
 	}
 
@@ -638,7 +638,7 @@ write_to_device(device* dev, uint64_t offset, const uint8_t* buf)
 	if (! pwrite_all(fd, buf, IO_SIZE, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
-				strerror(errno));
+				act_strerror(errno));
 		return -1;
 	}
 

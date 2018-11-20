@@ -769,7 +769,7 @@ discover_device(device* dev)
 
 		if (ftruncate(fd, (off_t)device_bytes) != 0) {
 			fprintf(stdout, "ERROR: ftruncate file %s errno %d '%s'\n",
-					dev->name, errno, strerror(errno));
+					dev->name, errno, act_strerror(errno));
 			fd_put(dev, fd);
 			return false;
 		}
@@ -937,7 +937,7 @@ fd_get(device* dev)
 
 		if (fd == -1) {
 			fprintf(stdout, "ERROR: open device %s errno %d '%s'\n", dev->name,
-					errno, strerror(errno));
+					errno, act_strerror(errno));
 		}
 	}
 
@@ -1005,7 +1005,7 @@ read_from_device(device* dev, uint64_t offset, uint32_t size, uint8_t* buf)
 	if (! pread_all(fd, buf, size, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
-				strerror(errno));
+				act_strerror(errno));
 		return -1;
 	}
 
@@ -1074,7 +1074,7 @@ write_to_device(device* dev, uint64_t offset, uint32_t size, const uint8_t* buf)
 	if (! pwrite_all(fd, buf, size, offset)) {
 		close(fd);
 		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
-				strerror(errno));
+				act_strerror(errno));
 		return -1;
 	}
 

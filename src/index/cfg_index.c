@@ -39,6 +39,7 @@
 
 #include "common/cfg.h"
 #include "common/hardware.h"
+#include "common/trace.h"
 
 
 //==========================================================
@@ -103,7 +104,7 @@ index_configure(int argc, char* argv[])
 
 	if (! config_file) {
 		fprintf(stdout, "ERROR: couldn't open config file %s errno %d '%s'\n",
-				argv[1], errno, strerror(errno));
+				argv[1], errno, act_strerror(errno));
 		return false;
 	}
 

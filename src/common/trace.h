@@ -25,7 +25,18 @@
 #pragma once
 
 //==========================================================
+// Includes.
+//
+
+#include <alloca.h>
+#include <string.h>
+
+
+//==========================================================
 // Public API.
 //
 
 void signal_setup();
+
+// _GNU_SOURCE gives us strerror_r() which is thread-safe.
+#define act_strerror(err) strerror_r(err, (char*)alloca(200), 200)

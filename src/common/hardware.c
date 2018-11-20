@@ -40,6 +40,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include "trace.h"
+
 
 //==========================================================
 // Typedefs & constants.
@@ -133,13 +135,13 @@ set_scheduler(const char* device_name, const char* mode)
 
 	if (! scheduler_file) {
 		fprintf(stdout, "ERROR: couldn't open %s errno %d '%s'\n",
-				scheduler_file_name, errno, strerror(errno));
+				scheduler_file_name, errno, act_strerror(errno));
 		return;
 	}
 
 	if (fwrite(mode, strlen(mode), 1, scheduler_file) != 1) {
 		fprintf(stdout, "ERROR: writing %s to %s errno %d '%s'\n", mode,
-				scheduler_file_name, errno, strerror(errno));
+				scheduler_file_name, errno, act_strerror(errno));
 	}
 
 	fclose(scheduler_file);
@@ -239,7 +241,7 @@ read_file(const char* path, void* buf, size_t* limit)
 		}
 
 		fprintf(stdout, "ERROR: couldn't open file %s for reading: %d '%s'\n",
-				path, errno, strerror(errno));
+				path, errno, act_strerror(errno));
 		return FILE_RES_ERROR;
 	}
 
@@ -250,7 +252,7 @@ read_file(const char* path, void* buf, size_t* limit)
 
 		if (len < 0) {
 			fprintf(stdout, "ERROR: couldn't read file %s: %d '%s'\n", path,
-					errno, strerror(errno));
+					errno, act_strerror(errno));
 			close(fd);
 			return FILE_RES_ERROR;
 		}
