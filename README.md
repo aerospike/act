@@ -38,7 +38,7 @@ device), performance can suffer.
 The ACT tool allows you to test an SSD device(s) for yourself. In addition,
 Aerospike has tested a variety of SSDs and has specific recommendations.  For
 more information, visit the Aerospike Database documentation at:
-http://www.aerospike.com/docs.
+http://www.aerospike.com/docs/operations/plan/ssd/ssd_certification.html.
 
 #### What ACT Does
 ------------------
@@ -95,16 +95,16 @@ mounted directories on the devices - it models the raw device I/O pattern,
 assuming no caching benefit from mmap. Therefore to confgiure act_index we
 simply specify the devices.
 
-#### Process for Certifying Device(s) for 3x Performance
---------------------------------------------------------
+#### Process for Certifying Device(s) for 30x Performance
+---------------------------------------------------------
 
-In general, we recommend that you certify a device for 3x performance.  Many
-devices do not pass the 3x certification.  If you do not have a high-volume
-application, you may find that a 2x or 2.5x certification will be sufficient.
-The instructions below describe the 3x certification process, but you may need
+In general, we recommend that you certify a device for 30x performance.  Many
+devices do not pass the 30x certification.  If you do not have a high-volume
+application, you may find that a 10x or 20x certification will be sufficient.
+The instructions below describe the 30x certification process, but you may need
 to adjust the test based on your requirements.
 
-To certify a device(s) for 3x performance with Aerospike Database requires two
+To certify a device(s) for 30x performance with Aerospike Database requires two
 stages:
 
 1. Test a single device to determine performance using the hardware
@@ -125,19 +125,19 @@ additional 48 hours.
 
 Begin by installing your SSD device.  Our website has more details about
 installing SSDs in different environments and configurations at
-http://www.aerospike.com/docs.
+http://www.aerospike.com/docs/operations/plan/ssd/ssd_setup.html.
 
 **Test 1: Test under high loads**
 
-Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).  The
-device passes this test if less than 5% of operations fail to complete in 1 ms
-or less.
+Run ACT for 24 hrs using the 30x test (60000 reads/sec and 30000 writes/sec).
+The device passes this test if less than 5% of operations fail to complete in
+1 ms or less.
 
 Many devices fail this test and are unsuitable for use with Aerospike Database.
 
 **Test 2: Stress test to ensure the device does not fail under excessive loads**
 
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec). The device
+Run a 60x test for 24 hrs (120000 reads/sec and 60000 writes/sec). The device
 passes this test if ACT runs to completion, regardless of the error rate.
 
 **If you are testing a single device, then the device is certified when it passes Test 1 and Test 2.**
@@ -146,18 +146,19 @@ passes this test if ACT runs to completion, regardless of the error rate.
 
 Install the additional SSDs to be tested.  Our website has more details about
 installing SSDs in different environments and configurations at
-http://www.aerospike.com/docs.
+http://www.aerospike.com/docs/operations/plan/ssd/ssd_setup.html.
 
 **Test 3: Repeat Test 1, with all devices installed: Test under high loads**
 
-Run ACT for 24 hrs using the 3x test (6000 reads/sec and 3000 writes/sec).  The
-devices pass this test if less than 5% of operations fail to complete in 1 ms or
-less.
+Run ACT for 24 hrs using the 30x test (60000 reads/sec and 30000 writes/sec per
+device).  The devices pass this test if less than 5% of operations fail to
+complete in 1 ms or less.
 
 **Test 4: Repeat Test 2, with all devices installed: Stress test to ensure the devices do not fail under excessive loads**
 
-Run a 6x test for 24 hrs (12000 reads/sec and 6000 writes/sec).  The devices
-pass this test if ACT runs to completion, regardless of the error rate.
+Run a 60x test for 24 hrs (120000 reads/sec and 60000 writes/sec per device).
+The devices pass this test if ACT runs to completion, regardless of the error
+rate.
 
 **The devices are certified if they pass Test 3 and Test 4.**
 
@@ -170,18 +171,18 @@ Database.
 ----------------------------------------------------------
 
 If your application is going to have high volumes of transactions and your
-device(s) passes the 3x certification, we recommend that you test your device to
-determine its upper limit on transaction processing latency.  This will help you
-determine how many SSDs you will need to run your application when you are fully
-scaled up.
+device(s) passes the 30x certification, we recommend that you test your device
+to determine its upper limit on transaction processing latency.  This will help
+you determine how many SSDs you will need to run your application when you are
+fully scaled up.
 
 To certify a device(s) at higher levels of performance, do the certification
-process as described above, but use higher loads (12x, 24x, etc.).  Test the
+process as described above, but use higher loads (80x, 100x, etc.).  Test the
 device(s) at progressively higher rates until more than 5% of operations fail in
 1 ms.
 
-For example, if you test at 24x and less than 5% of operations fail to complete
-in 1 ms, re-run the test at 48x, etc.  When the device completes the test at a
+For example, if you test at 60x and less than 5% of operations fail to complete
+in 1 ms, re-run the test at 80x, etc.  When the device completes the test at a
 particular speed with *more* than 5% of operations failing to complete in 1 ms
 (i.e., fails the test), then the device is certified at the next lower level
 where the device DOES have fewer than 5% of errors in under 1 ms.
@@ -436,11 +437,11 @@ single device.  To generate a config file for an Nx load, simply multiply those
 rates by N, and by the number of devices you are testing with, if using multiple
 devices.
 
-For example, to generate a config file for a single-device 6x load, change
-read-reqs-per-sec to 12000, and write-reqs-per-sec to 6000.
+For example, to generate a config file for a single-device 60x load, change
+read-reqs-per-sec to 120000, and write-reqs-per-sec to 60000.
 
-Or, to generate a config file for a four-device 6x load, change
-read-reqs-per-sec to 48000, and write-reqs-per-sec to 24000.
+Or, to generate a config file for a four-device 60x load, change
+read-reqs-per-sec to 480000, and write-reqs-per-sec to 240000.
 
 The other fields in the configuration files should generally not be changed, but
 you may do so to run highly customized tests.
@@ -468,21 +469,21 @@ Make sure the devices named are entered correctly.
 
 **read-reqs-per-sec**
 Read transactions/second to simulate.  Note that this is not per device, or per
-transaction queue.  For 3 times (3x) the normal load for four devices, this
-value would be 3*4*2000 = 24000.  Formula: n x number of devices x 2000.
+transaction queue.  For 30 times (30x) the normal load for four devices, this
+value would be 30 x 4 x 2000 = 240000.  Formula: n x number of devices x 2000.
 
 **write-reqs-per-sec**
 Write transactions/second to simulate.  For act_storage, this value along with
 record-bytes, large-block-op-kbytes, defrag-lwm-pct, and others, determines the
 rate of large-block operations.  Note that this is not per device, or per
-transaction queue.  For 3 times (3x) the normal load for four devices, this
-value would be 3*4*1000 = 12000.  Formula: n x number of devices x 1000.
+transaction queue.  For 30 times (30x) the normal load for four devices, this
+value would be 30 x 4 x 1000 = 120000.  Formula: n x number of devices x 1000.
 
 ### Fields that you may Sometimes Change:
 
 **test-duration-sec**
 Duration of the entire test, in seconds.  Note that it has to be a single
-number, e.g. use 86400, not 60*60*24.  The default is one day (24 hours).
+number, e.g. use 86400, not 60 x 60 x 24.  The default is one day (24 hours).
 
 ### Fields that you will Rarely or Never Change:
 
