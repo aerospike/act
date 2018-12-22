@@ -1,7 +1,7 @@
 /*
- * random.h
+ * trace.h
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,19 @@
 
 #pragma once
 
-#include <stdbool.h>
-#include <stdint.h>
+//==========================================================
+// Includes.
+//
 
-bool rand_seed();
-bool rand_fill(uint8_t* p_buffer, uint32_t size);
+#include <alloca.h>
+#include <string.h>
+
+
+//==========================================================
+// Public API.
+//
+
+void signal_setup();
+
+// _GNU_SOURCE gives us strerror_r() which is thread-safe.
+#define act_strerror(err) strerror_r(err, (char*)alloca(200), 200)

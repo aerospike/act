@@ -1,5 +1,5 @@
 /*
- * histogram.h
+ * clock.h
  *
  * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
  *
@@ -24,22 +24,38 @@
 
 #pragma once
 
+//==========================================================
+// Includes.
+//
+
 #include <stdint.h>
-#include "atomic.h"
+#include <time.h>
 
-#define N_BUCKETS (1 + 64)
 
-typedef enum {
-	HIST_MILLISECONDS,
-	HIST_MICROSECONDS,
-	HIST_SCALE_MAX_PLUS_1
-} histogram_scale;
+//==========================================================
+// Public API.
+//
 
-typedef struct _histogram {
-	uint32_t time_div;
-	cf_atomic64 counts[N_BUCKETS];
-} histogram;
+static inline uint64_t
+get_ms()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ((uint64_t)ts.tv_nsec / 1000000) + ((uint64_t)ts.tv_sec * 1000);
+}
 
-extern histogram* histogram_create(histogram_scale scale);
-extern void histogram_dump(histogram* h, const char* p_tag);
-extern void histogram_insert_data_point(histogram* h, uint64_t delta_ns);
+static inline uint64_t
+get_us()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return ((uint64_t)ts.tv_nsec / 1000) + ((uint64_t)ts.tv_sec * 1000000);
+}
+
+static inline uint64_t
+get_ns()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (uint64_t)ts.tv_nsec + ((uint64_t)ts.tv_sec * 1000000000);
+}

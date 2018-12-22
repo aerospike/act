@@ -42,24 +42,24 @@
 // Typedefs & constants.
 //
 
-#define CF_QUEUE_ALLOCSZ (64 * 1024)
+#define Q_ALLOC_SZ (64 * 1024)
 
 
 //==========================================================
 // Forward Declarations
 //
 
-int cf_queue_resize(cf_queue *q, uint new_sz);
-void cf_queue_unwrap(cf_queue *q);
+int q_resize(queue* q, uint new_sz);
+void q_unwrap(queue* q);
 
 
 //==========================================================
 // Inlines & macros.
 //
 
-#define CF_Q_SZ(__q) (__q->write_offset - __q->read_offset)
-#define CF_Q_EMPTY(__q) (__q->write_offset == __q->read_offset)
-#define CF_Q_ELEM_PTR(__q, __i) (&q->queue[(__i % __q->allocsz) * q->elementsz])
+#define Q_SZ(_q) (_q->write_offset - _q->read_offset)
+#define Q_EMPTY(_q) (_q->write_offset == _q->read_offset)
+#define Q_ELE_PTR(_q, _i) (&_q->elements[(_i % _q->alloc_sz) * _q->ele_size])
 
 
 //==========================================================
@@ -69,46 +69,44 @@ void cf_queue_unwrap(cf_queue *q);
 //------------------------------------------------
 // Create a queue.
 //
-cf_queue*
-cf_queue_create(size_t elementsz, bool threadsafe)
+queue*
+queue_create(size_t ele_size, bool thread_safe)
 {
-	cf_queue *q = NULL;
-
-	q = malloc( sizeof(cf_queue));
+	queue* q = malloc( sizeof(queue));
 
 	if (! q) {
 		fprintf(stdout, "ERROR: creating queue (malloc)\n");
 		return NULL;
 	}
 
-	q->queue = malloc(CF_QUEUE_ALLOCSZ * elementsz);
+	q->elements = malloc(Q_ALLOC_SZ * ele_size);
 
-	if (! q->queue) {
+	if (! q->elements) {
 		fprintf(stdout, "ERROR: creating queue (malloc)\n");
 		free(q);
 		return NULL;
 	}
 
-	q->allocsz = CF_QUEUE_ALLOCSZ;
+	q->alloc_sz = Q_ALLOC_SZ;
 	q->write_offset = q->read_offset = 0;
-	q->elementsz = elementsz;
-	q->threadsafe = threadsafe;
+	q->ele_size = ele_size;
+	q->thread_safe = thread_safe;
 
-	if (! q->threadsafe) {
+	if (! q->thread_safe) {
 		return q;
 	}
 
-	if (0 != pthread_mutex_init(&q->LOCK, NULL)) {
+	if (pthread_mutex_init(&q->lock, NULL) != 0) {
 		fprintf(stdout, "ERROR: creating queue (mutex init)\n");
-		free(q->queue);
+		free(q->elements);
 		free(q);
 		return NULL;
 	}
 
-	if (0 != pthread_cond_init(&q->CV, NULL)) {
+	if (pthread_cond_init(&q->cond_var, NULL) != 0) {
 		fprintf(stdout, "ERROR: creating queue (cond init)\n");
-		pthread_mutex_destroy(&q->LOCK);
-		free(q->queue);
+		pthread_mutex_destroy(&q->lock);
+		free(q->elements);
 		free(q);
 		return NULL;
 	}
@@ -120,33 +118,31 @@ cf_queue_create(size_t elementsz, bool threadsafe)
 // Destroy a queue.
 //
 void
-cf_queue_destroy(cf_queue *q)
+queue_destroy(queue* q)
 {
-	if (q->threadsafe) {
-		pthread_cond_destroy(&q->CV);
-		pthread_mutex_destroy(&q->LOCK);
+	if (q->thread_safe) {
+		pthread_cond_destroy(&q->cond_var);
+		pthread_mutex_destroy(&q->lock);
 	}
 
-	free(q->queue);
+	free(q->elements);
 	free(q);
 }
 
 //------------------------------------------------
 // Get the number of elements in the queue.
 //
-int
-cf_queue_sz(cf_queue *q)
+uint32_t
+queue_sz(queue* q)
 {
-	int rv;
-
-	if (q->threadsafe) {
-		pthread_mutex_lock(&q->LOCK);
+	if (q->thread_safe) {
+		pthread_mutex_lock(&q->lock);
 	}
 
-	rv = CF_Q_SZ(q);
+	uint32_t rv = Q_SZ(q);
 
-	if (q->threadsafe) {
-		pthread_mutex_unlock(&q->LOCK);
+	if (q->thread_safe) {
+		pthread_mutex_unlock(&q->lock);
 	}
 
 	return rv;
@@ -156,36 +152,36 @@ cf_queue_sz(cf_queue *q)
 // Push an element to the tail of the queue.
 //
 int
-cf_queue_push(cf_queue *q, void *ptr)
+queue_push(queue* q, const void* ele_ptr)
 {
-	if (q->threadsafe) {
-		pthread_mutex_lock(&q->LOCK);
+	if (q->thread_safe) {
+		pthread_mutex_lock(&q->lock);
 	}
 
-	if (CF_Q_SZ(q) == q->allocsz) {
-		if (CF_QUEUE_OK != cf_queue_resize(q, q->allocsz * 2)) {
-			if (q->threadsafe) {
-				pthread_mutex_unlock(&q->LOCK);
+	if (Q_SZ(q) == q->alloc_sz) {
+		if (q_resize(q, q->alloc_sz * 2) != QUEUE_OK) {
+			if (q->thread_safe) {
+				pthread_mutex_unlock(&q->lock);
 			}
 
-			return CF_QUEUE_ERR;
+			return QUEUE_ERR;
 		}
 	}
 
-	memcpy(CF_Q_ELEM_PTR(q, q->write_offset), ptr, q->elementsz);
+	memcpy(Q_ELE_PTR(q, q->write_offset), ele_ptr, q->ele_size);
 	q->write_offset++;
 
 	// We're at risk of overflowing the write offset if it's too big.
 	if (q->write_offset & 0xC0000000) {
-		cf_queue_unwrap(q);
+		q_unwrap(q);
 	}
 
-	if (q->threadsafe) {
-		pthread_cond_signal(&q->CV);
-		pthread_mutex_unlock(&q->LOCK);
+	if (q->thread_safe) {
+		pthread_cond_signal(&q->cond_var);
+		pthread_mutex_unlock(&q->lock);
 	}
 
-	return CF_QUEUE_OK;
+	return QUEUE_OK;
 }
 
 //------------------------------------------------
@@ -196,13 +192,13 @@ cf_queue_push(cf_queue *q, void *ptr)
 // ms_wait > 0 - wait that number of milliseconds
 //
 int
-cf_queue_pop(cf_queue *q, void *buf, int ms_wait)
+queue_pop(queue* q, void* ele_ptr, int ms_wait)
 {
-	if (q->threadsafe) {
-		pthread_mutex_lock(&q->LOCK);
+	if (q->thread_safe) {
+		pthread_mutex_lock(&q->lock);
 	}
 
-	if (q->threadsafe) {
+	if (q->thread_safe) {
 		struct timespec tp;
 
 		if (ms_wait > 0) {
@@ -220,40 +216,40 @@ cf_queue_pop(cf_queue *q, void *buf, int ms_wait)
 		// the pthread_cond_signal() documentation says that AT LEAST ONE
 		// waiting thread will be awakened...
 
-		while (CF_Q_EMPTY(q)) {
-			if (CF_QUEUE_FOREVER == ms_wait) {
-				pthread_cond_wait(&q->CV, &q->LOCK);
+		while (Q_EMPTY(q)) {
+			if (ms_wait == QUEUE_FOREVER) {
+				pthread_cond_wait(&q->cond_var, &q->lock);
 			}
-			else if (CF_QUEUE_NOWAIT == ms_wait) {
-				pthread_mutex_unlock(&q->LOCK);
-				return CF_QUEUE_EMPTY;
+			else if (ms_wait == QUEUE_NO_WAIT) {
+				pthread_mutex_unlock(&q->lock);
+				return QUEUE_EMPTY;
 			}
 			else {
-				pthread_cond_timedwait(&q->CV, &q->LOCK, &tp);
+				pthread_cond_timedwait(&q->cond_var, &q->lock, &tp);
 
-				if (CF_Q_EMPTY(q)) {
-					pthread_mutex_unlock(&q->LOCK);
-					return CF_QUEUE_EMPTY;
+				if (Q_EMPTY(q)) {
+					pthread_mutex_unlock(&q->lock);
+					return QUEUE_EMPTY;
 				}
 			}
 		}
 	}
-	else if (CF_Q_EMPTY(q)) {
-		return CF_QUEUE_EMPTY;
+	else if (Q_EMPTY(q)) {
+		return QUEUE_EMPTY;
 	}
 
-	memcpy(buf, CF_Q_ELEM_PTR(q, q->read_offset), q->elementsz);
+	memcpy(ele_ptr, Q_ELE_PTR(q, q->read_offset), q->ele_size);
 	q->read_offset++;
 
 	if (q->read_offset == q->write_offset) {
 		q->read_offset = q->write_offset = 0;
 	}
 
-	if (q->threadsafe) {
-		pthread_mutex_unlock(&q->LOCK);
+	if (q->thread_safe) {
+		pthread_mutex_unlock(&q->lock);
 	}
 
-	return CF_QUEUE_OK;
+	return QUEUE_OK;
 }
 
 
@@ -265,56 +261,57 @@ cf_queue_pop(cf_queue *q, void *buf, int ms_wait)
 // Change allocated capacity - called under lock.
 //
 int
-cf_queue_resize(cf_queue *q, uint new_sz)
+q_resize(queue* q, uint new_sz)
 {
 	// The rare case where the queue is not fragmented, and none of the offsets
 	// need to move.
-	if (0 == q->read_offset % q->allocsz) {
-		q->queue = realloc(q->queue, new_sz * q->elementsz);
+	if (q->read_offset % q->alloc_sz == 0) {
+		q->elements = realloc(q->elements, new_sz * q->ele_size);
 
-		if (! q->queue) {
+		if (! q->elements) {
 			fprintf(stdout, "ERROR: resizing queue (realloc)\n");
-			return CF_QUEUE_ERR;
+			return QUEUE_ERR;
 		}
 
 		q->read_offset = 0;
-		q->write_offset = q->allocsz;
+		q->write_offset = q->alloc_sz;
 	}
 	else {
-		uint8_t *newq = malloc(new_sz * q->elementsz);
+		uint8_t* new_q = malloc(new_sz * q->ele_size);
 
-		if (! newq) {
+		if (! new_q) {
 			fprintf(stdout, "ERROR: resizing queue (malloc)\n");
-			return CF_QUEUE_ERR;
+			return QUEUE_ERR;
 		}
 
 		// endsz is used bytes in old queue from insert point to end.
-		uint32_t endsz =
-				(q->allocsz - (q->read_offset % q->allocsz)) * q->elementsz;
+		uint32_t end_size =
+				(q->alloc_sz - (q->read_offset % q->alloc_sz)) * q->ele_size;
 
-		memcpy(&newq[0], CF_Q_ELEM_PTR(q, q->read_offset), endsz);
-		memcpy(&newq[endsz], &q->queue[0], (q->allocsz * q->elementsz) - endsz);
+		memcpy(&new_q[0], Q_ELE_PTR(q, q->read_offset), end_size);
+		memcpy(&new_q[end_size], &q->elements[0],
+				(q->alloc_sz * q->ele_size) - end_size);
 
-		free(q->queue);
-		q->queue = newq;
+		free(q->elements);
+		q->elements = new_q;
 
-		q->write_offset = q->allocsz;
+		q->write_offset = q->alloc_sz;
 		q->read_offset = 0;
 	}
 
-	q->allocsz = new_sz;
+	q->alloc_sz = new_sz;
 
-	return CF_QUEUE_OK;
+	return QUEUE_OK;
 }
 
 //------------------------------------------------
 // Reset read & write offsets - called under lock.
 //
 void
-cf_queue_unwrap(cf_queue *q)
+q_unwrap(queue* q)
 {
-	int sz = CF_Q_SZ(q);
+	uint32_t sz = Q_SZ(q);
 
-	q->read_offset %= q->allocsz;
+	q->read_offset %= q->alloc_sz;
 	q->write_offset = q->read_offset + sz;
 }

@@ -1,5 +1,5 @@
 /*
- * clock.h
+ * histogram.h
  *
  * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
  *
@@ -24,29 +24,37 @@
 
 #pragma once
 
+//==========================================================
+// Includes.
+//
+
 #include <stdint.h>
-#include <time.h>
 
-static inline uint64_t
-cf_getms()
-{
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ((uint64_t)ts.tv_nsec / 1000000) + ((uint64_t)ts.tv_sec * 1000);
-}
+#include "atomic.h"
 
-static inline uint64_t
-cf_getus()
-{
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return ((uint64_t)ts.tv_nsec / 1000) + ((uint64_t)ts.tv_sec * 1000000);
-}
 
-static inline uint64_t
-cf_getns()
-{
-	struct timespec ts;
-	clock_gettime(CLOCK_MONOTONIC, &ts);
-	return (uint64_t)ts.tv_nsec + ((uint64_t)ts.tv_sec * 1000000000);
-}
+//==========================================================
+// Typedefs & constants.
+//
+
+#define N_BUCKETS (1 + 64)
+
+typedef enum {
+	HIST_MILLISECONDS,
+	HIST_MICROSECONDS,
+	HIST_SCALE_MAX_PLUS_1
+} histogram_scale;
+
+typedef struct histogram_s {
+	uint32_t time_div;
+	atomic64 counts[N_BUCKETS];
+} histogram;
+
+
+//==========================================================
+// Public API.
+//
+
+histogram* histogram_create(histogram_scale scale);
+void histogram_dump(histogram* h, const char* tag);
+void histogram_insert_data_point(histogram* h, uint64_t delta_ns);

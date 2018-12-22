@@ -1,5 +1,5 @@
 /*
- * salt.c
+ * act_prep.c
  *
  * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
  *
@@ -22,46 +22,54 @@
  * SOFTWARE.
  */
 
-
 //==========================================================
-// Includes
+// Includes.
 //
 
 #include <dirent.h>
-#include <execinfo.h>	// for debugging
 #include <fcntl.h>
 #include <inttypes.h>
 #include <pthread.h>
-#include <signal.h>		// for debugging
 #include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <unistd.h>
 #include <linux/fs.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-#include "random.h"
+#include "common/hardware.h"
+#include "common/io.h"
+#include "common/random.h"
+#include "common/trace.h"
 
 
 //==========================================================
-// Constants
+// Typedefs & constants.
 //
 
-const uint32_t NUM_SALT_THREADS = 8;
-const uint32_t NUM_ZERO_THREADS = 8;
-const uint32_t LARGE_BLOCK_BYTES = 1024 * 128;
-
-// Linux has removed O_DIRECT, but not its functionality.
-#ifndef O_DIRECT
-#define O_DIRECT 040000 // the leading 0 is necessary - this is octal
-#endif
+#define NUM_SALT_THREADS 8
+#define NUM_ZERO_THREADS 8
+#define LARGE_BLOCK_BYTES (1024 * 128)
 
 
 //==========================================================
-// Globals
+// Forward declarations.
+//
+
+static void* run_salt(void* pv_n);
+static void* run_zero(void* pv_n);
+
+static uint8_t* act_valloc(size_t size);
+static bool create_zero_buffer();
+static bool discover_num_blocks();
+
+
+//==========================================================
+// Globals.
 //
 
 static char* g_device_name = NULL;
@@ -75,32 +83,27 @@ static uint64_t g_extra_bytes_to_zero = 0;
 
 
 //==========================================================
-// Forward Declarations
+// Inlines & macros.
 //
 
-static void*			run_salt(void* pv_n);
-static void*			run_zero(void* pv_n);
-
-static inline uint8_t*	cf_valloc(size_t size);
-static bool				create_zero_buffer();
-static bool				discover_num_blocks();
-static inline int		fd_get();
-static void				set_scheduler();
-
-static void				as_sig_handle_segv(int sig_num);
-static void				as_sig_handle_term(int sig_num);
+static inline int
+fd_get()
+{
+	return open(g_device_name, O_DIRECT | O_DSYNC | O_RDWR, S_IRUSR | S_IWUSR);
+}
 
 
 //==========================================================
-// Main
+// Main.
 //
 
-int main(int argc, char* argv[]) {
-	signal(SIGSEGV, as_sig_handle_segv);
-	signal(SIGTERM , as_sig_handle_term);
+int
+main(int argc, char* argv[])
+{
+	signal_setup();
 
 	if (argc != 2) {
-		fprintf(stdout, "usage: salt [device name]\n");
+		fprintf(stdout, "usage: act_prep [device name]\n");
 		exit(0);
 	}
 
@@ -109,7 +112,7 @@ int main(int argc, char* argv[]) {
 	strcpy(device_name, argv[1]);
 	g_device_name = device_name;
 
-	set_scheduler();
+	set_scheduler(g_device_name, "noop");
 
 	if (! discover_num_blocks()) {
 		exit(-1);
@@ -128,16 +131,14 @@ int main(int argc, char* argv[]) {
 
 	for (uint32_t n = 0; n < NUM_ZERO_THREADS; n++) {
 		if (pthread_create(&zero_threads[n], NULL, run_zero,
-				(void*)(uint64_t)n)) {
+				(void*)(uint64_t)n) != 0) {
 			fprintf(stdout, "ERROR: creating zero thread %" PRIu32 "\n", n);
 			exit(-1);
 		}
 	}
 
 	for (uint32_t n = 0; n < NUM_ZERO_THREADS; n++) {
-		void* pv_value;
-
-		pthread_join(zero_threads[n], &pv_value);
+		pthread_join(zero_threads[n], NULL);
 	}
 
 	free(g_p_zero_buffer);
@@ -147,26 +148,20 @@ int main(int argc, char* argv[]) {
 
 	fprintf(stdout, "salting device %s\n", g_device_name);
 
-	srand(time(NULL));
-
-	if (! rand_seed()) {
-		exit(-1);
-	}
+	rand_seed();
 
 	pthread_t salt_threads[NUM_SALT_THREADS];
 
 	for (uint32_t n = 0; n < NUM_SALT_THREADS; n++) {
 		if (pthread_create(&salt_threads[n], NULL, run_salt,
-				(void*)(uint64_t)n)) {
+				(void*)(uint64_t)n) != 0) {
 			fprintf(stdout, "ERROR: creating salt thread %" PRIu32 "\n", n);
 			exit(-1);
 		}
 	}
 
 	for (uint32_t n = 0; n < NUM_SALT_THREADS; n++) {
-		void* pv_value;
-
-		pthread_join(salt_threads[n], &pv_value);
+		pthread_join(salt_threads[n], NULL);
 	}
 
 	return 0;
@@ -174,14 +169,18 @@ int main(int argc, char* argv[]) {
 
 
 //==========================================================
-// Thread "Run" Functions
+// Local helpers - thread "run" functions.
 //
 
 //------------------------------------------------
 // Runs in all (NUM_SALT_THREADS) salt_threads,
 // salts a portion of the device.
 //
-static void* run_salt(void* pv_n) {
+static void*
+run_salt(void* pv_n)
+{
+	rand_seed_thread();
+
 	uint32_t n = (uint32_t)(uint64_t)pv_n;
 
 	uint64_t offset = n * g_blocks_per_salt_thread * LARGE_BLOCK_BYTES;
@@ -199,11 +198,11 @@ static void* run_salt(void* pv_n) {
 	}
 
 //	fprintf(stdout, "thread %d: blks-to-salt = %" PRIu64 ", prg-blks = %"
-//		PRIu64 "\n", n, blocks_to_salt, progress_blocks);
+//			PRIu64 "\n", n, blocks_to_salt, progress_blocks);
 
-	uint8_t* p_buffer = cf_valloc(LARGE_BLOCK_BYTES);
+	uint8_t* buf = act_valloc(LARGE_BLOCK_BYTES);
 
-	if (! p_buffer) {
+	if (! buf) {
 		fprintf(stdout, "ERROR: valloc in salt thread %" PRIu32 "\n", n);
 		return NULL;
 	}
@@ -212,25 +211,24 @@ static void* run_salt(void* pv_n) {
 
 	if (fd == -1) {
 		fprintf(stdout, "ERROR: open in salt thread %" PRIu32 "\n", n);
-		free(p_buffer);
+		free(buf);
 		return NULL;
 	}
 
 	if (lseek(fd, offset, SEEK_SET) != offset) {
 		fprintf(stdout, "ERROR: seek in salt thread %" PRIu32 "\n", n);
 		close(fd);
-		free(p_buffer);
+		free(buf);
 		return NULL;
 	}
 
 	for (uint64_t b = 0; b < blocks_to_salt; b++) {
-		if (! rand_fill(p_buffer, LARGE_BLOCK_BYTES)) {
+		if (! rand_fill(buf, LARGE_BLOCK_BYTES)) {
 			fprintf(stdout, "ERROR: rand fill in salt thread %" PRIu32 "\n", n);
 			break;
 		}
 
-		if (write(fd, p_buffer, LARGE_BLOCK_BYTES) !=
-				(ssize_t)LARGE_BLOCK_BYTES) {
+		if (! write_all(fd, buf, LARGE_BLOCK_BYTES)) {
 			fprintf(stdout, "ERROR: write in salt thread %" PRIu32 "\n", n);
 			break;
 		}
@@ -246,7 +244,7 @@ static void* run_salt(void* pv_n) {
 	}
 
 	close(fd);
-	free(p_buffer);
+	free(buf);
 
 	return NULL;
 }
@@ -255,7 +253,9 @@ static void* run_salt(void* pv_n) {
 // Runs in all (NUM_ZERO_THREADS) zero_threads,
 // zeros a portion of the device.
 //
-static void* run_zero(void* pv_n) {
+static void*
+run_zero(void* pv_n)
+{
 	uint32_t n = (uint32_t)(uint64_t)pv_n;
 
 	uint64_t offset = n * g_blocks_per_zero_thread * LARGE_BLOCK_BYTES;
@@ -273,7 +273,7 @@ static void* run_zero(void* pv_n) {
 	}
 
 //	fprintf(stdout, "thread %d: blks-to-zero = %" PRIu64 ", prg-blks = %"
-//		PRIu64 "\n", n, blocks_to_zero, progress_blocks);
+//			PRIu64 "\n", n, blocks_to_zero, progress_blocks);
 
 	int fd = fd_get();
 
@@ -289,8 +289,7 @@ static void* run_zero(void* pv_n) {
 	}
 
 	for (uint64_t b = 0; b < blocks_to_zero; b++) {
-		if (write(fd, g_p_zero_buffer, LARGE_BLOCK_BYTES) !=
-				(ssize_t)LARGE_BLOCK_BYTES) {
+		if (! write_all(fd, g_p_zero_buffer, LARGE_BLOCK_BYTES)) {
 			fprintf(stdout, "ERROR: write in zero thread %" PRIu32 "\n", n);
 			break;
 		}
@@ -306,8 +305,7 @@ static void* run_zero(void* pv_n) {
 	}
 
 	if (last_thread) {
-		if (write(fd, g_p_zero_buffer, g_extra_bytes_to_zero) !=
-				(ssize_t)g_extra_bytes_to_zero) {
+		if (! write_all(fd, g_p_zero_buffer, g_extra_bytes_to_zero)) {
 			fprintf(stdout, "ERROR: write in zero thread %" PRIu32 "\n", n);
 		}
 	}
@@ -319,26 +317,30 @@ static void* run_zero(void* pv_n) {
 
 
 //==========================================================
-// Helpers
+// Local helpers - generic.
 //
 
 //------------------------------------------------
 // Aligned memory allocation.
 //
-static inline uint8_t* cf_valloc(size_t size) {
+static uint8_t*
+act_valloc(size_t size)
+{
 	void* pv;
 
-	return posix_memalign(&pv, 4096, size) == 0 ? (uint8_t*)pv : 0;
+	return posix_memalign(&pv, 4096, size) == 0 ? (uint8_t*)pv : NULL;
 }
 
 //------------------------------------------------
 // Allocate and zero one large block sized buffer.
 //
-static bool create_zero_buffer() {
-	g_p_zero_buffer = cf_valloc(LARGE_BLOCK_BYTES);
+static bool
+create_zero_buffer()
+{
+	g_p_zero_buffer = act_valloc(LARGE_BLOCK_BYTES);
 
 	if (! g_p_zero_buffer) {
-		fprintf(stdout, "ERROR: zero buffer cf_valloc()\n");
+		fprintf(stdout, "ERROR: zero buffer act_valloc()\n");
 		return false;
 	}
 
@@ -350,7 +352,9 @@ static bool create_zero_buffer() {
 //------------------------------------------------
 // Discover device storage capacity.
 //
-static bool discover_num_blocks() {
+static bool
+discover_num_blocks()
+{
 	int fd = fd_get();
 
 	if (fd == -1) {
@@ -373,82 +377,7 @@ static bool discover_num_blocks() {
 	g_extra_blocks_to_salt = g_num_large_blocks % NUM_SALT_THREADS;
 
 	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks\n",
-		g_device_name, device_bytes, g_num_large_blocks);
+			g_device_name, device_bytes, g_num_large_blocks);
 
 	return true;
-}
-
-//------------------------------------------------
-// Get a file descriptor.
-//
-static inline int fd_get() {
-	return open(g_device_name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
-}
-
-//------------------------------------------------
-// Set device's system block scheduler to noop.
-//
-static void set_scheduler() {
-	const char* p_slash = strrchr(g_device_name, '/');
-	const char* device_tag = p_slash ? p_slash + 1 : g_device_name;
-
-	char scheduler_file_name[128];
-
-	strcpy(scheduler_file_name, "/sys/block/");
-	strcat(scheduler_file_name, device_tag);
-	strcat(scheduler_file_name, "/queue/scheduler");
-
-	FILE* scheduler_file = fopen(scheduler_file_name, "w");
-
-	if (! scheduler_file) {
-		fprintf(stdout, "ERROR: couldn't open %s\n", scheduler_file_name);
-		return;
-	}
-
-	if (fwrite("noop", 4, 1, scheduler_file) != 1) {
-		fprintf(stdout, "ERROR: writing noop to %s\n", scheduler_file_name);
-	}
-
-	fclose(scheduler_file);
-}
-
-
-//==========================================================
-// Debugging Helpers
-//
-
-static void as_sig_handle_segv(int sig_num) {
-	fprintf(stdout, "Signal SEGV received: stack trace\n");
-
-	void* bt[50];
-	uint sz = backtrace(bt, 50);
-	
-	char** strings = backtrace_symbols(bt, sz);
-
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
-	}
-
-	free(strings);
-	
-	fflush(stdout);
-	_exit(-1);
-}
-
-static void as_sig_handle_term(int sig_num) {
-	fprintf(stdout, "Signal TERM received, aborting\n");
-
-  	void* bt[50];
-	uint sz = backtrace(bt, 50);
-
-	char** strings = backtrace_symbols(bt, sz);
-
-	for (int i = 0; i < sz; ++i) {
-		fprintf(stdout, "stacktrace: frame %d: %s\n", i, strings[i]);
-	}
-
-	free(strings);
-
-	fflush(stdout);
-	_exit(0);
 }

@@ -22,7 +22,6 @@
  * SOFTWARE.
  */
 
-
 //==========================================================
 // Includes.
 //
@@ -90,17 +89,17 @@ static int msb(uint64_t n);
 // Create a histogram. There's no destroy(), but
 // you can just free the histogram.
 //
-histogram *
+histogram*
 histogram_create(histogram_scale scale)
 {
-	histogram *h = malloc(sizeof(histogram));
+	histogram* h = malloc(sizeof(histogram));
 
 	if (! h) {
 		fprintf(stdout, "ERROR: creating histogram (malloc)\n");
 		return NULL;
 	}
 
-	memset((void *)h->counts, 0, sizeof(h->counts));
+	memset((void*)h->counts, 0, sizeof(h->counts));
 
 	switch (scale) {
 	case HIST_MILLISECONDS:
@@ -125,13 +124,13 @@ histogram_create(histogram_scale scale)
 // method - act_latency.py assumes this format.
 //
 void
-histogram_dump(histogram *h, const char *p_tag)
+histogram_dump(histogram* h, const char* tag)
 {
 	int b;
 	uint64_t counts[N_BUCKETS];
 
 	for (b = 0; b < N_BUCKETS; b++) {
-		counts[b] = cf_atomic64_get(h->counts[b]);
+		counts[b] = atomic64_get(h->counts[b]);
 	}
 
 	int i = N_BUCKETS;
@@ -155,7 +154,7 @@ histogram_dump(histogram *h, const char *p_tag)
 
 	buf[0] = '\0';
 
-	fprintf(stdout, "%s (%" PRIu64 " total)\n", p_tag, total_count);
+	fprintf(stdout, "%s (%" PRIu64 " total)\n", tag, total_count);
 
 	for ( ; i <= j; i++) {
 		if (counts[i] == 0) { // print only non-zero columns
@@ -212,7 +211,7 @@ histogram_dump(histogram *h, const char *p_tag)
 //		etc.
 //
 void
-histogram_insert_data_point(histogram *h, uint64_t delta_ns)
+histogram_insert_data_point(histogram* h, uint64_t delta_ns)
 {
 	uint64_t delta_t = delta_ns / h->time_div;
 	int bucket = 0;
@@ -221,7 +220,7 @@ histogram_insert_data_point(histogram *h, uint64_t delta_ns)
 		bucket = msb(delta_t);
 	}
 
-	cf_atomic64_incr(&h->counts[bucket]);
+	atomic64_incr(&h->counts[bucket]);
 }
 
 

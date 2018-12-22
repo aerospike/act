@@ -1,5 +1,5 @@
 /*
- * configuration.h
+ * queue.h
  *
  * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
  *
@@ -28,7 +28,9 @@
 // Includes.
 //
 
+#include <pthread.h>
 #include <stdbool.h>
+#include <stddef.h>
 #include <stdint.h>
 
 
@@ -36,52 +38,33 @@
 // Typedefs & constants.
 //
 
-#define MAX_NUM_DEVICES 32
-#define MAX_DEVICE_NAME_SIZE 64
+typedef struct queue_s {
+	bool thread_safe;
+	uint32_t alloc_sz;          // number of elements currently allocated
+	uint32_t read_offset;       // head of queue
+	uint32_t write_offset;      // tail of queue - write is always >= read
+	size_t ele_size;            // size of (every) element in bytes
+	pthread_mutex_t lock;       // the lock - used in thread-safe mode
+	pthread_cond_t cond_var;    // the conditional variable
+	uint8_t* elements;          // the elements' bytes
+} queue;
 
-typedef struct _act_cfg {
-	char device_names[MAX_NUM_DEVICES][MAX_DEVICE_NAME_SIZE];
-	uint32_t num_devices;			// derived by counting device names
-	uint32_t num_queues;
-	uint32_t threads_per_queue;
-	uint64_t run_us;				// converted from literal units in seconds
-	uint64_t report_interval_us;	// converted from literal units in seconds
-	bool us_histograms;
-	uint32_t read_reqs_per_sec;
-	uint32_t write_reqs_per_sec;
-	uint32_t record_bytes;
-	uint32_t record_bytes_rmx;
-	uint32_t large_block_ops_bytes;	// converted from literal units in Kbytes
-	uint32_t replication_factor;
-	uint32_t update_pct;
-	uint32_t defrag_lwm_pct;
-	bool commit_to_device;
-	uint32_t commit_min_bytes;
-	bool tomb_raider;
-	uint32_t tomb_raider_sleep_us;
-	uint32_t scheduler_mode;		// array index derived from literal string
+// Returned by queue_push() and/or queue_pop():
+#define QUEUE_EMPTY -2
+#define QUEUE_ERR -1
+#define QUEUE_OK 0
 
-	// Derived from literal configuration:
-	uint32_t record_stored_bytes;
-	uint32_t record_stored_bytes_rmx;
-	uint64_t internal_read_reqs_per_sec;
-	uint64_t internal_write_reqs_per_sec;
-	double large_block_reads_per_sec;
-	double large_block_writes_per_sec;
-} act_cfg;
-
-extern const char* const SCHEDULER_MODES[];
-
-
-//==========================================================
-// Globals.
-//
-
-extern act_cfg g_cfg;
+// Possible ms_wait values to pass to queue_pop():
+#define QUEUE_FOREVER -1
+#define QUEUE_NO_WAIT 0
 
 
 //==========================================================
 // Public API.
 //
 
-bool configure(int argc, char* argv[]);
+queue* queue_create(size_t ele_size, bool thread_safe);
+void queue_destroy(queue* q);
+uint32_t queue_sz(queue* q);
+int queue_push(queue* q, const void* ele_ptr);
+int queue_pop(queue* q, void* ele_ptr, int ms_wait);
