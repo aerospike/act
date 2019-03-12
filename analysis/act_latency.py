@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-#-------------------------------------------------
+# -------------------------------------------------
 # act_latency.py
 #
 # Analyze an act_storage or act_index output file.
@@ -14,27 +14,36 @@
 # -n 7
 # -e 1
 # (-x - not set)
-#-------------------------------------------------
+# -------------------------------------------------
 
 
-#===========================================================
+# ===========================================================
 # Imports.
 #
+
+from __future__ import print_function
 
 import getopt
 import re
 import sys
 
+# ===========================================================
+# Redefines.
+#
 
-#===========================================================
+if sys.version_info[0] == 3:
+    long = int
+
+
+# ===========================================================
 # Constants.
 #
 
 BUCKET_LABELS = ("00", "01", "02", "03", "04", "05", "06", "07", "08", "09",
-    "10", "11", "12", "13", "14", "15", "16")
+                 "10", "11", "12", "13", "14", "15", "16")
 ALL_BUCKETS = len(BUCKET_LABELS)
 BUCKET_PATTERNS = [re.compile('.*?\(' + b + ': (.*?)\).*?')
-    for b in BUCKET_LABELS]
+                   for b in BUCKET_LABELS]
 GAP = "  "
 
 
@@ -72,7 +81,7 @@ class Hist(object):
         self.max_overs = [0.0] * Hist.max_bucket
 
 
-#===========================================================
+# ===========================================================
 # Main.
 #
 
@@ -87,24 +96,25 @@ def main():
     print_latency_aggregates(hists, num_slices)
 
 
-#===========================================================
+# ===========================================================
 # Helper functions.
 #
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Get and sanity-check command line arguments.
 #
 def get_args():
     # Echo the command line arguments.
-    print "act_latency.py " + " ".join(sys.argv[1:])
+    print("act_latency.py " + " ".join(sys.argv[1:]))
 
     # Read the input arguments:
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "l:h:t:s:n:e:x",
+        opts, args = getopt.getopt(
+            sys.argv[1:], "l:h:t:s:n:e:x",
             ["log=", "histogram=", "slice=", "start_bucket=", "num_buckets=",
              "every_nth=", "extra"])
-    except getopt.GetoptError, err:
-        print str(err)
+    except getopt.GetoptError as err:
+        print(str(err))
         print_usage()
         sys.exit(-1)
 
@@ -131,45 +141,45 @@ def get_args():
         sys.exit(-1)
 
     if Args.slice < 1:
-        print "slice must be more than 0"
+        print("slice must be more than 0")
         sys.exit(-1)
 
     if Args.start_bucket < 0 or Args.start_bucket >= ALL_BUCKETS:
-        print "start_bucket must be non-negative and less than " + ALL_BUCKETS
+        print("start_bucket must be non-negative and less than " + ALL_BUCKETS)
         sys.exit(-1)
 
     if Args.num_buckets < 1:
-        print "num_buckets must be more than 0"
+        print("num_buckets must be more than 0")
         sys.exit(-1)
 
     if Args.every_nth < 1:
-        print "every_nth must be more than 0"
+        print("every_nth must be more than 0")
         sys.exit(-1)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Print usage.
 #
 def print_usage():
-    print "Usage:"
-    print " -l act_storage or act_index output file"
-    print "    MANDATORY - NO DEFAULT"
-    print "    e.g. act_out.txt"
-    print " -h histogram to analyse"
-    print "    default: depends on config read from output file"
-    print " -t analysis slice interval in seconds"
-    print "    default: 3600"
-    print " -s start display from this bucket"
-    print "    default: 0"
-    print " -n number of buckets to display"
-    print "    default: 7"
-    print " -e show start bucket then every n-th bucket"
-    print "    default: 1"
-    print " -x (show extra information for each slice)"
-    print "    default: not set"
+    print("Usage:")
+    print(" -l act_storage or act_index output file")
+    print("    MANDATORY - NO DEFAULT")
+    print("    e.g. act_out.txt")
+    print(" -h histogram to analyse")
+    print("    default: depends on config read from output file")
+    print(" -t analysis slice interval in seconds")
+    print("    default: 3600")
+    print(" -s start display from this bucket")
+    print("    default: 0")
+    print(" -n number of buckets to display")
+    print("    default: 7")
+    print(" -e show start bucket then every n-th bucket")
+    print("    default: 1")
+    print(" -x (show extra information for each slice)")
+    print("    default: not set")
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Open log file and validate header information.
 #
 def open_log_file():
@@ -177,7 +187,7 @@ def open_log_file():
     try:
         file_id = open(Args.log, "r")
     except IOError:
-        print "log file " + Args.log + " not found"
+        print("log file " + Args.log + " not found")
         sys.exit(-1)
 
     # Find and echo the version:
@@ -187,15 +197,15 @@ def open_log_file():
         line = file_id.readline()
 
     if not line:
-        print Args.log + " ACT version not found"
+        print(Args.log + " ACT version not found")
         sys.exit(-1)
 
     version = line.split(" ")[2].strip()
-    print Args.log + " is ACT version " + version + "\n"
+    print(Args.log + " is ACT version " + version + "\n")
     numeric_version = float(version)
 
     if numeric_version < 5.0 or numeric_version >= 6.0:
-        print Args.log + " ACT version not compatible"
+        print(Args.log + " ACT version not compatible")
         sys.exit(-1)
 
     # Find the reporting interval:
@@ -205,13 +215,13 @@ def open_log_file():
         line = file_id.readline()
 
     if not line:
-        print "can't find report interval"
+        print("can't find report interval")
         sys.exit(-1)
 
     interval = long(line.split(" ")[1])
 
     if interval < 1:
-        print "reporting interval must be more than 0"
+        print("reporting interval must be more than 0")
         sys.exit(-1)
 
     # Find the histograms' scale:
@@ -223,16 +233,16 @@ def open_log_file():
         line = file_id.readline()
 
     if not line:
-        print "can't find histograms' scale, assuming milliseconds"
+        print("can't find histograms' scale, assuming milliseconds")
         file_id.seek(0, 0)
     elif line.split(" ")[1].startswith("y"):
         Hist.scale_label = " %>(us)"
 
     # Adjust the slice time if necessary:
-    Hist.slice_time = ((Args.slice + interval - 1) / interval) * interval
+    Hist.slice_time = ((Args.slice + interval - 1) // interval) * interval
 
     if Hist.slice_time != Args.slice:
-        print "analyzing time slices of " + str(Hist.slice_time) + " seconds"
+        print("analyzing time slices of " + str(Hist.slice_time) + " seconds")
 
     # Echo the config from the log file:
     file_id.seek(0, 0)
@@ -242,7 +252,7 @@ def open_log_file():
         line = file_id.readline()
 
     if not line:
-        print "can't find configuration"
+        print("can't find configuration")
         sys.exit(-1)
 
     if line.startswith("ACT-STORAGE"):
@@ -252,16 +262,16 @@ def open_log_file():
         if not Args.histograms:
             Args.histograms = ["trans-reads", "device-reads"]
     else:
-        print "can't recognize configuration"
+        print("can't recognize configuration")
         sys.exit(-1)
 
     line = line.strip()
 
     while line:
-        print line
+        print(line)
         line = file_id.readline().strip()
 
-    print ""
+    print("")
 
     line = file_id.readline()
 
@@ -269,16 +279,16 @@ def open_log_file():
         line = file_id.readline()
 
     if not line:
-        print "can't find derived configuration"
+        print("can't find derived configuration")
         sys.exit(-1)
 
     line = line.strip()
 
     while line:
-        print line
+        print(line)
         line = file_id.readline().strip()
 
-    print ""
+    print("")
 
     # Echo the histogram names from the log file:
     file_id.seek(0, 0)
@@ -288,21 +298,21 @@ def open_log_file():
         line = file_id.readline()
 
     if not line:
-        print "can't find histogram names"
+        print("can't find histogram names")
         sys.exit(-1)
 
     line = line.strip()
 
     while line:
-        print line
+        print(line)
         line = file_id.readline().strip()
 
-    print ""
+    print("")
 
     return file_id
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Find index + 1 of last bucket to display.
 #
 def find_max_bucket():
@@ -321,7 +331,7 @@ def find_max_bucket():
         Args.start_bucket, Hist.max_bucket, Args.every_nth)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Print table header.
 #
 def print_table_header(hists):
@@ -356,13 +366,13 @@ def print_table_header(hists):
         labels_out += GAP + hist.pre_pad + threshold_labels
         Hist.underline += GAP + hist.pre_pad + threshold_underline
 
-    print names_out
-    print units_out
-    print labels_out
-    print Hist.underline
+    print(names_out)
+    print(units_out)
+    print(labels_out)
+    print(Hist.underline)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Generate latency lines.
 #
 def print_latency_slices(hists, file_id):
@@ -384,13 +394,13 @@ def print_latency_slices(hists, file_id):
         after_time += Hist.slice_time
 
     if which_slice == 0:
-        print "could not find " + str(Hist.slice_time) + " seconds of data"
+        print("could not find " + str(Hist.slice_time) + " seconds of data")
         sys.exit(-1)
 
     return which_slice
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Generate latency aggregate lines.
 #
 def print_latency_aggregates(hists, num_slices):
@@ -401,12 +411,12 @@ def print_latency_aggregates(hists, num_slices):
         for i in Hist.display_range:
             hist.avg_overs[i] /= num_slices
 
-    print Hist.underline
+    print(Hist.underline)
     print_avg_line(hists)
     print_max_line(hists)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Get the data chunk reported by act at the specified after_time.
 #
 def read_chunk(file_id, after_time, hists):
@@ -436,7 +446,7 @@ def read_chunk(file_id, after_time, hists):
     return got_chunk
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Print a latency data output line.
 #
 def print_slice_line(slice_tag, hists):
@@ -451,10 +461,10 @@ def print_slice_line(slice_tag, hists):
         if Args.extra:
             output += "%11.1f" % (hist.rate)
 
-    print output
+    print(output)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Print a latency average data output line.
 #
 def print_avg_line(hists):
@@ -469,10 +479,10 @@ def print_avg_line(hists):
         if Args.extra:
             output += "%11.1f" % (hist.avg_rate)
 
-    print output
+    print(output)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Print a latency maximum data output line.
 #
 def print_max_line(hists):
@@ -487,10 +497,10 @@ def print_max_line(hists):
         if Args.extra:
             output += "%11.1f" % (hist.max_rate)
 
-    print output
+    print(output)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Get one set of bucket values.
 #
 def read_bucket_values(line, file_id, hist):
@@ -524,7 +534,7 @@ def read_bucket_values(line, file_id, hist):
     return line
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Parse a histogram total from a act output line.
 #
 def read_total_ops(line, file_id):
@@ -534,7 +544,7 @@ def read_total_ops(line, file_id):
     return total, line
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Get the percentage excesses for every bucket.
 #
 def bucket_percentages_over(hist):
@@ -551,7 +561,7 @@ def bucket_percentages_over(hist):
             ((hist.slice_total - delta) * 100.0) / hist.slice_total, 2)
 
 
-#-------------------------------------------------
+# -------------------------------------------------
 # Track maximums and totals to calculate averages.
 #
 def bucket_aggregations(hist):
@@ -570,7 +580,7 @@ def bucket_aggregations(hist):
             hist.max_overs[i] = hist.overs[i]
 
 
-#===========================================================
+# ===========================================================
 # Execution.
 #
 
