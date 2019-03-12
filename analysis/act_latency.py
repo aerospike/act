@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# -------------------------------------------------
+# ------------------------------------------------
 # act_latency.py
 #
 # Analyze an act_storage or act_index output file.
@@ -14,10 +14,10 @@
 # -n 7
 # -e 1
 # (-x - not set)
-# -------------------------------------------------
+# ------------------------------------------------
 
 
-# ===========================================================
+# ==========================================================
 # Imports.
 #
 
@@ -27,15 +27,15 @@ import getopt
 import re
 import sys
 
-# ===========================================================
-# Redefines.
+# ==========================================================
+# Compatibility.
 #
 
 if sys.version_info[0] == 3:
     long = int
 
 
-# ===========================================================
+# ==========================================================
 # Constants.
 #
 
@@ -81,7 +81,7 @@ class Hist(object):
         self.max_overs = [0.0] * Hist.max_bucket
 
 
-# ===========================================================
+# ==========================================================
 # Main.
 #
 
@@ -96,11 +96,11 @@ def main():
     print_latency_aggregates(hists, num_slices)
 
 
-# ===========================================================
+# ==========================================================
 # Helper functions.
 #
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Get and sanity-check command line arguments.
 #
 def get_args():
@@ -157,7 +157,7 @@ def get_args():
         sys.exit(-1)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Print usage.
 #
 def print_usage():
@@ -179,7 +179,7 @@ def print_usage():
     print("    default: not set")
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Open log file and validate header information.
 #
 def open_log_file():
@@ -312,7 +312,7 @@ def open_log_file():
     return file_id
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Find index + 1 of last bucket to display.
 #
 def find_max_bucket():
@@ -331,7 +331,7 @@ def find_max_bucket():
         Args.start_bucket, Hist.max_bucket, Args.every_nth)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Print table header.
 #
 def print_table_header(hists):
@@ -372,7 +372,7 @@ def print_table_header(hists):
     print(Hist.underline)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Generate latency lines.
 #
 def print_latency_slices(hists, file_id):
@@ -400,7 +400,7 @@ def print_latency_slices(hists, file_id):
     return which_slice
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Generate latency aggregate lines.
 #
 def print_latency_aggregates(hists, num_slices):
@@ -416,7 +416,7 @@ def print_latency_aggregates(hists, num_slices):
     print_max_line(hists)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Get the data chunk reported by act at the specified after_time.
 #
 def read_chunk(file_id, after_time, hists):
@@ -446,7 +446,7 @@ def read_chunk(file_id, after_time, hists):
     return got_chunk
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Print a latency data output line.
 #
 def print_slice_line(slice_tag, hists):
@@ -464,7 +464,7 @@ def print_slice_line(slice_tag, hists):
     print(output)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Print a latency average data output line.
 #
 def print_avg_line(hists):
@@ -482,7 +482,7 @@ def print_avg_line(hists):
     print(output)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Print a latency maximum data output line.
 #
 def print_max_line(hists):
@@ -500,7 +500,7 @@ def print_max_line(hists):
     print(output)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Get one set of bucket values.
 #
 def read_bucket_values(line, file_id, hist):
@@ -534,7 +534,7 @@ def read_bucket_values(line, file_id, hist):
     return line
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Parse a histogram total from a act output line.
 #
 def read_total_ops(line, file_id):
@@ -544,7 +544,7 @@ def read_total_ops(line, file_id):
     return total, line
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Get the percentage excesses for every bucket.
 #
 def bucket_percentages_over(hist):
@@ -561,7 +561,7 @@ def bucket_percentages_over(hist):
             ((hist.slice_total - delta) * 100.0) / hist.slice_total, 2)
 
 
-# -------------------------------------------------
+# ------------------------------------------------
 # Track maximums and totals to calculate averages.
 #
 def bucket_aggregations(hist):
@@ -580,7 +580,7 @@ def bucket_aggregations(hist):
             hist.max_overs[i] = hist.overs[i]
 
 
-# ===========================================================
+# ==========================================================
 # Execution.
 #
 
