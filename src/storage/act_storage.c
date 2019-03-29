@@ -324,12 +324,15 @@ main(int argc, char* argv[])
 		}
 	}
 
-	pthread_t read_req_generator;
+	uint32_t n_read_req_tids = g_scfg.num_queues;
+	pthread_t read_req_tids[n_read_req_tids];
 
-	if (pthread_create(&read_req_generator, NULL, run_generate_read_reqs,
-			NULL) != 0) {
-		fprintf(stdout, "ERROR: create read request generator thread\n");
-		exit(-1);
+	for (uint32_t i = 0; i < n_read_req_tids; i++) {
+		if (pthread_create(&read_req_tids[i], NULL, run_generate_read_reqs,
+				NULL) != 0) {
+			fprintf(stdout, "ERROR: create read request generator thread\n");
+			exit(-1);
+		}
 	}
 
 	pthread_t write_req_generator;
@@ -415,7 +418,9 @@ main(int argc, char* argv[])
 
 	g_running = false;
 
-	pthread_join(read_req_generator, NULL);
+	for (uint32_t i = 0; i < n_read_req_tids; i++) {
+		pthread_join(read_req_tids[i], NULL);
+	}
 
 	if (do_commits) {
 		pthread_join(write_req_generator, NULL);
@@ -479,6 +484,9 @@ run_generate_read_reqs(void* pv_unused)
 	rand_seed_thread();
 
 	uint64_t count = 0;
+	uint64_t n_read_req_tids = g_scfg.num_queues;
+	uint64_t read_reqs_per_sec =
+			g_scfg.internal_read_reqs_per_sec / n_read_req_tids;
 
 	while (g_running) {
 		if (atomic32_incr(&g_reqs_queued) > g_scfg.max_reqs_queued) {
@@ -505,7 +513,7 @@ run_generate_read_reqs(void* pv_unused)
 		count++;
 
 		int64_t sleep_us = (int64_t)
-				(((count * 1000000) / g_scfg.internal_read_reqs_per_sec) -
+				(((count * 1000000) / read_reqs_per_sec) -
 						(get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
