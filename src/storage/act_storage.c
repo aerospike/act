@@ -324,24 +324,26 @@ main(int argc, char* argv[])
 		}
 	}
 
-	uint32_t n_read_req_tids = g_scfg.num_queues;
-	pthread_t read_req_tids[n_read_req_tids];
+	pthread_t read_req_tids[g_scfg.read_req_threads];
 
-	for (uint32_t i = 0; i < n_read_req_tids; i++) {
-		if (pthread_create(&read_req_tids[i], NULL, run_generate_read_reqs,
+	for (uint32_t k = 0; k < g_scfg.read_req_threads; k++) {
+		if (pthread_create(&read_req_tids[k], NULL, run_generate_read_reqs,
 				NULL) != 0) {
-			fprintf(stdout, "ERROR: create read request generator thread\n");
+			fprintf(stdout, "ERROR: create read request thread\n");
 			exit(-1);
 		}
 	}
 
-	pthread_t write_req_generator;
+	pthread_t write_req_tids[g_scfg.write_req_threads];
 
-	if (do_commits &&
-			pthread_create(&write_req_generator, NULL, run_generate_write_reqs,
-					NULL) != 0) {
-		fprintf(stdout, "ERROR: create write request generator thread\n");
-		exit(-1);
+	if (do_commits) {
+		for (uint32_t k = 0; k < g_scfg.write_req_threads; k++) {
+			if (pthread_create(&write_req_tids[k], NULL,
+					run_generate_write_reqs, NULL) != 0) {
+				fprintf(stdout, "ERROR: create write request thread\n");
+				exit(-1);
+			}
+		}
 	}
 
 	fprintf(stdout, "\nHISTOGRAM NAMES\n");
@@ -418,12 +420,14 @@ main(int argc, char* argv[])
 
 	g_running = false;
 
-	for (uint32_t i = 0; i < n_read_req_tids; i++) {
-		pthread_join(read_req_tids[i], NULL);
+	for (uint32_t k = 0; k < g_scfg.read_req_threads; k++) {
+		pthread_join(read_req_tids[k], NULL);
 	}
 
 	if (do_commits) {
-		pthread_join(write_req_generator, NULL);
+		for (uint32_t k = 0; k < g_scfg.write_req_threads; k++) {
+			pthread_join(write_req_tids[k], NULL);
+		}
 	}
 
 	for (uint32_t j = 0; j < n_trans_tids; j++) {
@@ -474,7 +478,7 @@ main(int argc, char* argv[])
 //
 
 //------------------------------------------------
-// Runs in single thread, adds read trans_req
+// Runs in service threads, adds read trans_req
 // objects to transaction queues in round-robin
 // fashion.
 //
@@ -484,9 +488,8 @@ run_generate_read_reqs(void* pv_unused)
 	rand_seed_thread();
 
 	uint64_t count = 0;
-	uint64_t n_read_req_tids = g_scfg.num_queues;
-	uint64_t read_reqs_per_sec =
-			g_scfg.internal_read_reqs_per_sec / n_read_req_tids;
+	uint64_t internal_read_reqs_per_sec =
+			g_scfg.internal_read_reqs_per_sec / g_scfg.read_req_threads;
 
 	while (g_running) {
 		if (atomic32_incr(&g_reqs_queued) > g_scfg.max_reqs_queued) {
@@ -496,7 +499,7 @@ run_generate_read_reqs(void* pv_unused)
 			break;
 		}
 
-		uint32_t q_index = count % g_scfg.num_queues;
+		uint32_t q_index = (count / 16) % g_scfg.num_queues;
 		uint32_t random_dev_index = rand_32() % g_scfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 
@@ -513,11 +516,16 @@ run_generate_read_reqs(void* pv_unused)
 		count++;
 
 		int64_t sleep_us = (int64_t)
-				(((count * 1000000) / read_reqs_per_sec) -
+				(((count * 1000000) / internal_read_reqs_per_sec) -
 						(get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
+		}
+		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
+			fprintf(stdout, "ERROR: read request generator can't keep up\n");
+			fprintf(stdout, "ACT can't do requested load - test stopped\n");
+			g_running = false;
 		}
 	}
 
@@ -525,7 +533,7 @@ run_generate_read_reqs(void* pv_unused)
 }
 
 //------------------------------------------------
-// Runs in single thread, adds write trans_req
+// Runs in service threads, adds write trans_req
 // objects to transaction queues in round-robin
 // fashion.
 //
@@ -535,6 +543,8 @@ run_generate_write_reqs(void* pv_unused)
 	rand_seed_thread();
 
 	uint64_t count = 0;
+	uint64_t internal_write_reqs_per_sec =
+			g_scfg.internal_write_reqs_per_sec / g_scfg.write_req_threads;
 
 	while (g_running) {
 		if (atomic32_incr(&g_reqs_queued) > g_scfg.max_reqs_queued) {
@@ -544,7 +554,7 @@ run_generate_write_reqs(void* pv_unused)
 			break;
 		}
 
-		uint32_t q_index = count % g_scfg.num_queues;
+		uint32_t q_index = (count / 16) % g_scfg.num_queues;
 		uint32_t random_dev_index = rand_32() % g_scfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 
@@ -561,11 +571,16 @@ run_generate_write_reqs(void* pv_unused)
 		count++;
 
 		int64_t sleep_us = (int64_t)
-				(((count * 1000000) / g_scfg.internal_write_reqs_per_sec) -
+				(((count * 1000000) / internal_write_reqs_per_sec) -
 						(get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
+		}
+		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
+			fprintf(stdout, "ERROR: write request generator can't keep up\n");
+			fprintf(stdout, "ACT can't do requested load - test stopped\n");
+			g_running = false;
 		}
 	}
 

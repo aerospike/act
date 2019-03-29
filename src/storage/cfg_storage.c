@@ -47,6 +47,7 @@
 
 static const char TAG_DEVICE_NAMES[]            = "device-names";
 static const char TAG_FILE_SIZE_MBYTES[]        = "file-size-mbytes";
+static const char TAG_SERVICE_THREADS[]         = "service-threads";
 static const char TAG_NUM_QUEUES[]              = "num-queues";
 static const char TAG_THREADS_PER_QUEUE[]       = "threads-per-queue";
 static const char TAG_TEST_DURATION_SEC[]       = "test-duration-sec";
@@ -157,6 +158,9 @@ storage_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_FILE_SIZE_MBYTES) == 0) {
 			g_scfg.file_size = (uint64_t)parse_uint32() << 20;
 		}
+		else if (strcmp(tag, TAG_SERVICE_THREADS) == 0) {
+			g_scfg.service_threads = parse_uint32();
+		}
 		else if (strcmp(tag, TAG_NUM_QUEUES) == 0) {
 			g_scfg.num_queues = parse_uint32();
 		}
@@ -247,7 +251,14 @@ check_configuration()
 		return false;
 	}
 
-	if (g_scfg.num_queues == 0 && (g_scfg.num_queues = num_cpus()) == 0) {
+	uint32_t n_cpus = num_cpus();
+
+	if (g_scfg.service_threads == 0 && (g_scfg.service_threads = n_cpus) == 0) {
+		configuration_error(TAG_SERVICE_THREADS);
+		return false;
+	}
+
+	if (g_scfg.num_queues == 0 && (g_scfg.num_queues = n_cpus) == 0) {
 		configuration_error(TAG_NUM_QUEUES);
 		return false;
 	}
@@ -362,10 +373,33 @@ derive_configuration()
 
 		// "Original" writes are done individually.
 		g_scfg.internal_write_reqs_per_sec = internal_write_reqs_per_sec;
+
+		// Share the service threads between read and write request generators.
+		uint64_t total_reqs_per_sec =
+				g_scfg.internal_read_reqs_per_sec +
+				g_scfg.internal_write_reqs_per_sec;
+
+		g_scfg.read_req_threads = (uint32_t)
+				((g_scfg.service_threads * g_scfg.internal_read_reqs_per_sec) /
+						total_reqs_per_sec);
+
+		if (g_scfg.read_req_threads == 0) {
+			g_scfg.read_req_threads = 1;
+		}
+
+		g_scfg.write_req_threads =
+				g_scfg.service_threads - g_scfg.read_req_threads;
+
+		if (g_scfg.write_req_threads == 0) {
+			g_scfg.write_req_threads = 1;
+		}
 	}
 	else {
 		// Normally, overall write rate is all done via large block writes.
 		g_scfg.large_block_writes_per_sec = g_scfg.large_block_reads_per_sec;
+
+		g_scfg.read_req_threads = g_scfg.service_threads;
+		g_scfg.write_req_threads = 0;
 	}
 }
 
@@ -388,6 +422,8 @@ echo_configuration()
 				g_scfg.file_size >> 20);
 	}
 
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_SERVICE_THREADS,
+			g_scfg.service_threads);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_NUM_QUEUES,
 			g_scfg.num_queues);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_THREADS_PER_QUEUE,
@@ -431,12 +467,16 @@ echo_configuration()
 
 	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
 
+	fprintf(stdout, "record-stored-bytes: %" PRIu32 " ... %" PRIu32 "\n",
+			g_scfg.record_stored_bytes, g_scfg.record_stored_bytes_rmx);
 	fprintf(stdout, "internal-read-reqs-per-sec: %" PRIu64 "\n",
 			g_scfg.internal_read_reqs_per_sec);
 	fprintf(stdout, "internal-write-reqs-per-sec: %" PRIu64 "\n",
 			g_scfg.internal_write_reqs_per_sec);
-	fprintf(stdout, "record-stored-bytes: %" PRIu32 " ... %" PRIu32 "\n",
-			g_scfg.record_stored_bytes, g_scfg.record_stored_bytes_rmx);
+	fprintf(stdout, "read-req-threads: %" PRIu32 "\n",
+			g_scfg.read_req_threads);
+	fprintf(stdout, "write-req-threads: %" PRIu32 "\n",
+			g_scfg.write_req_threads);
 	fprintf(stdout, "large-block-reads-per-sec: %.2lf\n",
 			g_scfg.large_block_reads_per_sec);
 	fprintf(stdout, "large-block-writes-per-sec: %.2lf\n",

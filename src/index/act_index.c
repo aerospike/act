@@ -232,12 +232,14 @@ main(int argc, char* argv[])
 		}
 	}
 
-	pthread_t rw_req_generator;
+	pthread_t rw_req_generator_tids[g_icfg.service_threads];
 
-	if (pthread_create(&rw_req_generator, NULL, run_generate_read_reqs,
-			NULL) != 0) {
-		fprintf(stdout, "ERROR: create read request generator thread\n");
-		exit(-1);
+	for (uint32_t k = 0; k < g_icfg.service_threads; k++) {
+		if (pthread_create(&rw_req_generator_tids[k], NULL,
+				run_generate_read_reqs, NULL) != 0) {
+			fprintf(stdout, "ERROR: create read request thread\n");
+			exit(-1);
+		}
 	}
 
 	fprintf(stdout, "\nHISTOGRAM NAMES\n");
@@ -302,7 +304,9 @@ main(int argc, char* argv[])
 
 	g_running = false;
 
-	pthread_join(rw_req_generator, NULL);
+	for (uint32_t k = 0; k < g_icfg.service_threads; k++) {
+		pthread_join(rw_req_generator_tids[k], NULL);
+	}
 
 	for (uint32_t j = 0; j < n_trans_tids; j++) {
 		pthread_join(trans_tids[j], NULL);
@@ -385,7 +389,7 @@ run_cache_simulation(void* pv_unused)
 }
 
 //------------------------------------------------
-// Runs in single thread, adds read trans_req
+// Runs in service threads, adds read trans_req
 // objects to transaction queues in round-robin
 // fashion.
 //
@@ -395,6 +399,8 @@ run_generate_read_reqs(void* pv_unused)
 	rand_seed_thread();
 
 	uint64_t count = 0;
+	uint64_t trans_thread_reads_per_sec =
+			g_icfg.trans_thread_reads_per_sec / g_icfg.service_threads;
 
 	while (g_running) {
 		if (atomic32_incr(&g_reqs_queued) > g_icfg.max_reqs_queued) {
@@ -404,7 +410,7 @@ run_generate_read_reqs(void* pv_unused)
 			break;
 		}
 
-		uint32_t queue_index = count % g_icfg.num_queues;
+		uint32_t queue_index = (count / 16) % g_icfg.num_queues;
 		uint32_t random_dev_index = rand_32() % g_icfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 
@@ -419,11 +425,16 @@ run_generate_read_reqs(void* pv_unused)
 		count++;
 
 		int64_t sleep_us = (int64_t)
-				(((count * 1000000) / g_icfg.trans_thread_reads_per_sec) -
+				(((count * 1000000) / trans_thread_reads_per_sec) -
 						(get_us() - g_run_start_us));
 
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
+		}
+		else if (sleep_us < -(int64_t)g_icfg.max_lag_usec) {
+			fprintf(stdout, "ERROR: read request generator can't keep up\n");
+			fprintf(stdout, "ACT can't do requested load - test stopped\n");
+			g_running = false;
 		}
 	}
 
