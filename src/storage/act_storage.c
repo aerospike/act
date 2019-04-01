@@ -238,6 +238,7 @@ main(int argc, char* argv[])
 		exit(-1);
 	}
 
+	// Equivalent: g_scfg.internal_write_reqs_per_sec != 0.
 	bool do_commits = g_scfg.commit_to_device && g_scfg.write_reqs_per_sec != 0;
 
 	if (do_commits &&

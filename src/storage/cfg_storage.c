@@ -391,6 +391,8 @@ derive_configuration()
 				g_scfg.service_threads - g_scfg.read_req_threads;
 
 		if (g_scfg.write_req_threads == 0) {
+			// Note - if threre's no write load specified (i.e.
+			// internal_write_reqs_per_sec is 0), this thread won't start.
 			g_scfg.write_req_threads = 1;
 		}
 	}
