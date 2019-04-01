@@ -47,6 +47,7 @@
 //
 
 static const char TAG_DEVICE_NAMES[]            = "device-names";
+static const char TAG_SERVICE_THREADS[]         = "service-threads";
 static const char TAG_NUM_QUEUES[]              = "num-queues";
 static const char TAG_THREADS_PER_QUEUE[]       = "threads-per-queue";
 static const char TAG_NUM_CACHE_THREADS[]       = "num-cache-threads";
@@ -127,6 +128,9 @@ index_configure(int argc, char* argv[])
 			parse_device_names(MAX_NUM_INDEX_DEVICES, g_icfg.device_names,
 					&g_icfg.num_devices);
 		}
+		else if (strcmp(tag, TAG_SERVICE_THREADS) == 0) {
+			g_icfg.service_threads = parse_uint32();
+		}
 		else if (strcmp(tag, TAG_NUM_QUEUES) == 0) {
 			g_icfg.num_queues = parse_uint32();
 		}
@@ -196,7 +200,14 @@ check_configuration()
 		return false;
 	}
 
-	if (g_icfg.num_queues == 0 && (g_icfg.num_queues = num_cpus()) == 0) {
+	uint32_t n_cpus = num_cpus();
+
+	if (g_icfg.service_threads == 0 && (g_icfg.service_threads = n_cpus) == 0) {
+		configuration_error(TAG_SERVICE_THREADS);
+		return false;
+	}
+
+	if (g_icfg.num_queues == 0 && (g_icfg.num_queues = n_cpus) == 0) {
 		configuration_error(TAG_NUM_QUEUES);
 		return false;
 	}
@@ -275,6 +286,8 @@ echo_configuration()
 
 	fprintf(stdout, "\nnum-devices: %" PRIu32 "\n",
 			g_icfg.num_devices);
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_SERVICE_THREADS,
+			g_icfg.service_threads);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_NUM_QUEUES,
 			g_icfg.num_queues);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_THREADS_PER_QUEUE,

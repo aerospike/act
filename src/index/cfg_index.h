@@ -43,6 +43,7 @@
 typedef struct index_cfg_s {
 	char device_names[MAX_NUM_INDEX_DEVICES][MAX_DEVICE_NAME_SIZE];
 	uint32_t num_devices;           // derived by counting device names
+	uint32_t service_threads;
 	uint32_t num_queues;
 	uint32_t threads_per_queue;
 	uint32_t num_cache_threads;

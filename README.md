@@ -487,6 +487,10 @@ number, e.g. use 86400, not 60 x 60 x 24.  The default is one day (24 hours).
 
 ### Fields that you will Rarely or Never Change:
 
+**service-threads**
+Total number of service threads on which requests are generated and pushed to
+transaction queues.  Default is number of cores, detected by ACT at runtime.
+
 **num-queues**
 Total number of transaction queues.  Default is number of cores, detected by ACT
 at runtime.
@@ -603,7 +607,12 @@ default max-reqs-queued is 100000.
 **max-lag-sec**
 How much the large-block operations (act_storage) or cache-thread operations
 (act_index) are allowed to lag behind their target rates before the ACT test
-fails.  The default max-lag-sec is 10.
+fails.  Also, how much the service threads that generate and queue requests are
+allowed to lag behind their target rates before the ACT test is stopped. Note
+that this doesn't necessarily mean the devices failed the test - it means the
+transaction rates specified are too high to achieve.  (The actual rates
+generated may be lower than the devices are capable of handling.)  The default
+max-lag-sec is 10.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in the test run.
