@@ -202,12 +202,12 @@ main(int argc, char* argv[])
 
 	g_running = true;
 
-	pthread_t cache_threads[g_icfg.num_cache_threads];
+	pthread_t cache_tids[g_icfg.cache_threads];
 	bool has_write_load = g_icfg.cache_thread_reads_and_writes_per_sec != 0;
 
 	if (has_write_load) {
-		for (uint32_t n = 0; n < g_icfg.num_cache_threads; n++) {
-			if (pthread_create(&cache_threads[n], NULL, run_cache_simulation,
+		for (uint32_t n = 0; n < g_icfg.cache_threads; n++) {
+			if (pthread_create(&cache_tids[n], NULL, run_cache_simulation,
 					NULL) != 0) {
 				fprintf(stdout, "ERROR: create cache thread\n");
 				exit(-1);
@@ -317,8 +317,8 @@ main(int argc, char* argv[])
 	}
 
 	if (has_write_load) {
-		for (uint32_t n = 0; n < g_icfg.num_cache_threads; n++) {
-			pthread_join(cache_threads[n], NULL);
+		for (uint32_t n = 0; n < g_icfg.cache_threads; n++) {
+			pthread_join(cache_tids[n], NULL);
 		}
 	}
 
@@ -357,7 +357,7 @@ run_cache_simulation(void* pv_unused)
 	uint8_t* buf = align_4096(stack_buffer);
 
 	uint64_t target_factor =
-			1000000ull * g_icfg.num_devices * g_icfg.num_cache_threads;
+			1000000ull * g_icfg.num_devices * g_icfg.cache_threads;
 
 	uint64_t count = 0;
 
@@ -410,7 +410,7 @@ run_generate_read_reqs(void* pv_unused)
 			break;
 		}
 
-		uint32_t queue_index = (count / 16) % g_icfg.num_queues;
+		uint32_t queue_index = count % g_icfg.num_queues;
 		uint32_t random_dev_index = rand_32() % g_icfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 

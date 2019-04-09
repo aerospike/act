@@ -46,7 +46,7 @@ typedef struct index_cfg_s {
 	uint32_t service_threads;
 	uint32_t num_queues;
 	uint32_t threads_per_queue;
-	uint32_t num_cache_threads;
+	uint32_t cache_threads;
 	uint64_t run_us;                // converted from literal units in seconds
 	uint64_t report_interval_us;    // converted from literal units in seconds
 	bool us_histograms;

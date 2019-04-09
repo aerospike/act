@@ -443,6 +443,9 @@ read-reqs-per-sec to 120000, and write-reqs-per-sec to 60000.
 Or, to generate a config file for a four-device 60x load, change
 read-reqs-per-sec to 480000, and write-reqs-per-sec to 240000.
 
+You may of course run customized loads, including read-only loads (set
+write-reqs-per-sec to 0) or write-only loads (set read-reqs-per-sec to 0).
+
 The other fields in the configuration files should generally not be changed, but
 you may do so to run highly customized tests.
 
@@ -500,11 +503,11 @@ Number of threads per transaction queue.  If a device is failing and there is a
 large discrepancy between transaction and device speeds from the ACT test you
 can try increasing the number of threads.  Default is 4 threads/queue.
 
-**num-cache-threads (act_index ONLY)**
+**cache-threads (act_index ONLY)**
 Number of threads from which to execute all 4K writes, and 4K reads due to
 index access during defragmentation.  These threads model the system threads
 that would do these device I/O operations behind mmap.  The default
-num-cache-threads is 8.
+cache-threads is 8.
 
 **report-interval-sec**
 Interval between generating observations, in seconds. This is the smallest

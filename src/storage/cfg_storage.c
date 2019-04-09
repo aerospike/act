@@ -77,7 +77,7 @@ static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
 //
 
 static bool check_configuration();
-static void derive_configuration();
+static bool derive_configuration();
 static void echo_configuration();
 
 
@@ -228,11 +228,10 @@ storage_configure(int argc, char* argv[])
 
 	fclose(config_file);
 
-	if (! check_configuration()) {
+	if (! check_configuration() || ! derive_configuration()) {
 		return false;
 	}
 
-	derive_configuration();
 	echo_configuration();
 
 	return true;
@@ -275,11 +274,6 @@ check_configuration()
 
 	if (g_scfg.report_interval_us == 0) {
 		configuration_error(TAG_REPORT_INTERVAL_SEC);
-		return false;
-	}
-
-	if (g_scfg.read_reqs_per_sec == 0) {
-		configuration_error(TAG_READ_REQS_PER_SEC);
 		return false;
 	}
 
@@ -326,9 +320,15 @@ check_configuration()
 	return true;
 }
 
-static void
+static bool
 derive_configuration()
 {
+	if (g_scfg.read_reqs_per_sec + g_scfg.write_reqs_per_sec == 0) {
+		fprintf(stdout, "ERROR: %s and %s can't both be zero\n",
+				TAG_READ_REQS_PER_SEC, TAG_WRITE_REQS_PER_SEC);
+		return false;
+	}
+
 	// Non-zero update-pct causes client writes to generate internal reads.
 	g_scfg.internal_read_reqs_per_sec = g_scfg.read_reqs_per_sec +
 			(g_scfg.write_reqs_per_sec * g_scfg.update_pct / 100);
@@ -395,6 +395,15 @@ derive_configuration()
 			// internal_write_reqs_per_sec is 0), this thread won't start.
 			g_scfg.write_req_threads = 1;
 		}
+
+		// Non-zero write load must be enough to calculate thread rates safely.
+		if (g_scfg.write_reqs_per_sec != 0 &&
+				g_scfg.internal_write_reqs_per_sec /
+						g_scfg.write_req_threads == 0) {
+			fprintf(stdout, "ERROR: %s too small for %s\n",
+					TAG_WRITE_REQS_PER_SEC, TAG_SERVICE_THREADS);
+			return false;
+		}
 	}
 	else {
 		// Normally, overall write rate is all done via large block writes.
@@ -403,6 +412,16 @@ derive_configuration()
 		g_scfg.read_req_threads = g_scfg.service_threads;
 		g_scfg.write_req_threads = 0;
 	}
+
+	// Non-zero read load must be enough to calculate thread rates safely.
+	if (g_scfg.read_reqs_per_sec != 0 &&
+			g_scfg.internal_read_reqs_per_sec / g_scfg.read_req_threads == 0) {
+		fprintf(stdout, "ERROR: %s too small for %s\n",
+				TAG_READ_REQS_PER_SEC, TAG_SERVICE_THREADS);
+		return false;
+	}
+
+	return true;
 }
 
 static void

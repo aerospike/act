@@ -234,16 +234,9 @@ main(int argc, char* argv[])
 	if (! (g_large_block_read_hist = histogram_create(scale)) ||
 		! (g_large_block_write_hist = histogram_create(scale)) ||
 		! (g_raw_read_hist = histogram_create(scale)) ||
-		! (g_read_hist = histogram_create(scale))) {
-		exit(-1);
-	}
-
-	// Equivalent: g_scfg.internal_write_reqs_per_sec != 0.
-	bool do_commits = g_scfg.commit_to_device && g_scfg.write_reqs_per_sec != 0;
-
-	if (do_commits &&
-		(! (g_raw_write_hist = histogram_create(scale)) ||
-		 ! (g_write_hist = histogram_create(scale)))) {
+		! (g_read_hist = histogram_create(scale)) ||
+		! (g_raw_write_hist = histogram_create(scale)) ||
+		! (g_write_hist = histogram_create(scale))) {
 		exit(-1);
 	}
 
@@ -258,11 +251,8 @@ main(int argc, char* argv[])
 
 		if (! (dev->fd_q = queue_create(sizeof(int), true)) ||
 			! discover_device(dev) ||
-			! (dev->raw_read_hist = histogram_create(scale))) {
-			exit(-1);
-		}
-
-		if (do_commits && ! (dev->raw_write_hist = histogram_create(scale))) {
+			! (dev->raw_read_hist = histogram_create(scale)) ||
+			! (dev->raw_write_hist = histogram_create(scale))) {
 			exit(-1);
 		}
 
@@ -325,15 +315,23 @@ main(int argc, char* argv[])
 		}
 	}
 
+	// Equivalent: g_scfg.internal_read_reqs_per_sec != 0.
+	bool do_reads = g_scfg.read_reqs_per_sec != 0;
+
 	pthread_t read_req_tids[g_scfg.read_req_threads];
 
-	for (uint32_t k = 0; k < g_scfg.read_req_threads; k++) {
-		if (pthread_create(&read_req_tids[k], NULL, run_generate_read_reqs,
-				NULL) != 0) {
-			fprintf(stdout, "ERROR: create read request thread\n");
-			exit(-1);
+	if (do_reads) {
+		for (uint32_t k = 0; k < g_scfg.read_req_threads; k++) {
+			if (pthread_create(&read_req_tids[k], NULL, run_generate_read_reqs,
+					NULL) != 0) {
+				fprintf(stdout, "ERROR: create read request thread\n");
+				exit(-1);
+			}
 		}
 	}
+
+	// Equivalent: g_scfg.internal_write_reqs_per_sec != 0.
+	bool do_commits = g_scfg.commit_to_device && g_scfg.write_reqs_per_sec != 0;
 
 	pthread_t write_req_tids[g_scfg.write_req_threads];
 
@@ -349,11 +347,13 @@ main(int argc, char* argv[])
 
 	fprintf(stdout, "\nHISTOGRAM NAMES\n");
 
-	fprintf(stdout, "reads\n");
-	fprintf(stdout, "device-reads\n");
+	if (do_reads) {
+		fprintf(stdout, "reads\n");
+		fprintf(stdout, "device-reads\n");
 
-	for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
-		fprintf(stdout, "%s\n", g_devices[d].read_hist_tag);
+		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+			fprintf(stdout, "%s\n", g_devices[d].read_hist_tag);
+		}
 	}
 
 	if (g_scfg.write_reqs_per_sec != 0) {
@@ -392,12 +392,14 @@ main(int argc, char* argv[])
 		fprintf(stdout, "requests-queued: %" PRIu32 "\n",
 				atomic32_get(g_reqs_queued));
 
-		histogram_dump(g_read_hist, "reads");
-		histogram_dump(g_raw_read_hist, "device-reads");
+		if (do_reads) {
+			histogram_dump(g_read_hist, "reads");
+			histogram_dump(g_raw_read_hist, "device-reads");
 
-		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
-			histogram_dump(g_devices[d].raw_read_hist,
-					g_devices[d].read_hist_tag);
+			for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
+				histogram_dump(g_devices[d].raw_read_hist,
+						g_devices[d].read_hist_tag);
+			}
 		}
 
 		if (g_scfg.write_reqs_per_sec != 0) {
@@ -421,8 +423,10 @@ main(int argc, char* argv[])
 
 	g_running = false;
 
-	for (uint32_t k = 0; k < g_scfg.read_req_threads; k++) {
-		pthread_join(read_req_tids[k], NULL);
+	if (do_reads) {
+		for (uint32_t k = 0; k < g_scfg.read_req_threads; k++) {
+			pthread_join(read_req_tids[k], NULL);
+		}
 	}
 
 	if (do_commits) {
@@ -454,21 +458,15 @@ main(int argc, char* argv[])
 		fd_close_all(dev);
 		queue_destroy(dev->fd_q);
 		free(dev->raw_read_hist);
-
-		if (do_commits) {
-			free(dev->raw_write_hist);
-		}
+		free(dev->raw_write_hist);
 	}
 
 	free(g_large_block_read_hist);
 	free(g_large_block_write_hist);
 	free(g_raw_read_hist);
 	free(g_read_hist);
-
-	if (do_commits) {
-		free(g_raw_write_hist);
-		free(g_write_hist);
-	}
+	free(g_raw_write_hist);
+	free(g_write_hist);
 
 	return 0;
 }
@@ -500,7 +498,7 @@ run_generate_read_reqs(void* pv_unused)
 			break;
 		}
 
-		uint32_t q_index = (count / 16) % g_scfg.num_queues;
+		uint32_t q_index = count % g_scfg.num_queues;
 		uint32_t random_dev_index = rand_32() % g_scfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 
@@ -555,7 +553,7 @@ run_generate_write_reqs(void* pv_unused)
 			break;
 		}
 
-		uint32_t q_index = (count / 16) % g_scfg.num_queues;
+		uint32_t q_index = count % g_scfg.num_queues;
 		uint32_t random_dev_index = rand_32() % g_scfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 

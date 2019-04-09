@@ -50,7 +50,7 @@ static const char TAG_DEVICE_NAMES[]            = "device-names";
 static const char TAG_SERVICE_THREADS[]         = "service-threads";
 static const char TAG_NUM_QUEUES[]              = "num-queues";
 static const char TAG_THREADS_PER_QUEUE[]       = "threads-per-queue";
-static const char TAG_NUM_CACHE_THREADS[]       = "num-cache-threads";
+static const char TAG_CACHE_THREADS[]           = "cache-threads";
 static const char TAG_TEST_DURATION_SEC[]       = "test-duration-sec";
 static const char TAG_REPORT_INTERVAL_SEC[]     = "report-interval-sec";
 static const char TAG_MICROSECOND_HISTOGRAMS[]  = "microsecond-histograms";
@@ -68,7 +68,7 @@ static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
 //
 
 static bool check_configuration();
-static void derive_configuration();
+static bool derive_configuration();
 static void echo_configuration();
 
 
@@ -79,7 +79,7 @@ static void echo_configuration();
 // Configuration instance, showing non-zero defaults.
 index_cfg g_icfg = {
 		.threads_per_queue = 4,
-		.num_cache_threads = 8,
+		.cache_threads = 8,
 		.report_interval_us = 1000000,
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
@@ -137,8 +137,8 @@ index_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_THREADS_PER_QUEUE) == 0) {
 			g_icfg.threads_per_queue = parse_uint32();
 		}
-		else if (strcmp(tag, TAG_NUM_CACHE_THREADS) == 0) {
-			g_icfg.num_cache_threads = parse_uint32();
+		else if (strcmp(tag, TAG_CACHE_THREADS) == 0) {
+			g_icfg.cache_threads = parse_uint32();
 		}
 		else if (strcmp(tag, TAG_TEST_DURATION_SEC) == 0) {
 			g_icfg.run_us = (uint64_t)parse_uint32() * 1000000;
@@ -177,11 +177,10 @@ index_configure(int argc, char* argv[])
 
 	fclose(config_file);
 
-	if (! check_configuration()) {
+	if (! check_configuration() || ! derive_configuration()) {
 		return false;
 	}
 
-	derive_configuration();
 	echo_configuration();
 
 	return true;
@@ -217,8 +216,8 @@ check_configuration()
 		return false;
 	}
 
-	if (g_icfg.num_cache_threads == 0) {
-		configuration_error(TAG_NUM_CACHE_THREADS);
+	if (g_icfg.cache_threads == 0) {
+		configuration_error(TAG_CACHE_THREADS);
 		return false;
 	}
 
@@ -245,9 +244,15 @@ check_configuration()
 	return true;
 }
 
-static void
+static bool
 derive_configuration()
 {
+	if (g_icfg.read_reqs_per_sec + g_icfg.write_reqs_per_sec == 0) {
+		fprintf(stdout, "ERROR: %s and %s can't both be zero\n",
+				TAG_READ_REQS_PER_SEC, TAG_WRITE_REQS_PER_SEC);
+		return false;
+	}
+
 	// 'replication-factor' > 1 causes replica writes.
 	uint32_t effective_write_reqs_per_sec =
 			g_icfg.replication_factor * g_icfg.write_reqs_per_sec;
@@ -271,6 +276,8 @@ derive_configuration()
 	g_icfg.cache_thread_reads_and_writes_per_sec =
 			effective_write_reqs_per_sec *
 			cache_thread_reads_and_writes_per_write;
+
+	return true;
 }
 
 static void
@@ -292,6 +299,8 @@ echo_configuration()
 			g_icfg.num_queues);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_THREADS_PER_QUEUE,
 			g_icfg.threads_per_queue);
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_CACHE_THREADS,
+			g_icfg.cache_threads);
 	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_TEST_DURATION_SEC,
 			g_icfg.run_us / 1000000);
 	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_REPORT_INTERVAL_SEC,
