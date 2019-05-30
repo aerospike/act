@@ -61,6 +61,7 @@ static const char TAG_LARGE_BLOCK_OP_KBYTES[]   = "large-block-op-kbytes";
 static const char TAG_REPLICATION_FACTOR[]      = "replication-factor";
 static const char TAG_UPDATE_PCT[]              = "update-pct";
 static const char TAG_DEFRAG_LWM_PCT[]          = "defrag-lwm-pct";
+static const char TAG_DISABLE_ODSYNC[]          = "disable-odsync";
 static const char TAG_COMMIT_TO_DEVICE[]        = "commit-to-device";
 static const char TAG_COMMIT_MIN_BYTES[]        = "commit-min-bytes";
 static const char TAG_TOMB_RAIDER[]             = "tomb-raider";
@@ -87,6 +88,7 @@ static void echo_configuration();
 
 // Configuration instance, showing non-zero defaults.
 storage_cfg g_scfg = {
+		.service_threads = 1,
 		.threads_per_queue = 4,
 		.report_interval_us = 1000000,
 		.record_bytes = 1536,
@@ -136,7 +138,7 @@ storage_configure(int argc, char* argv[])
 		return false;
 	}
 
-	char line[1024];
+	char line[4096];
 
 	while (fgets(line, sizeof(line), config_file)) {
 		char* comment = strchr(line, '#');
@@ -200,6 +202,9 @@ storage_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_DEFRAG_LWM_PCT) == 0) {
 			g_scfg.defrag_lwm_pct = parse_uint32();
 		}
+		else if (strcmp(tag, TAG_DISABLE_ODSYNC) == 0) {
+			g_scfg.disable_odsync = parse_yes_no();
+		}
 		else if (strcmp(tag, TAG_COMMIT_TO_DEVICE) == 0) {
 			g_scfg.commit_to_device = parse_yes_no();
 		}
@@ -250,14 +255,12 @@ check_configuration()
 		return false;
 	}
 
-	uint32_t n_cpus = num_cpus();
-
-	if (g_scfg.service_threads == 0 && (g_scfg.service_threads = n_cpus) == 0) {
+	if (g_scfg.service_threads == 0) {
 		configuration_error(TAG_SERVICE_THREADS);
 		return false;
 	}
 
-	if (g_scfg.num_queues == 0 && (g_scfg.num_queues = n_cpus) == 0) {
+	if (g_scfg.num_queues == 0 && (g_scfg.num_queues = num_cpus()) == 0) {
 		configuration_error(TAG_NUM_QUEUES);
 		return false;
 	}
@@ -307,6 +310,11 @@ check_configuration()
 
 	if (g_scfg.defrag_lwm_pct >= 100) {
 		configuration_error(TAG_DEFRAG_LWM_PCT);
+		return false;
+	}
+
+	if (g_scfg.disable_odsync && g_scfg.commit_to_device) {
+		configuration_error(TAG_DISABLE_ODSYNC);
 		return false;
 	}
 
@@ -471,6 +479,8 @@ echo_configuration()
 			g_scfg.update_pct);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
 			g_scfg.defrag_lwm_pct);
+	fprintf(stdout, "%s: %s\n", TAG_DISABLE_ODSYNC,
+			g_scfg.disable_odsync ? "yes" : "no");
 	fprintf(stdout, "%s: %s\n", TAG_COMMIT_TO_DEVICE,
 			g_scfg.commit_to_device ? "yes" : "no");
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMMIT_MIN_BYTES,

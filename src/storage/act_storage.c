@@ -524,6 +524,7 @@ run_generate_read_reqs(void* pv_unused)
 		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
 			fprintf(stdout, "ERROR: read request generator can't keep up\n");
 			fprintf(stdout, "ACT can't do requested load - test stopped\n");
+			fprintf(stdout, "try configuring more 'service-threads'\n");
 			g_running = false;
 		}
 	}
@@ -579,6 +580,7 @@ run_generate_write_reqs(void* pv_unused)
 		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
 			fprintf(stdout, "ERROR: write request generator can't keep up\n");
 			fprintf(stdout, "ACT can't do requested load - test stopped\n");
+			fprintf(stdout, "try configuring more 'service-threads'\n");
 			g_running = false;
 		}
 	}
@@ -952,8 +954,8 @@ fd_get(device* dev)
 	int fd = -1;
 
 	if (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) != QUEUE_OK) {
-		int flags = O_RDWR |
-				(g_scfg.file_size == 0 ? O_DIRECT | O_DSYNC : O_CREAT);
+		int direct_flags = O_DIRECT | (g_scfg.disable_odsync ? 0 : O_DSYNC);
+		int flags = O_RDWR | (g_scfg.file_size == 0 ? direct_flags : O_CREAT);
 
 		fd = open(dev->name, flags, S_IRUSR | S_IWUSR);
 

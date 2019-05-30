@@ -492,7 +492,11 @@ number, e.g. use 86400, not 60 x 60 x 24.  The default is one day (24 hours).
 
 **service-threads**
 Total number of service threads on which requests are generated and pushed to
-transaction queues.  Default is number of cores, detected by ACT at runtime.
+transaction queues.  If a test stops with a message like "... ACT can't do
+requested load ...", it doesn't mean the devices failed, it just means the
+transaction rates specified are too high to achieve with the configured number
+of service threads.  Try testing again with more service threads.  The default
+service-threads is 1.
 
 **num-queues**
 Total number of transaction queues.  Default is number of cores, detected by ACT
@@ -573,6 +577,11 @@ storage write rate, which (for act_storage) is manifest as the large-block read
 and write rates.  For act_index, defragmentation generates an extra internal
 index device read and write load. The default defrag-lwm-pct is 50.
 
+**disable-odsync**
+Option to not set O_DSYNC when opening file descriptors. Don't configure this
+true if configuring commit-to-device.  The default disable-odsync is no (i.e.
+O_DSYNC is set by default).
+
 **commit-to-device (act_storage ONLY)**
 Flag to model the mode where Aerospike commits each record to device
 synchronously, instead of flushing large blocks full of records.  This causes a
@@ -613,9 +622,9 @@ How much the large-block operations (act_storage) or cache-thread operations
 fails.  Also, how much the service threads that generate and queue requests are
 allowed to lag behind their target rates before the ACT test is stopped. Note
 that this doesn't necessarily mean the devices failed the test - it means the
-transaction rates specified are too high to achieve.  (The actual rates
-generated may be lower than the devices are capable of handling.)  The default
-max-lag-sec is 10.
+transaction rates specified are too high to achieve with the configured number
+of service threads.  (The actual rates generated may be lower than the devices
+are capable of handling.)  The default max-lag-sec is 10.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in the test run.

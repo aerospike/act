@@ -434,6 +434,7 @@ run_generate_read_reqs(void* pv_unused)
 		else if (sleep_us < -(int64_t)g_icfg.max_lag_usec) {
 			fprintf(stdout, "ERROR: read request generator can't keep up\n");
 			fprintf(stdout, "ACT can't do requested load - test stopped\n");
+			fprintf(stdout, "try configuring more 'service-threads'\n");
 			g_running = false;
 		}
 	}
@@ -524,7 +525,8 @@ fd_get(device* dev)
 	int fd = -1;
 
 	if (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) != QUEUE_OK) {
-		fd = open(dev->name, O_DIRECT | O_DSYNC | O_RDWR, S_IRUSR | S_IWUSR);
+		int direct_flags = O_DIRECT | (g_icfg.disable_odsync ? 0 : O_DSYNC);
+		fd = open(dev->name, O_RDWR | direct_flags, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {
 			fprintf(stdout, "ERROR: open device %s errno %d '%s'\n", dev->name,

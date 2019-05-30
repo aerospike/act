@@ -38,7 +38,7 @@
 // Typedefs & constants.
 //
 
-#define MAX_NUM_STORAGE_DEVICES 32
+#define MAX_NUM_STORAGE_DEVICES 128
 
 typedef struct storage_cfg_s {
 	char device_names[MAX_NUM_STORAGE_DEVICES][MAX_DEVICE_NAME_SIZE];
@@ -58,6 +58,7 @@ typedef struct storage_cfg_s {
 	uint32_t replication_factor;
 	uint32_t update_pct;
 	uint32_t defrag_lwm_pct;
+	bool disable_odsync;
 	bool commit_to_device;
 	uint32_t commit_min_bytes;
 	bool tomb_raider;

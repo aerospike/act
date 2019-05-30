@@ -58,6 +58,7 @@ static const char TAG_READ_REQS_PER_SEC[]       = "read-reqs-per-sec";
 static const char TAG_WRITE_REQS_PER_SEC[]      = "write-reqs-per-sec";
 static const char TAG_REPLICATION_FACTOR[]      = "replication-factor";
 static const char TAG_DEFRAG_LWM_PCT[]          = "defrag-lwm-pct";
+static const char TAG_DISABLE_ODSYNC[]          = "disable-odsync";
 static const char TAG_MAX_REQS_QUEUED[]         = "max-reqs-queued";
 static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
 static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
@@ -78,6 +79,7 @@ static void echo_configuration();
 
 // Configuration instance, showing non-zero defaults.
 index_cfg g_icfg = {
+		.service_threads = 1,
 		.threads_per_queue = 4,
 		.cache_threads = 8,
 		.report_interval_us = 1000000,
@@ -161,6 +163,9 @@ index_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_DEFRAG_LWM_PCT) == 0) {
 			g_icfg.defrag_lwm_pct = parse_uint32();
 		}
+		else if (strcmp(tag, TAG_DISABLE_ODSYNC) == 0) {
+			g_icfg.disable_odsync = parse_yes_no();
+		}
 		else if (strcmp(tag, TAG_MAX_REQS_QUEUED) == 0) {
 			g_icfg.max_reqs_queued = parse_uint32();
 		}
@@ -199,14 +204,12 @@ check_configuration()
 		return false;
 	}
 
-	uint32_t n_cpus = num_cpus();
-
-	if (g_icfg.service_threads == 0 && (g_icfg.service_threads = n_cpus) == 0) {
+	if (g_icfg.service_threads == 0) {
 		configuration_error(TAG_SERVICE_THREADS);
 		return false;
 	}
 
-	if (g_icfg.num_queues == 0 && (g_icfg.num_queues = n_cpus) == 0) {
+	if (g_icfg.num_queues == 0 && (g_icfg.num_queues = num_cpus()) == 0) {
 		configuration_error(TAG_NUM_QUEUES);
 		return false;
 	}
@@ -315,6 +318,8 @@ echo_configuration()
 			g_icfg.replication_factor);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
 			g_icfg.defrag_lwm_pct);
+	fprintf(stdout, "%s: %s\n", TAG_DISABLE_ODSYNC,
+			g_icfg.disable_odsync ? "yes" : "no");
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_MAX_REQS_QUEUED,
 			g_icfg.max_reqs_queued);
 	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,

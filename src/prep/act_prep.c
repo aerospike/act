@@ -89,7 +89,9 @@ static uint64_t g_extra_bytes_to_zero = 0;
 static inline int
 fd_get()
 {
-	return open(g_device_name, O_DIRECT | O_DSYNC | O_RDWR, S_IRUSR | S_IWUSR);
+	// Note - not bothering to set O_DSYNC. Rigor is unnecessary for salting,
+	// and we're not trying to measure performance here - just go fast.
+	return open(g_device_name, O_DIRECT | O_RDWR, S_IRUSR | S_IWUSR);
 }
 
 
