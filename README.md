@@ -92,7 +92,7 @@ element changes due to client write requests and defragmentation.
 
 Unlike the Aerospike Database "All Flash" mode, act_index does not mmap files in
 mounted directories on the devices - it models the raw device I/O pattern,
-assuming no caching benefit from mmap. Therefore to confgiure act_index we
+assuming no caching benefit from mmap. Therefore to configure act_index we
 simply specify the devices.
 
 #### Process for Certifying Device(s) for 30x Performance
