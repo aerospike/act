@@ -143,8 +143,6 @@ comp_fill(uint8_t* p_buffer, uint32_t size, uint32_t compress_percent)
 	return true;
 }
 
-
-
 //==========================================================
 // Local helpers.
 //

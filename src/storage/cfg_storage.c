@@ -329,7 +329,7 @@ check_configuration()
 		configuration_error(TAG_COMMIT_MIN_BYTES);
 		return false;
 	}
-	if (g_scfg.compress_percent > 100 ) {
+	if (g_scfg.compress_percent > 100) {
 		configuration_error(TAG_COMPRESS_PERCENT);
 		return false;
 	}
@@ -504,6 +504,8 @@ echo_configuration()
 			g_scfg.max_lag_usec / 1000000);
 	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
 			g_scfg.scheduler_mode);
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMPRESS_PERCENT,
+			g_scfg.compress_percent);
 
 	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
 
