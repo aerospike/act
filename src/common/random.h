@@ -41,3 +41,5 @@ void rand_seed_thread();
 uint32_t rand_32();
 uint64_t rand_64();
 bool rand_fill(uint8_t* p_buffer, uint32_t size);
+bool comp_fill(uint8_t* p_buffer, uint32_t size, uint32_t compress_percent);
+
