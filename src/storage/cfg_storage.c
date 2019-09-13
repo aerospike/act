@@ -69,6 +69,7 @@ static const char TAG_TOMB_RAIDER_SLEEP_USEC[]  = "tomb-raider-sleep-usec";
 static const char TAG_MAX_REQS_QUEUED[]         = "max-reqs-queued";
 static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
 static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
+static const char TAG_COMPRESS_PERCENT[]        = "compress-percent";
 
 #define RBLOCK_SIZE 16 // must be power of 2
 
@@ -97,7 +98,8 @@ storage_cfg g_scfg = {
 		.defrag_lwm_pct = 50,
 		.max_reqs_queued = 100000,
 		.max_lag_usec = 1000000 * 10,
-		.scheduler_mode = "noop"
+		.scheduler_mode = "noop",
+		.compress_percent = 100
 };
 
 
@@ -226,6 +228,9 @@ storage_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_SCHEDULER_MODE) == 0) {
 			g_scfg.scheduler_mode = parse_scheduler_mode();
 		}
+		else if (strcmp(tag, TAG_COMPRESS_PERCENT) == 0) {
+			g_scfg.compress_percent = parse_uint32();
+		}
 		else {
 			fprintf(stdout, "ERROR: ignoring unknown config item '%s'\n", tag);
 		}
@@ -322,6 +327,10 @@ check_configuration()
 			(g_scfg.commit_min_bytes > g_scfg.large_block_ops_bytes ||
 			! is_power_of_2(g_scfg.commit_min_bytes))) {
 		configuration_error(TAG_COMMIT_MIN_BYTES);
+		return false;
+	}
+	if (g_scfg.compress_percent > 100) {
+		configuration_error(TAG_COMPRESS_PERCENT);
 		return false;
 	}
 
@@ -495,6 +504,8 @@ echo_configuration()
 			g_scfg.max_lag_usec / 1000000);
 	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
 			g_scfg.scheduler_mode);
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMPRESS_PERCENT,
+			g_scfg.compress_percent);
 
 	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
 

@@ -108,6 +108,40 @@ rand_fill(uint8_t* p_buffer, uint32_t size)
 	return true;
 }
 
+//------------------------------------------------
+// Fill a buffer with target compression ratio.
+//
+
+bool
+comp_fill(uint8_t* p_buffer, uint32_t size, uint32_t compress_percent)
+{
+	uint64_t* p_write = (uint64_t*)p_buffer; 	
+	uint64_t* p_end = (uint64_t*)(p_buffer + size);
+	// ... relies on size being a multiple of 8, which it will be.
+	const uint32_t interval_size = 512;   // Space out zero runs at this interval
+	const uint32_t interval_num = size / interval_size;
+	const uint32_t z_len = (((100 - compress_percent) * interval_size) / 100) / sizeof(uint64_t);
+	const uint32_t r_len = (interval_size / sizeof(uint64_t)) - z_len;
+	// ... data must be in interval_size units to achieve target compression ratio
+	int32_t i, z, r;
+
+	for (i = 0; i < interval_num; i++) {
+		z = z_len;
+		while (z--) {
+			*p_write++ = 0;
+		}
+		r = r_len;
+		while (r--) {
+			*p_write++ = xorshift128plus();
+		}
+	}
+
+	while (p_write < p_end) {
+		*p_write++ = xorshift128plus();
+	}
+
+	return true;
+}
 
 //==========================================================
 // Local helpers.

@@ -76,6 +76,7 @@ typedef struct storage_cfg_s {
 	uint32_t write_req_threads;
 	double large_block_reads_per_sec;
 	double large_block_writes_per_sec;
+	uint32_t compress_percent;
 } storage_cfg;
 
 
