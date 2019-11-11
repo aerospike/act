@@ -42,7 +42,8 @@
 
 static const char* const SCHEDULER_MODES[] = {
 	"noop", // default
-	"cfq"
+	"cfq",
+	"kyber"
 };
 
 static const uint32_t N_SCHEDULER_MODES =
