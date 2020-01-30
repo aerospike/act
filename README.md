@@ -92,7 +92,7 @@ element changes due to client write requests and defragmentation.
 
 Unlike the Aerospike Database "All Flash" mode, act_index does not mmap files in
 mounted directories on the devices - it models the raw device I/O pattern,
-assuming no caching benefit from mmap. Therefore to confgiure act_index we
+assuming no caching benefit from mmap. Therefore to configure act_index we
 simply specify the devices.
 
 #### Process for Certifying Device(s) for 30x Performance
@@ -552,7 +552,7 @@ respectively, in Kbytes.
 **replication-factor**
 Simulate the device load you would see if this node was in a cluster with the
 specified replication-factor.  Increasing replication-factor increases the write
-load, e.g. replication-factor 2 doubles the write load.  For act_starage, this
+load, e.g. replication-factor 2 doubles the write load.  For act_storage, this
 doubles the large-block read and write rates.  It can also affect the
 record-sized internal read rate if update-pct is non-zero.  The default
 replication-factor is 1.
