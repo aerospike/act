@@ -314,7 +314,7 @@ $ sudo ./target/bin/act_storage actconfig.txt > output.txt &
 ```
 where:
 ```
-* actconfig.txt - path/name for your config file name
+* actconfig.txt - path/name of your config file
 * output.txt    - path/name of your log file
 ```
 If running ACT from a remote terminal, it is best to run it as a background
@@ -576,6 +576,14 @@ amplification will be 2x, meaning defragmentation doubles the internal effective
 storage write rate, which (for act_storage) is manifest as the large-block read
 and write rates.  For act_index, defragmentation generates an extra internal
 index device read and write load. The default defrag-lwm-pct is 50.
+
+**compress-pct (act_storage ONLY)**
+Generate compressible data when writing to devices.  With compress-pct 100, the
+data is fully random (not compressible).  Lower values cause runs of zeros to
+be interleaved with random data such that the data should be compressible to the
+specified percentage of original size.  The compressibility of data may affect
+performance on some devices, especially those supporting in-line compression.
+The default compress-pct is 100.
 
 **disable-odsync**
 Option to not set O_DSYNC when opening file descriptors. Don't configure this

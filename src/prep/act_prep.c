@@ -225,10 +225,7 @@ run_salt(void* pv_n)
 	}
 
 	for (uint64_t b = 0; b < blocks_to_salt; b++) {
-		if (! rand_fill(buf, LARGE_BLOCK_BYTES)) {
-			fprintf(stdout, "ERROR: rand fill in salt thread %" PRIu32 "\n", n);
-			break;
-		}
+		rand_fill(buf, LARGE_BLOCK_BYTES, 100);
 
 		if (! write_all(fd, buf, LARGE_BLOCK_BYTES)) {
 			fprintf(stdout, "ERROR: write in salt thread %" PRIu32 "\n", n);

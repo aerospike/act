@@ -1047,7 +1047,7 @@ static void
 write_and_report(trans_req* write_req, uint8_t* buf)
 {
 	// Salt each record.
-	rand_fill(buf, write_req->size);
+	rand_fill(buf, write_req->size, g_scfg.compress_pct);
 
 	uint64_t raw_start_time = get_ns();
 	uint64_t stop_time = write_to_device(write_req->dev, write_req->offset,
@@ -1070,7 +1070,7 @@ static void
 write_and_report_large_block(device* dev, uint8_t* buf, uint64_t count)
 {
 	// Salt the block each time.
-	rand_fill(buf, g_scfg.large_block_ops_bytes);
+	rand_fill(buf, g_scfg.large_block_ops_bytes, g_scfg.compress_pct);
 
 	uint64_t offset = random_large_block_offset(dev);
 	uint64_t start_time = get_ns();

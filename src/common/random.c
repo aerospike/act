@@ -36,6 +36,14 @@
 
 
 //==========================================================
+// Typedefs & constants.
+//
+
+#define INTERVAL_SIZE 512
+#define WRITES_PER_INTERVAL (INTERVAL_SIZE / sizeof(uint64_t))
+
+
+//==========================================================
 // Forward declarations.
 //
 
@@ -92,20 +100,37 @@ rand_64()
 }
 
 //------------------------------------------------
-// Fill a buffer with random bits.
+// Fill a buffer with random bits. For buffers
+// larger than INTERVAL_SIZE, rand_pct specifies
+// how much to randomize. The rest is zeroed.
 //
-bool
-rand_fill(uint8_t* p_buffer, uint32_t size)
+void
+rand_fill(uint8_t* p_buffer, uint32_t size, uint32_t rand_pct)
 {
 	uint64_t* p_write = (uint64_t*)p_buffer;
 	uint64_t* p_end = (uint64_t*)(p_buffer + size);
 	// ... relies on size being a multiple of 8, which it will be.
 
+	if (rand_pct < 100) {
+		// Split writes per interval as specified by rand_pct. (Calculate
+		// n_zeros first so rand_pct = 1 yields n_rands = 1 instead of 0.)
+		uint32_t n_zeros = (WRITES_PER_INTERVAL * (100 - rand_pct)) / 100;
+		uint32_t n_rands = WRITES_PER_INTERVAL - n_zeros;
+
+		for (uint32_t i = size / INTERVAL_SIZE; i != 0; i--) {
+			for (uint32_t z = n_zeros; z != 0; z--) {
+				*p_write++ = 0;
+			}
+
+			for (uint32_t r = n_rands; r != 0; r--) {
+				*p_write++ = xorshift128plus();
+			}
+		}
+	}
+
 	while (p_write < p_end) {
 		*p_write++ = xorshift128plus();
 	}
-
-	return true;
 }
 
 

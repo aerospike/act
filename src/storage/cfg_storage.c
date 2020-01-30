@@ -61,6 +61,7 @@ static const char TAG_LARGE_BLOCK_OP_KBYTES[]   = "large-block-op-kbytes";
 static const char TAG_REPLICATION_FACTOR[]      = "replication-factor";
 static const char TAG_UPDATE_PCT[]              = "update-pct";
 static const char TAG_DEFRAG_LWM_PCT[]          = "defrag-lwm-pct";
+static const char TAG_COMPRESS_PCT[]            = "compress-pct";
 static const char TAG_DISABLE_ODSYNC[]          = "disable-odsync";
 static const char TAG_COMMIT_TO_DEVICE[]        = "commit-to-device";
 static const char TAG_COMMIT_MIN_BYTES[]        = "commit-min-bytes";
@@ -95,6 +96,7 @@ storage_cfg g_scfg = {
 		.large_block_ops_bytes = 1024 * 128,
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
+		.compress_pct = 100,
 		.max_reqs_queued = 100000,
 		.max_lag_usec = 1000000 * 10,
 		.scheduler_mode = "noop"
@@ -201,6 +203,9 @@ storage_configure(int argc, char* argv[])
 		}
 		else if (strcmp(tag, TAG_DEFRAG_LWM_PCT) == 0) {
 			g_scfg.defrag_lwm_pct = parse_uint32();
+		}
+		else if (strcmp(tag, TAG_COMPRESS_PCT) == 0) {
+			g_scfg.compress_pct = parse_uint32();
 		}
 		else if (strcmp(tag, TAG_DISABLE_ODSYNC) == 0) {
 			g_scfg.disable_odsync = parse_yes_no();
@@ -310,6 +315,11 @@ check_configuration()
 
 	if (g_scfg.defrag_lwm_pct >= 100) {
 		configuration_error(TAG_DEFRAG_LWM_PCT);
+		return false;
+	}
+
+	if (g_scfg.compress_pct > 100) {
+		configuration_error(TAG_COMPRESS_PCT);
 		return false;
 	}
 
@@ -479,6 +489,8 @@ echo_configuration()
 			g_scfg.update_pct);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
 			g_scfg.defrag_lwm_pct);
+	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMPRESS_PCT,
+			g_scfg.compress_pct);
 	fprintf(stdout, "%s: %s\n", TAG_DISABLE_ODSYNC,
 			g_scfg.disable_odsync ? "yes" : "no");
 	fprintf(stdout, "%s: %s\n", TAG_COMMIT_TO_DEVICE,

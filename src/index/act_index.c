@@ -619,7 +619,7 @@ static void
 write_cache_and_report(uint8_t* buf)
 {
 	// Salt the buffer each time.
-	rand_fill(buf, IO_SIZE);
+	rand_fill(buf, IO_SIZE, 100);
 
 	uint32_t random_device_index = rand_32() % g_icfg.num_devices;
 	device* p_device = &g_devices[random_device_index];
