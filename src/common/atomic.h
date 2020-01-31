@@ -53,9 +53,13 @@ atomic64_add(atomic64 *a, int64_t b)
 {
 	int64_t i = b;
 
+#ifdef __x86_64__
 	__asm__ __volatile__ ("lock; xaddq %0, %1" : "+r" (b), "+m" (*a) : : "memory");
 
 	return b + i;
+#else
+	return __atomic_add_fetch(a, b, __ATOMIC_RELAXED);
+#endif
 }
 
 #define atomic64_get(a)     (a)
@@ -75,9 +79,13 @@ atomic32_add(atomic32 *a, int32_t b)
 {
 	int32_t i = b;
 
+#ifdef __x86_64__
 	__asm__ __volatile__ ("lock; xadd %0, %1" : "+r" (b), "+m" (*a) : : "memory");
 
 	return b + i;
+#else
+	return __atomic_add_fetch(a, b, __ATOMIC_RELAXED);
+#endif
 }
 
 #define atomic32_get(a)     (a)
