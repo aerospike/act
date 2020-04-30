@@ -59,6 +59,7 @@ typedef struct storage_cfg_s {
 	uint32_t update_pct;
 	uint32_t defrag_lwm_pct;
 	uint32_t compress_pct;
+        bool defrag_disable;            // Added to disable large block reads, when defrag_lwm_pct = 0
 	bool disable_odsync;
 	bool commit_to_device;
 	uint32_t commit_min_bytes;

@@ -61,6 +61,7 @@ static const char TAG_LARGE_BLOCK_OP_KBYTES[]   = "large-block-op-kbytes";
 static const char TAG_REPLICATION_FACTOR[]      = "replication-factor";
 static const char TAG_UPDATE_PCT[]              = "update-pct";
 static const char TAG_DEFRAG_LWM_PCT[]          = "defrag-lwm-pct";
+static const char TAG_DEFRAG_DISABLE[]          = "defrag-disable";
 static const char TAG_COMPRESS_PCT[]            = "compress-pct";
 static const char TAG_DISABLE_ODSYNC[]          = "disable-odsync";
 static const char TAG_COMMIT_TO_DEVICE[]        = "commit-to-device";
@@ -96,6 +97,7 @@ storage_cfg g_scfg = {
 		.large_block_ops_bytes = 1024 * 128,
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
+                .defrag_disable = false,
 		.compress_pct = 100,
 		.max_reqs_queued = 100000,
 		.max_lag_usec = 1000000 * 10,
@@ -204,6 +206,9 @@ storage_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_DEFRAG_LWM_PCT) == 0) {
 			g_scfg.defrag_lwm_pct = parse_uint32();
 		}
+                else if (strcmp(tag, TAG_DEFRAG_DISABLE) == 0) {
+		        g_scfg.defrag_disable = parse_yes_no();
+                }
 		else if (strcmp(tag, TAG_COMPRESS_PCT) == 0) {
 			g_scfg.compress_pct = parse_uint32();
 		}
@@ -378,9 +383,16 @@ derive_configuration()
 	// defrag-lwm-pct = 40: amplification = 100/(100 - 40) = 1.666...
 
 	// Large block read rate always matches overall write rate.
-	g_scfg.large_block_reads_per_sec =
-			original_write_rate_in_large_blocks_per_sec *
-			defrag_write_amplification;
+        // unless disable defrag is set and lwm pct = 0
+        double tmp_large_block_writes_sec = original_write_rate_in_large_blocks_per_sec *
+                        defrag_write_amplification;
+        
+	if(g_scfg.defrag_lwm_pct == 0 && g_scfg.disable_defrag == true) {
+	        // Set large block reads to 0
+                g_scfg.large_block_reads_per_sec = 0;
+        } else {
+                g_scfg.large_block_reads_per_sec = tmp_large_block_writes_sec
+        }
 
 	if (g_scfg.commit_to_device) {
 		// In 'commit-to-device' mode, only write rate caused by defrag is done
@@ -425,7 +437,8 @@ derive_configuration()
 	}
 	else {
 		// Normally, overall write rate is all done via large block writes.
-		g_scfg.large_block_writes_per_sec = g_scfg.large_block_reads_per_sec;
+                // When defrag is disabled, large block reads are zero
+		g_scfg.large_block_writes_per_sec = tmp_large_block_writes_sec;
 
 		g_scfg.read_req_threads = g_scfg.service_threads;
 		g_scfg.write_req_threads = 0;
