@@ -387,11 +387,11 @@ derive_configuration()
         double tmp_large_block_writes_sec = original_write_rate_in_large_blocks_per_sec *
                         defrag_write_amplification;
         
-	if(g_scfg.defrag_lwm_pct == 0 && g_scfg.disable_defrag == true) {
+	if(g_scfg.defrag_lwm_pct == 0 && g_scfg.defrag_disable) {
 	        // Set large block reads to 0
                 g_scfg.large_block_reads_per_sec = 0;
         } else {
-                g_scfg.large_block_reads_per_sec = tmp_large_block_writes_sec
+                g_scfg.large_block_reads_per_sec = tmp_large_block_writes_sec;
         }
 
 	if (g_scfg.commit_to_device) {
@@ -504,6 +504,8 @@ echo_configuration()
 			g_scfg.defrag_lwm_pct);
 	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMPRESS_PCT,
 			g_scfg.compress_pct);
+        fprintf(stdout, "%s: %s\n", TAG_DEFRAG_DISABLE,
+                        g_scfg.defrag_disable ? "yes" : "no");
 	fprintf(stdout, "%s: %s\n", TAG_DISABLE_ODSYNC,
 			g_scfg.disable_odsync ? "yes" : "no");
 	fprintf(stdout, "%s: %s\n", TAG_COMMIT_TO_DEVICE,
