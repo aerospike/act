@@ -267,15 +267,16 @@ main(int argc, char* argv[])
 	uint64_t run_stop_us = g_run_start_us + g_scfg.run_us;
 
 	g_running = true;
-
+	fprintf(stdout, "large block reads: %f", g_scfg.large_block_reads_per_sec);
 	if (g_scfg.write_reqs_per_sec != 0) {
 		for (uint32_t n = 0; n < g_scfg.num_devices; n++) {
 			device* dev = &g_devices[n];
-
-			if (pthread_create(&dev->large_block_read_thread, NULL,
-					run_large_block_reads, (void*)dev) != 0) {
-				fprintf(stdout, "ERROR: create large op read thread\n");
-				exit(-1);
+			if(g_scfg.large_block_reads_per_sec != 0) {
+				if (pthread_create(&dev->large_block_read_thread, NULL,
+                                        run_large_block_reads, (void*)dev) != 0) {
+                                	fprintf(stdout, "ERROR: create large op read thread\n");
+                                	exit(-1);
+                        	}
 			}
 
 			if (pthread_create(&dev->large_block_write_thread, NULL,
@@ -451,8 +452,10 @@ main(int argc, char* argv[])
 		}
 
 		if (g_scfg.write_reqs_per_sec != 0) {
-			pthread_join(dev->large_block_read_thread, NULL);
-			pthread_join(dev->large_block_write_thread, NULL);
+                        if(g_scfg.large_block_reads_per_sec != 0) {
+				pthread_join(dev->large_block_read_thread, NULL);
+				pthread_join(dev->large_block_write_thread, NULL);
+ 			}
 		}
 
 		fd_close_all(dev);
