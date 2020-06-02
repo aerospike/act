@@ -44,8 +44,6 @@ typedef struct index_cfg_s {
 	char device_names[MAX_NUM_INDEX_DEVICES][MAX_DEVICE_NAME_SIZE];
 	uint32_t num_devices;           // derived by counting device names
 	uint32_t service_threads;
-	uint32_t num_queues;
-	uint32_t threads_per_queue;
 	uint32_t cache_threads;
 	uint64_t run_us;                // converted from literal units in seconds
 	uint64_t report_interval_us;    // converted from literal units in seconds
@@ -60,7 +58,7 @@ typedef struct index_cfg_s {
 	const char* scheduler_mode;
 
 	// Derived from literal configuration:
-	uint64_t trans_thread_reads_per_sec;
+	uint64_t service_thread_reads_per_sec;
 	uint64_t cache_thread_reads_and_writes_per_sec;
 } index_cfg;
 

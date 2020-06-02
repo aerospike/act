@@ -255,12 +255,9 @@ def open_log_file():
         print("can't find configuration")
         sys.exit(-1)
 
-    if line.startswith("ACT-STORAGE"):
+    if line.startswith("ACT-STORAGE") or line.startswith("ACT-INDEX"):
         if not Args.histograms:
             Args.histograms = ["reads"]
-    elif line.startswith("ACT-INDEX"):
-        if not Args.histograms:
-            Args.histograms = ["trans-reads", "device-reads"]
     else:
         print("can't recognize configuration")
         sys.exit(-1)
