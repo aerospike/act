@@ -257,7 +257,7 @@ def open_log_file():
 
     if line.startswith("ACT-STORAGE"):
         if not Args.histograms:
-            Args.histograms = ["reads", "device-reads"]
+            Args.histograms = ["reads"]
     elif line.startswith("ACT-INDEX"):
         if not Args.histograms:
             Args.histograms = ["trans-reads", "device-reads"]

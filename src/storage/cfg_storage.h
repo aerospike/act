@@ -45,8 +45,6 @@ typedef struct storage_cfg_s {
 	uint32_t num_devices;           // derived by counting device names
 	uint64_t file_size;             // undocumented feature - use files
 	uint32_t service_threads;
-	uint32_t num_queues;
-	uint32_t threads_per_queue;
 	uint64_t run_us;                // converted from literal units in seconds
 	uint64_t report_interval_us;    // converted from literal units in seconds
 	bool us_histograms;
@@ -71,10 +69,8 @@ typedef struct storage_cfg_s {
 	// Derived from literal configuration:
 	uint32_t record_stored_bytes;
 	uint32_t record_stored_bytes_rmx;
-	uint64_t internal_read_reqs_per_sec;
-	uint64_t internal_write_reqs_per_sec;
-	uint32_t read_req_threads;
-	uint32_t write_req_threads;
+	uint32_t internal_read_reqs_per_sec;
+	uint32_t internal_write_reqs_per_sec;
 	double large_block_reads_per_sec;
 	double large_block_writes_per_sec;
 } storage_cfg;
