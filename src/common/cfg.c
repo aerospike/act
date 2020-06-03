@@ -84,7 +84,7 @@ parse_scheduler_mode()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
-	if (! val) {
+	if (val == NULL) {
 		printf("ERROR: missing scheduler mode - using 'noop'\n");
 		return "noop";
 	}
@@ -105,7 +105,7 @@ parse_uint32()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
-	if (! val) {
+	if (val == NULL) {
 		printf("ERROR: missing integer config value\n");
 		return 0;
 	}
@@ -125,5 +125,5 @@ parse_yes_no()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
-	return val && *val == 'y';
+	return val != NULL && *val == 'y';
 }

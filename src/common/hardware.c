@@ -133,7 +133,7 @@ set_scheduler(const char* device_name, const char* mode)
 
 	FILE* scheduler_file = fopen(scheduler_file_name, "w");
 
-	if (! scheduler_file) {
+	if (scheduler_file == NULL) {
 		printf("ERROR: couldn't open %s errno %d '%s'\n", scheduler_file_name,
 				errno, act_strerror(errno));
 		return;

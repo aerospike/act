@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 
 //==========================================================
@@ -74,14 +73,14 @@ queue_create(size_t ele_size)
 {
 	queue* q = malloc( sizeof(queue));
 
-	if (! q) {
+	if (q == NULL) {
 		printf("ERROR: creating queue (malloc)\n");
 		return NULL;
 	}
 
 	q->elements = malloc(Q_ALLOC_SZ * ele_size);
 
-	if (! q->elements) {
+	if (q->elements == NULL) {
 		printf("ERROR: creating queue (malloc)\n");
 		free(q);
 		return NULL;
@@ -147,7 +146,7 @@ queue_push(queue* q, const void* ele_ptr)
 	q->write_offset++;
 
 	// We're at risk of overflowing the write offset if it's too big.
-	if (q->write_offset & 0xC0000000) {
+	if ((q->write_offset & 0xC0000000) != 0) {
 		q_unwrap(q);
 	}
 
@@ -192,12 +191,11 @@ queue_pop(queue* q, void* ele_ptr)
 static bool
 q_resize(queue* q, uint32_t new_sz)
 {
-	// The rare case where the queue is not fragmented, and none of the offsets
-	// need to move.
 	if (q->read_offset % q->alloc_sz == 0) {
+		// Queue not fragmented - just realloc.
 		q->elements = realloc(q->elements, new_sz * q->ele_size);
 
-		if (! q->elements) {
+		if (q->elements == NULL) {
 			printf("ERROR: resizing queue (realloc)\n");
 			return false;
 		}
@@ -208,7 +206,7 @@ q_resize(queue* q, uint32_t new_sz)
 	else {
 		uint8_t* new_q = malloc(new_sz * q->ele_size);
 
-		if (! new_q) {
+		if (new_q == NULL) {
 			printf("ERROR: resizing queue (malloc)\n");
 			return false;
 		}

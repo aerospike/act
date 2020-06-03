@@ -29,13 +29,12 @@
 #include "cfg_index.h"
 
 #include <errno.h>
+#include <inttypes.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <inttypes.h>
 
 #include "common/cfg.h"
 #include "common/hardware.h"
@@ -99,7 +98,7 @@ index_configure(int argc, char* argv[])
 
 	FILE* config_file = fopen(argv[1], "r");
 
-	if (! config_file) {
+	if (config_file == NULL) {
 		printf("ERROR: couldn't open config file %s errno %d '%s'\n", argv[1],
 				errno, act_strerror(errno));
 		return false;
@@ -107,16 +106,16 @@ index_configure(int argc, char* argv[])
 
 	char line[1024];
 
-	while (fgets(line, sizeof(line), config_file)) {
+	while (fgets(line, sizeof(line), config_file) != NULL) {
 		char* comment = strchr(line, '#');
 
-		if (comment) {
+		if (comment != NULL) {
 			*comment = '\0';
 		}
 
 		const char* tag = strtok(line, ":" WHITE_SPACE);
 
-		if (! tag) {
+		if (tag == NULL) {
 			continue;
 		}
 
@@ -272,7 +271,7 @@ echo_configuration()
 
 	printf("%s:", TAG_DEVICE_NAMES);
 
-	for (int d = 0; d < g_icfg.num_devices; d++) {
+	for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
 		printf(" %s", g_icfg.device_names[d]);
 	}
 

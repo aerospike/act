@@ -452,6 +452,7 @@ fd_get(device* dev)
 
 	if (! queue_pop(dev->fd_q, (void*)&fd)) {
 		int direct_flags = O_DIRECT | (g_icfg.disable_odsync ? 0 : O_DSYNC);
+
 		fd = open(dev->name, O_RDWR | direct_flags, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {

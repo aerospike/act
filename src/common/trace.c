@@ -30,7 +30,7 @@
 
 #include <execinfo.h>
 #include <signal.h>
-#include <stdlib.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -86,7 +86,7 @@ do { \
 	\
 	char** syms = backtrace_symbols(bt, sz); \
 	\
-	if (syms) { \
+	if (syms != NULL) { \
 		for (int i = 0; i < sz; ++i) { \
 			printf("stacktrace: frame %d: %s\n", i, syms[i]); \
 		} \

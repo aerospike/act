@@ -94,7 +94,7 @@ histogram_create(histogram_scale scale)
 {
 	histogram* h = malloc(sizeof(histogram));
 
-	if (! h) {
+	if (h == NULL) {
 		printf("ERROR: creating histogram (malloc)\n");
 		return NULL;
 	}
@@ -127,7 +127,6 @@ void
 histogram_dump(histogram* h, const char* tag)
 {
 	uint64_t counts[N_BUCKETS];
-
 	uint32_t i = N_BUCKETS;
 	uint32_t j = 0;
 	uint64_t total = 0;
@@ -146,7 +145,7 @@ histogram_dump(histogram* h, const char* tag)
 	}
 
 	char buf[100];
-	uint32_t pos = 0;
+	int pos = 0;
 	uint32_t k = 0;
 
 	buf[0] = '\0';
@@ -158,8 +157,7 @@ histogram_dump(histogram* h, const char* tag)
 			continue;
 		}
 
-		pos += (uint32_t)sprintf(buf + pos, " (%02u: %010" PRIu64 ")", i,
-				counts[i]);
+		pos += sprintf(buf + pos, " (%02u: %010" PRIu64 ")", i, counts[i]);
 
 		if ((k & 3) == 3) { // maximum of 4 printed columns per line
 			printf("%s\n", buf);

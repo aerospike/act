@@ -492,7 +492,7 @@ run_large_block_reads(void* pv_dev)
 
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
-	if (! buf) {
+	if (buf == NULL) {
 		printf("ERROR: large block read buffer act_valloc()\n");
 		g_running = false;
 		return NULL;
@@ -539,7 +539,7 @@ run_large_block_writes(void* pv_dev)
 
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
-	if (! buf) {
+	if (buf == NULL) {
 		printf("ERROR: large block write buffer act_valloc()\n");
 		g_running = false;
 		return NULL;
@@ -584,7 +584,7 @@ run_tomb_raider(void* pv_dev)
 
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
-	if (! buf) {
+	if (buf == NULL) {
 		printf("ERROR: tomb raider buffer act_valloc()\n");
 		g_running = false;
 		return NULL;
@@ -692,7 +692,7 @@ discover_min_op_bytes(int fd, const char* name)
 {
 	uint8_t* buf = act_valloc(HI_IO_MIN_SIZE);
 
-	if (! buf) {
+	if (buf == NULL) {
 		printf("ERROR: IO min size buffer act_valloc()\n");
 		return 0;
 	}
