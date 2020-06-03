@@ -144,7 +144,7 @@ histogram_dump(histogram* h, const char* tag)
 		}
 	}
 
-	char buf[100];
+	char buf[200];
 	int pos = 0;
 	uint32_t k = 0;
 

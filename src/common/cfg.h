@@ -39,7 +39,7 @@
 //
 
 #define WHITE_SPACE " \t\n\r"
-#define MAX_DEVICE_NAME_SIZE 64
+#define MAX_DEVICE_NAME_SIZE 128
 
 
 //==========================================================
