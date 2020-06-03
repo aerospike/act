@@ -161,6 +161,7 @@ index_configure(int argc, char* argv[])
 		}
 		else {
 			printf("ERROR: ignoring unknown config item '%s'\n", tag);
+			return false;
 		}
 	}
 
