@@ -614,7 +614,8 @@ fails.  Also, how much the service threads that generate and do requests are
 allowed to lag behind their target rates before the ACT test is stopped. Note
 that this doesn't necessarily mean the devices failed the test - it means the
 transaction rates specified are too high to achieve with the configured number
-of service threads.  The default max-lag-sec is 10.
+of service threads.  Note - max-lag-sec 0 is a special value for which the test
+will not be stopped due to lag.  The default max-lag-sec is 10.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in the test run.

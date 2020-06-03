@@ -337,7 +337,8 @@ run_cache_simulation(void* pv_unused)
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
 		}
-		else if (sleep_us < -(int64_t)g_icfg.max_lag_usec) {
+		else if (g_icfg.max_lag_usec != 0 &&
+				sleep_us < -(int64_t)g_icfg.max_lag_usec) {
 			printf("ERROR: cache thread device IO can't keep up\n");
 			printf("drive(s) can't keep up - test stopped\n");
 			g_running = false;
@@ -384,7 +385,8 @@ run_service(void* pv_unused)
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
 		}
-		else if (sleep_us < -(int64_t)g_icfg.max_lag_usec) {
+		else if (g_icfg.max_lag_usec != 0 &&
+				sleep_us < -(int64_t)g_icfg.max_lag_usec) {
 			printf("ERROR: read request generator can't keep up\n");
 			printf("ACT can't do requested load - test stopped\n");
 			printf("try configuring more 'service-threads'\n");

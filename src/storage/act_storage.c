@@ -468,7 +468,8 @@ run_service(void* pv_unused)
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
 		}
-		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
+		else if (g_scfg.max_lag_usec != 0 &&
+				sleep_us < -(int64_t)g_scfg.max_lag_usec) {
 			printf("ERROR: service thread can't keep up\n");
 			printf("ACT can't do requested load - test stopped\n");
 			printf("try configuring more 'service-threads'\n");
@@ -514,7 +515,8 @@ run_large_block_reads(void* pv_dev)
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
 		}
-		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
+		else if (g_scfg.max_lag_usec != 0 &&
+				sleep_us < -(int64_t)g_scfg.max_lag_usec) {
 			printf("ERROR: large block reads can't keep up\n");
 			printf("drive(s) can't keep up - test stopped\n");
 			g_running = false;
@@ -561,7 +563,8 @@ run_large_block_writes(void* pv_dev)
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
 		}
-		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
+		else if (g_scfg.max_lag_usec != 0 &&
+				sleep_us < -(int64_t)g_scfg.max_lag_usec) {
 			printf("ERROR: large block writes can't keep up\n");
 			printf("drive(s) can't keep up - test stopped\n");
 			g_running = false;
