@@ -434,7 +434,7 @@ run_service(void* pv_unused)
 		uint32_t random_dev_index = rand_32() % g_scfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 
-		if (read_split > rand_32() % SPLIT_RESOLUTION) {
+		if (read_split > rand_64() % SPLIT_RESOLUTION) {
 			trans_req read_req = {
 					.dev = random_dev,
 					.offset = random_read_offset(random_dev),
