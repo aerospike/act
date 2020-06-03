@@ -158,14 +158,8 @@ histogram_dump(histogram* h, const char* tag)
 			continue;
 		}
 
-		int bytes = sprintf(buf + pos, " (%02u: %010" PRIu64 ")", i, counts[i]);
-
-		if (bytes <= 0) {
-			printf("ERROR: printing histogram\n");
-			return;
-		}
-
-		pos += (uint32_t)bytes;
+		pos += (uint32_t)sprintf(buf + pos, " (%02u: %010" PRIu64 ")", i,
+				counts[i]);
 
 		if ((k & 3) == 3) { // maximum of 4 printed columns per line
 			printf("%s\n", buf);
