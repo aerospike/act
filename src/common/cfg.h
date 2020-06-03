@@ -1,7 +1,7 @@
 /*
  * cfg.h
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -55,5 +55,5 @@ bool parse_yes_no();
 static inline void
 configuration_error(const char* tag)
 {
-	fprintf(stdout, "ERROR: invalid or missing configuration of '%s'\n", tag);
+	printf("ERROR: invalid or missing configuration of '%s'\n", tag);
 }

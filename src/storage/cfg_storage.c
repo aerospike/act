@@ -1,7 +1,7 @@
 /*
  * cfg_storage.c
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -124,15 +124,15 @@ bool
 storage_configure(int argc, char* argv[])
 {
 	if (argc != 2) {
-		fprintf(stdout, "usage: act_storage [config filename]\n");
+		printf("usage: act_storage [config filename]\n");
 		return false;
 	}
 
 	FILE* config_file = fopen(argv[1], "r");
 
 	if (! config_file) {
-		fprintf(stdout, "ERROR: couldn't open config file %s errno %d '%s'\n",
-				argv[1], errno, act_strerror(errno));
+		printf("ERROR: couldn't open config file %s errno %d '%s'\n", argv[1],
+				errno, act_strerror(errno));
 		return false;
 	}
 
@@ -222,7 +222,7 @@ storage_configure(int argc, char* argv[])
 			g_scfg.scheduler_mode = parse_scheduler_mode();
 		}
 		else {
-			fprintf(stdout, "ERROR: ignoring unknown config item '%s'\n", tag);
+			printf("ERROR: ignoring unknown config item '%s'\n", tag);
 		}
 	}
 
@@ -323,8 +323,8 @@ static bool
 derive_configuration()
 {
 	if (g_scfg.read_reqs_per_sec + g_scfg.write_reqs_per_sec == 0) {
-		fprintf(stdout, "ERROR: %s and %s can't both be zero\n",
-				TAG_READ_REQS_PER_SEC, TAG_WRITE_REQS_PER_SEC);
+		printf("ERROR: %s and %s can't both be zero\n", TAG_READ_REQS_PER_SEC,
+				TAG_WRITE_REQS_PER_SEC);
 		return false;
 	}
 
@@ -382,7 +382,7 @@ derive_configuration()
 	if ((g_scfg.internal_read_reqs_per_sec +
 			g_scfg.internal_write_reqs_per_sec) /
 					g_scfg.service_threads == 0) {
-		fprintf(stdout, "ERROR: load config too small\n");
+		printf("ERROR: load config too small\n");
 		return false;
 	}
 
@@ -392,77 +392,76 @@ derive_configuration()
 static void
 echo_configuration()
 {
-	fprintf(stdout, "ACT-STORAGE CONFIGURATION\n");
+	printf("ACT-STORAGE CONFIGURATION\n");
 
-	fprintf(stdout, "%s:", TAG_DEVICE_NAMES);
+	printf("%s:", TAG_DEVICE_NAMES);
 
 	for (int d = 0; d < g_scfg.num_devices; d++) {
-		fprintf(stdout, " %s", g_scfg.device_names[d]);
+		printf(" %s", g_scfg.device_names[d]);
 	}
 
-	fprintf(stdout, "\nnum-devices: %" PRIu32 "\n",
-			g_scfg.num_devices);
+	printf("\nnum-devices: %" PRIu32 "\n", g_scfg.num_devices);
 
 	if (g_scfg.file_size != 0) { // undocumented - don't always expose
-		fprintf(stdout, "%s: %" PRIu64 "\n", TAG_FILE_SIZE_MBYTES,
+		printf("%s: %" PRIu64 "\n", TAG_FILE_SIZE_MBYTES,
 				g_scfg.file_size >> 20);
 	}
 
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_SERVICE_THREADS,
+	printf("%s: %" PRIu32 "\n", TAG_SERVICE_THREADS,
 			g_scfg.service_threads);
-	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_TEST_DURATION_SEC,
+	printf("%s: %" PRIu64 "\n", TAG_TEST_DURATION_SEC,
 			g_scfg.run_us / 1000000);
-	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_REPORT_INTERVAL_SEC,
+	printf("%s: %" PRIu64 "\n", TAG_REPORT_INTERVAL_SEC,
 			g_scfg.report_interval_us / 1000000);
-	fprintf(stdout, "%s: %s\n", TAG_MICROSECOND_HISTOGRAMS,
+	printf("%s: %s\n", TAG_MICROSECOND_HISTOGRAMS,
 			g_scfg.us_histograms ? "yes" : "no");
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_READ_REQS_PER_SEC,
+	printf("%s: %" PRIu32 "\n", TAG_READ_REQS_PER_SEC,
 			g_scfg.read_reqs_per_sec);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_WRITE_REQS_PER_SEC,
+	printf("%s: %" PRIu32 "\n", TAG_WRITE_REQS_PER_SEC,
 			g_scfg.write_reqs_per_sec);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_RECORD_BYTES,
+	printf("%s: %" PRIu32 "\n", TAG_RECORD_BYTES,
 			g_scfg.record_bytes);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_RECORD_BYTES_RANGE_MAX,
+	printf("%s: %" PRIu32 "\n", TAG_RECORD_BYTES_RANGE_MAX,
 			g_scfg.record_bytes_rmx);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_LARGE_BLOCK_OP_KBYTES,
+	printf("%s: %" PRIu32 "\n", TAG_LARGE_BLOCK_OP_KBYTES,
 			g_scfg.large_block_ops_bytes / 1024);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_REPLICATION_FACTOR,
+	printf("%s: %" PRIu32 "\n", TAG_REPLICATION_FACTOR,
 			g_scfg.replication_factor);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_UPDATE_PCT,
+	printf("%s: %" PRIu32 "\n", TAG_UPDATE_PCT,
 			g_scfg.update_pct);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
+	printf("%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
 			g_scfg.defrag_lwm_pct);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMPRESS_PCT,
+	printf("%s: %" PRIu32 "\n", TAG_COMPRESS_PCT,
 			g_scfg.compress_pct);
-	fprintf(stdout, "%s: %s\n", TAG_DISABLE_ODSYNC,
+	printf("%s: %s\n", TAG_DISABLE_ODSYNC,
 			g_scfg.disable_odsync ? "yes" : "no");
-	fprintf(stdout, "%s: %s\n", TAG_COMMIT_TO_DEVICE,
+	printf("%s: %s\n", TAG_COMMIT_TO_DEVICE,
 			g_scfg.commit_to_device ? "yes" : "no");
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_COMMIT_MIN_BYTES,
+	printf("%s: %" PRIu32 "\n", TAG_COMMIT_MIN_BYTES,
 			g_scfg.commit_min_bytes);
-	fprintf(stdout, "%s: %s\n", TAG_TOMB_RAIDER,
+	printf("%s: %s\n", TAG_TOMB_RAIDER,
 			g_scfg.tomb_raider ? "yes" : "no");
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_TOMB_RAIDER_SLEEP_USEC,
+	printf("%s: %" PRIu32 "\n", TAG_TOMB_RAIDER_SLEEP_USEC,
 			g_scfg.tomb_raider_sleep_us);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_MAX_REQS_QUEUED,
+	printf("%s: %" PRIu32 "\n", TAG_MAX_REQS_QUEUED,
 			g_scfg.max_reqs_queued);
-	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
+	printf("%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
 			g_scfg.max_lag_usec / 1000000);
-	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
+	printf("%s: %s\n", TAG_SCHEDULER_MODE,
 			g_scfg.scheduler_mode);
 
-	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
+	printf("\nDERIVED CONFIGURATION\n");
 
-	fprintf(stdout, "record-stored-bytes: %" PRIu32 " ... %" PRIu32 "\n",
+	printf("record-stored-bytes: %" PRIu32 " ... %" PRIu32 "\n",
 			g_scfg.record_stored_bytes, g_scfg.record_stored_bytes_rmx);
-	fprintf(stdout, "internal-read-reqs-per-sec: %" PRIu32 "\n",
+	printf("internal-read-reqs-per-sec: %" PRIu32 "\n",
 			g_scfg.internal_read_reqs_per_sec);
-	fprintf(stdout, "internal-write-reqs-per-sec: %" PRIu32 "\n",
+	printf("internal-write-reqs-per-sec: %" PRIu32 "\n",
 			g_scfg.internal_write_reqs_per_sec);
-	fprintf(stdout, "large-block-reads-per-sec: %.2lf\n",
+	printf("large-block-reads-per-sec: %.2lf\n",
 			g_scfg.large_block_reads_per_sec);
-	fprintf(stdout, "large-block-writes-per-sec: %.2lf\n",
+	printf("large-block-writes-per-sec: %.2lf\n",
 			g_scfg.large_block_writes_per_sec);
 
-	fprintf(stdout, "\n");
+	printf("\n");
 }

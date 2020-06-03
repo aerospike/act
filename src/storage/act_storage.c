@@ -6,7 +6,7 @@
  *
  * Joey Shurtleff & Andrew Gooding, 2011.
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2011-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -207,9 +207,9 @@ main(int argc, char* argv[])
 {
 	signal_setup();
 
-	fprintf(stdout, "\nACT version %s\n", VERSION);
-	fprintf(stdout, "Storage device IO test\n");
-	fprintf(stdout, "Copyright 2020 by Aerospike. All rights reserved.\n\n");
+	printf("\nACT version %s\n", VERSION);
+	printf("Storage device IO test\n");
+	printf("Copyright 2020 by Aerospike. All rights reserved.\n\n");
 
 	if (! storage_configure(argc, argv)) {
 		exit(-1);
@@ -238,7 +238,7 @@ main(int argc, char* argv[])
 			set_scheduler(dev->name, g_scfg.scheduler_mode);
 		}
 
-		if (! (dev->fd_q = queue_create(sizeof(int), true)) ||
+		if (! (dev->fd_q = queue_create(sizeof(int))) ||
 			! discover_device(dev) ||
 			! (dev->read_hist = histogram_create(scale)) ||
 			! (dev->write_hist = histogram_create(scale))) {
@@ -263,13 +263,13 @@ main(int argc, char* argv[])
 
 			if (pthread_create(&dev->large_block_read_thread, NULL,
 					run_large_block_reads, (void*)dev) != 0) {
-				fprintf(stdout, "ERROR: create large op read thread\n");
+				printf("ERROR: create large op read thread\n");
 				exit(-1);
 			}
 
 			if (pthread_create(&dev->large_block_write_thread, NULL,
 					run_large_block_writes, (void*)dev) != 0) {
-				fprintf(stdout, "ERROR: create large op write thread\n");
+				printf("ERROR: create large op write thread\n");
 				exit(-1);
 			}
 		}
@@ -281,7 +281,7 @@ main(int argc, char* argv[])
 
 			if (pthread_create(&dev->tomb_raider_thread, NULL,
 					run_tomb_raider, (void*)dev) != 0) {
-				fprintf(stdout, "ERROR: create tomb raider thread\n");
+				printf("ERROR: create tomb raider thread\n");
 				exit(-1);
 			}
 		}
@@ -291,7 +291,7 @@ main(int argc, char* argv[])
 
 	for (uint32_t k = 0; k < g_scfg.service_threads; k++) {
 		if (pthread_create(&service_tids[k], NULL, run_service, NULL) != 0) {
-			fprintf(stdout, "ERROR: create service thread\n");
+			printf("ERROR: create service thread\n");
 			exit(-1);
 		}
 	}
@@ -302,32 +302,32 @@ main(int argc, char* argv[])
 	// Equivalent: g_scfg.internal_write_reqs_per_sec != 0.
 	bool do_commits = g_scfg.commit_to_device && g_scfg.write_reqs_per_sec != 0;
 
-	fprintf(stdout, "\nHISTOGRAM NAMES\n");
+	printf("\nHISTOGRAM NAMES\n");
 
 	if (do_reads) {
-		fprintf(stdout, "reads\n");
-		fprintf(stdout, "device-reads\n");
+		printf("reads\n");
+		printf("device-reads\n");
 
 		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
-			fprintf(stdout, "%s\n", g_devices[d].read_hist_tag);
+			printf("%s\n", g_devices[d].read_hist_tag);
 		}
 	}
 
 	if (g_scfg.write_reqs_per_sec != 0) {
-		fprintf(stdout, "large-block-reads\n");
-		fprintf(stdout, "large-block-writes\n");
+		printf("large-block-reads\n");
+		printf("large-block-writes\n");
 	}
 
 	if (do_commits) {
-		fprintf(stdout, "writes\n");
-		fprintf(stdout, "device-writes\n");
+		printf("writes\n");
+		printf("device-writes\n");
 
 		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
-			fprintf(stdout, "%s\n", g_devices[d].write_hist_tag);
+			printf("%s\n", g_devices[d].write_hist_tag);
 		}
 	}
 
-	fprintf(stdout, "\n");
+	printf("\n");
 
 	uint64_t now_us = 0;
 	uint64_t count = 0;
@@ -343,7 +343,7 @@ main(int argc, char* argv[])
 			usleep((uint32_t)sleep_us);
 		}
 
-		fprintf(stdout, "after %" PRIu64 " sec:\n",
+		printf("after %" PRIu64 " sec:\n",
 				(count * g_scfg.report_interval_us) / 1000000);
 
 		if (do_reads) {
@@ -369,7 +369,7 @@ main(int argc, char* argv[])
 			}
 		}
 
-		fprintf(stdout, "\n");
+		printf("\n");
 		fflush(stdout);
 	}
 
@@ -469,9 +469,9 @@ run_service(void* pv_unused)
 			usleep((uint32_t)sleep_us);
 		}
 		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
-			fprintf(stdout, "ERROR: service thread can't keep up\n");
-			fprintf(stdout, "ACT can't do requested load - test stopped\n");
-			fprintf(stdout, "try configuring more 'service-threads'\n");
+			printf("ERROR: service thread can't keep up\n");
+			printf("ACT can't do requested load - test stopped\n");
+			printf("try configuring more 'service-threads'\n");
 			g_running = false;
 		}
 	}
@@ -493,7 +493,7 @@ run_large_block_reads(void* pv_dev)
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
 	if (! buf) {
-		fprintf(stdout, "ERROR: large block read buffer act_valloc()\n");
+		printf("ERROR: large block read buffer act_valloc()\n");
 		g_running = false;
 		return NULL;
 	}
@@ -515,8 +515,8 @@ run_large_block_reads(void* pv_dev)
 			usleep((uint32_t)sleep_us);
 		}
 		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
-			fprintf(stdout, "ERROR: large block reads can't keep up\n");
-			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
+			printf("ERROR: large block reads can't keep up\n");
+			printf("drive(s) can't keep up - test stopped\n");
 			g_running = false;
 		}
 	}
@@ -540,7 +540,7 @@ run_large_block_writes(void* pv_dev)
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
 	if (! buf) {
-		fprintf(stdout, "ERROR: large block write buffer act_valloc()\n");
+		printf("ERROR: large block write buffer act_valloc()\n");
 		g_running = false;
 		return NULL;
 	}
@@ -562,8 +562,8 @@ run_large_block_writes(void* pv_dev)
 			usleep((uint32_t)sleep_us);
 		}
 		else if (sleep_us < -(int64_t)g_scfg.max_lag_usec) {
-			fprintf(stdout, "ERROR: large block writes can't keep up\n");
-			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
+			printf("ERROR: large block writes can't keep up\n");
+			printf("drive(s) can't keep up - test stopped\n");
 			g_running = false;
 		}
 	}
@@ -585,7 +585,7 @@ run_tomb_raider(void* pv_dev)
 	uint8_t* buf = act_valloc(g_scfg.large_block_ops_bytes);
 
 	if (! buf) {
-		fprintf(stdout, "ERROR: tomb raider buffer act_valloc()\n");
+		printf("ERROR: tomb raider buffer act_valloc()\n");
 		g_running = false;
 		return NULL;
 	}
@@ -649,8 +649,8 @@ discover_device(device* dev)
 		device_bytes = g_scfg.file_size;
 
 		if (ftruncate(fd, (off_t)device_bytes) != 0) {
-			fprintf(stdout, "ERROR: ftruncate file %s errno %d '%s'\n",
-					dev->name, errno, act_strerror(errno));
+			printf("ERROR: ftruncate file %s errno %d '%s'\n", dev->name, errno,
+					act_strerror(errno));
 			fd_put(dev, fd);
 			return false;
 		}
@@ -661,7 +661,7 @@ discover_device(device* dev)
 	fd_put(dev, fd);
 
 	if (dev->n_large_blocks == 0) {
-		fprintf(stdout, "ERROR: %s ioctl to discover size\n", dev->name);
+		printf("ERROR: %s ioctl to discover size\n", dev->name);
 		return false;
 	}
 
@@ -669,7 +669,7 @@ discover_device(device* dev)
 		return false;
 	}
 
-	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks, "
+	printf("%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks, "
 			"minimum IO size = %" PRIu32 " bytes\n",
 			dev->name, device_bytes, dev->n_large_blocks,
 			dev->min_op_bytes);
@@ -693,7 +693,7 @@ discover_min_op_bytes(int fd, const char* name)
 	uint8_t* buf = act_valloc(HI_IO_MIN_SIZE);
 
 	if (! buf) {
-		fprintf(stdout, "ERROR: IO min size buffer act_valloc()\n");
+		printf("ERROR: IO min size buffer act_valloc()\n");
 		return 0;
 	}
 
@@ -708,8 +708,8 @@ discover_min_op_bytes(int fd, const char* name)
 		read_sz <<= 1; // LO_IO_MIN_SIZE and HI_IO_MIN_SIZE are powers of 2
 	}
 
-	fprintf(stdout, "ERROR: %s read failed at all sizes from %u to %u bytes\n",
-			name, LO_IO_MIN_SIZE, HI_IO_MIN_SIZE);
+	printf("ERROR: %s read failed at all sizes from %u to %u bytes\n", name,
+			LO_IO_MIN_SIZE, HI_IO_MIN_SIZE);
 
 	free(buf);
 
@@ -797,7 +797,7 @@ fd_close_all(device* dev)
 {
 	int fd;
 
-	while (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) == QUEUE_OK) {
+	while (queue_pop(dev->fd_q, (void*)&fd)) {
 		close(fd);
 	}
 }
@@ -810,15 +810,15 @@ fd_get(device* dev)
 {
 	int fd = -1;
 
-	if (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) != QUEUE_OK) {
+	if (! queue_pop(dev->fd_q, (void*)&fd)) {
 		int direct_flags = O_DIRECT | (g_scfg.disable_odsync ? 0 : O_DSYNC);
 		int flags = O_RDWR | (g_scfg.file_size == 0 ? direct_flags : O_CREAT);
 
 		fd = open(dev->name, flags, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {
-			fprintf(stdout, "ERROR: open device %s errno %d '%s'\n", dev->name,
-					errno, act_strerror(errno));
+			printf("ERROR: open device %s errno %d '%s'\n", dev->name, errno,
+					act_strerror(errno));
 		}
 	}
 
@@ -883,7 +883,7 @@ read_from_device(device* dev, uint64_t offset, uint32_t size, uint8_t* buf)
 
 	if (! pread_all(fd, buf, size, offset)) {
 		close(fd);
-		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
+		printf("ERROR: reading %s: %d '%s'\n", dev->name, errno,
 				act_strerror(errno));
 		return -1;
 	}
@@ -950,7 +950,7 @@ write_to_device(device* dev, uint64_t offset, uint32_t size, const uint8_t* buf)
 
 	if (! pwrite_all(fd, buf, size, offset)) {
 		close(fd);
-		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
+		printf("ERROR: writing %s: %d '%s'\n", dev->name, errno,
 				act_strerror(errno));
 		return -1;
 	}

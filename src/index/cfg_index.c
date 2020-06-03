@@ -1,7 +1,7 @@
 /*
  * cfg_index.c
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -95,15 +95,15 @@ bool
 index_configure(int argc, char* argv[])
 {
 	if (argc != 2) {
-		fprintf(stdout, "usage: act_index [config filename]\n");
+		printf("usage: act_index [config filename]\n");
 		return false;
 	}
 
 	FILE* config_file = fopen(argv[1], "r");
 
 	if (! config_file) {
-		fprintf(stdout, "ERROR: couldn't open config file %s errno %d '%s'\n",
-				argv[1], errno, act_strerror(errno));
+		printf("ERROR: couldn't open config file %s errno %d '%s'\n", argv[1],
+				errno, act_strerror(errno));
 		return false;
 	}
 
@@ -166,7 +166,7 @@ index_configure(int argc, char* argv[])
 			g_icfg.scheduler_mode = parse_scheduler_mode();
 		}
 		else {
-			fprintf(stdout, "ERROR: ignoring unknown config item '%s'\n", tag);
+			printf("ERROR: ignoring unknown config item '%s'\n", tag);
 		}
 	}
 
@@ -232,8 +232,8 @@ static bool
 derive_configuration()
 {
 	if (g_icfg.read_reqs_per_sec + g_icfg.write_reqs_per_sec == 0) {
-		fprintf(stdout, "ERROR: %s and %s can't both be zero\n",
-				TAG_READ_REQS_PER_SEC, TAG_WRITE_REQS_PER_SEC);
+		printf("ERROR: %s and %s can't both be zero\n", TAG_READ_REQS_PER_SEC,
+				TAG_WRITE_REQS_PER_SEC);
 		return false;
 	}
 
@@ -245,6 +245,12 @@ derive_configuration()
 	// 1 4K device read per write request (including replica writes).
 	g_icfg.service_thread_reads_per_sec =
 			g_icfg.read_reqs_per_sec + effective_write_reqs_per_sec;
+
+	// Load must be enough to calculate service thread rates safely.
+	if (g_icfg.service_thread_reads_per_sec / g_icfg.service_threads == 0) {
+		printf("ERROR: load config too small\n");
+		return false;
+	}
 
 	// On the cache threads, we'll have extra 4K device reads per write request
 	// due to defrag. We'll also have 1 4K device write per write request, plus
@@ -267,49 +273,49 @@ derive_configuration()
 static void
 echo_configuration()
 {
-	fprintf(stdout, "ACT-INDEX CONFIGURATION\n");
+	printf("ACT-INDEX CONFIGURATION\n");
 
-	fprintf(stdout, "%s:", TAG_DEVICE_NAMES);
+	printf("%s:", TAG_DEVICE_NAMES);
 
 	for (int d = 0; d < g_icfg.num_devices; d++) {
-		fprintf(stdout, " %s", g_icfg.device_names[d]);
+		printf(" %s", g_icfg.device_names[d]);
 	}
 
-	fprintf(stdout, "\nnum-devices: %" PRIu32 "\n",
-			g_icfg.num_devices);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_SERVICE_THREADS,
+	printf("\nnum-devices: %" PRIu32 "\n", g_icfg.num_devices);
+
+	printf("%s: %" PRIu32 "\n", TAG_SERVICE_THREADS,
 			g_icfg.service_threads);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_CACHE_THREADS,
+	printf("%s: %" PRIu32 "\n", TAG_CACHE_THREADS,
 			g_icfg.cache_threads);
-	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_TEST_DURATION_SEC,
+	printf("%s: %" PRIu64 "\n", TAG_TEST_DURATION_SEC,
 			g_icfg.run_us / 1000000);
-	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_REPORT_INTERVAL_SEC,
+	printf("%s: %" PRIu64 "\n", TAG_REPORT_INTERVAL_SEC,
 			g_icfg.report_interval_us / 1000000);
-	fprintf(stdout, "%s: %s\n", TAG_MICROSECOND_HISTOGRAMS,
+	printf("%s: %s\n", TAG_MICROSECOND_HISTOGRAMS,
 			g_icfg.us_histograms ? "yes" : "no");
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_READ_REQS_PER_SEC,
+	printf("%s: %" PRIu32 "\n", TAG_READ_REQS_PER_SEC,
 			g_icfg.read_reqs_per_sec);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_WRITE_REQS_PER_SEC,
+	printf("%s: %" PRIu32 "\n", TAG_WRITE_REQS_PER_SEC,
 			g_icfg.write_reqs_per_sec);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_REPLICATION_FACTOR,
+	printf("%s: %" PRIu32 "\n", TAG_REPLICATION_FACTOR,
 			g_icfg.replication_factor);
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
+	printf("%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
 			g_icfg.defrag_lwm_pct);
-	fprintf(stdout, "%s: %s\n", TAG_DISABLE_ODSYNC,
+	printf("%s: %s\n", TAG_DISABLE_ODSYNC,
 			g_icfg.disable_odsync ? "yes" : "no");
-	fprintf(stdout, "%s: %" PRIu32 "\n", TAG_MAX_REQS_QUEUED,
+	printf("%s: %" PRIu32 "\n", TAG_MAX_REQS_QUEUED,
 			g_icfg.max_reqs_queued);
-	fprintf(stdout, "%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
+	printf("%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
 			g_icfg.max_lag_usec / 1000000);
-	fprintf(stdout, "%s: %s\n", TAG_SCHEDULER_MODE,
+	printf("%s: %s\n", TAG_SCHEDULER_MODE,
 			g_icfg.scheduler_mode);
 
-	fprintf(stdout, "\nDERIVED CONFIGURATION\n");
+	printf("\nDERIVED CONFIGURATION\n");
 
-	fprintf(stdout, "service-thread-reads-per-sec: %" PRIu64 "\n",
+	printf("service-thread-reads-per-sec: %" PRIu64 "\n",
 			g_icfg.service_thread_reads_per_sec);
-	fprintf(stdout, "cache-thread-reads-and-writes-per-sec: %" PRIu64 "\n",
+	printf("cache-thread-reads-and-writes-per-sec: %" PRIu64 "\n",
 			g_icfg.cache_thread_reads_and_writes_per_sec);
 
-	fprintf(stdout, "\n");
+	printf("\n");
 }
