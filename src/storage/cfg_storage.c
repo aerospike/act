@@ -65,7 +65,6 @@ static const char TAG_COMMIT_TO_DEVICE[]        = "commit-to-device";
 static const char TAG_COMMIT_MIN_BYTES[]        = "commit-min-bytes";
 static const char TAG_TOMB_RAIDER[]             = "tomb-raider";
 static const char TAG_TOMB_RAIDER_SLEEP_USEC[]  = "tomb-raider-sleep-usec";
-static const char TAG_MAX_REQS_QUEUED[]         = "max-reqs-queued";
 static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
 static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
 
@@ -93,7 +92,6 @@ storage_cfg g_scfg = {
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
 		.compress_pct = 100,
-		.max_reqs_queued = 100000,
 		.max_lag_usec = 1000000 * 10,
 		.scheduler_mode = "noop"
 };
@@ -211,9 +209,6 @@ storage_configure(int argc, char* argv[])
 		}
 		else if (strcmp(tag, TAG_TOMB_RAIDER_SLEEP_USEC) == 0) {
 			g_scfg.tomb_raider_sleep_us = parse_uint32();
-		}
-		else if (strcmp(tag, TAG_MAX_REQS_QUEUED) == 0) {
-			g_scfg.max_reqs_queued = parse_uint32();
 		}
 		else if (strcmp(tag, TAG_MAX_LAG_SEC) == 0) {
 			g_scfg.max_lag_usec = (uint64_t)parse_uint32() * 1000000;
@@ -443,8 +438,6 @@ echo_configuration()
 			g_scfg.tomb_raider ? "yes" : "no");
 	printf("%s: %" PRIu32 "\n", TAG_TOMB_RAIDER_SLEEP_USEC,
 			g_scfg.tomb_raider_sleep_us);
-	printf("%s: %" PRIu32 "\n", TAG_MAX_REQS_QUEUED,
-			g_scfg.max_reqs_queued);
 	printf("%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
 			g_scfg.max_lag_usec / 1000000);
 	printf("%s: %s\n", TAG_SCHEDULER_MODE,

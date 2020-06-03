@@ -53,7 +53,6 @@ typedef struct index_cfg_s {
 	uint32_t replication_factor;
 	uint32_t defrag_lwm_pct;
 	bool disable_odsync;
-	uint32_t max_reqs_queued;
 	uint64_t max_lag_usec;          // converted from literal units in seconds
 	const char* scheduler_mode;
 

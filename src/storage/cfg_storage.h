@@ -62,7 +62,6 @@ typedef struct storage_cfg_s {
 	uint32_t commit_min_bytes;
 	bool tomb_raider;
 	uint32_t tomb_raider_sleep_us;
-	uint32_t max_reqs_queued;
 	uint64_t max_lag_usec;          // converted from literal units in seconds
 	const char* scheduler_mode;
 
