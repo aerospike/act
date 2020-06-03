@@ -204,7 +204,7 @@ def open_log_file():
     print(Args.log + " is ACT version " + version + "\n")
     numeric_version = float(version)
 
-    if numeric_version < 5.0 or numeric_version >= 6.0:
+    if numeric_version < 6.0 or numeric_version >= 7.0:
         print(Args.log + " ACT version not compatible")
         sys.exit(-1)
 
