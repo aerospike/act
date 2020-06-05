@@ -643,7 +643,7 @@ discover_device(device* dev)
 		return false;
 	}
 
-	uint64_t device_bytes;
+	uint64_t device_bytes = 0;
 
 	if (g_scfg.file_size == 0) {
 		ioctl(fd, BLKGETSIZE64, &device_bytes);

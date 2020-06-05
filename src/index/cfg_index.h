@@ -43,6 +43,7 @@
 typedef struct index_cfg_s {
 	char device_names[MAX_NUM_INDEX_DEVICES][MAX_DEVICE_NAME_SIZE];
 	uint32_t num_devices;           // derived by counting device names
+	uint64_t file_size;             // undocumented feature - use files
 	uint32_t service_threads;
 	uint32_t cache_threads;
 	uint64_t run_us;                // converted from literal units in seconds

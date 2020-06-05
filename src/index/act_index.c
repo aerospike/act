@@ -172,7 +172,10 @@ main(int argc, char* argv[])
 		device* dev = &g_devices[d];
 
 		dev->name = (const char*)g_icfg.device_names[d];
-		set_scheduler(dev->name, g_icfg.scheduler_mode);
+
+		if (g_icfg.file_size == 0) { // normally 0
+			set_scheduler(dev->name, g_icfg.scheduler_mode);
+		}
 
 		if (! (dev->fd_q = queue_create(sizeof(int))) ||
 			! discover_device(dev) ||
@@ -416,7 +419,20 @@ discover_device(device* dev)
 
 	uint64_t device_bytes = 0;
 
-	ioctl(fd, BLKGETSIZE64, &device_bytes);
+	if (g_icfg.file_size == 0) {
+		ioctl(fd, BLKGETSIZE64, &device_bytes);
+	}
+	else { // undocumented file mode
+		device_bytes = g_icfg.file_size;
+
+		if (ftruncate(fd, (off_t)device_bytes) != 0) {
+			printf("ERROR: ftruncate file %s errno %d '%s'\n", dev->name, errno,
+					act_strerror(errno));
+			fd_put(dev, fd);
+			return false;
+		}
+	}
+
 	fd_put(dev, fd);
 
 	if (device_bytes == 0) {
@@ -454,8 +470,9 @@ fd_get(device* dev)
 
 	if (! queue_pop(dev->fd_q, (void*)&fd)) {
 		int direct_flags = O_DIRECT | (g_icfg.disable_odsync ? 0 : O_DSYNC);
+		int flags = O_RDWR | (g_icfg.file_size == 0 ? direct_flags : O_CREAT);
 
-		fd = open(dev->name, O_RDWR | direct_flags, S_IRUSR | S_IWUSR);
+		fd = open(dev->name, flags, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {
 			printf("ERROR: open device %s errno %d '%s'\n", dev->name, errno,

@@ -46,6 +46,7 @@
 //
 
 static const char TAG_DEVICE_NAMES[]            = "device-names";
+static const char TAG_FILE_SIZE_MBYTES[]        = "file-size-mbytes";
 static const char TAG_SERVICE_THREADS[]         = "service-threads";
 static const char TAG_CACHE_THREADS[]           = "cache-threads";
 static const char TAG_TEST_DURATION_SEC[]       = "test-duration-sec";
@@ -122,6 +123,9 @@ index_configure(int argc, char* argv[])
 		if (strcmp(tag, TAG_DEVICE_NAMES) == 0) {
 			parse_device_names(MAX_NUM_INDEX_DEVICES, g_icfg.device_names,
 					&g_icfg.num_devices);
+		}
+		else if (strcmp(tag, TAG_FILE_SIZE_MBYTES) == 0) {
+			g_icfg.file_size = (uint64_t)parse_uint32() << 20;
 		}
 		else if (strcmp(tag, TAG_SERVICE_THREADS) == 0) {
 			g_icfg.service_threads = parse_uint32();
@@ -277,6 +281,11 @@ echo_configuration()
 	}
 
 	printf("\nnum-devices: %" PRIu32 "\n", g_icfg.num_devices);
+
+	if (g_icfg.file_size != 0) { // undocumented - don't always expose
+		printf("%s: %" PRIu64 "\n", TAG_FILE_SIZE_MBYTES,
+				g_icfg.file_size >> 20);
+	}
 
 	printf("%s: %" PRIu32 "\n", TAG_SERVICE_THREADS,
 			g_icfg.service_threads);
