@@ -1,7 +1,7 @@
 /*
  * io.h
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,77 +31,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdio.h>
-#include <unistd.h>
 
 
 //==========================================================
 // Public API.
 //
 
-static inline bool
-pread_all(int fd, void* buf, size_t size, off_t offset)
-{
-	ssize_t result;
-
-	while ((result = pread(fd, buf, size, offset)) != (ssize_t)size) {
-		if (result < 0) {
-			return false; // let the caller log errors
-		}
-
-		if (result == 0) { // should only happen if caller passed 0 size
-			fprintf(stdout, "ERROR: pread() returned 0\n");
-			return false;
-		}
-
-		buf += result;
-		offset += result;
-		size -= result;
-	}
-
-	return true;
-}
-
-static inline bool
-pwrite_all(int fd, const void* buf, size_t size, off_t offset)
-{
-	ssize_t result;
-
-	while ((result = pwrite(fd, buf, size, offset)) != (ssize_t)size) {
-		if (result < 0) {
-			return false; // let the caller log errors
-		}
-
-		if (result == 0) { // should only happen if caller passed 0 size
-			fprintf(stdout, "ERROR: pwrite() returned 0\n");
-			return false;
-		}
-
-		buf += result;
-		offset += result;
-		size -= result;
-	}
-
-	return true;
-}
-
-static inline bool
-write_all(int fd, const void* buf, size_t size)
-{
-	ssize_t result;
-
-	while ((result = write(fd, buf, size)) != (ssize_t)size) {
-		if (result < 0) {
-			return false; // let the caller log errors
-		}
-
-		if (result == 0) { // should only happen if caller passed 0 size
-			fprintf(stdout, "ERROR: write() returned 0\n");
-			return false;
-		}
-
-		buf += result;
-		size -= result;
-	}
-
-	return true;
-}
+bool pread_all(int fd, void* buf, size_t size, off_t offset);
+bool pwrite_all(int fd, const void* buf, size_t size, off_t offset);
+bool write_all(int fd, const void* buf, size_t size);

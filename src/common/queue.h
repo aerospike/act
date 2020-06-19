@@ -1,7 +1,7 @@
 /*
  * queue.h
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2011-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -39,32 +39,21 @@
 //
 
 typedef struct queue_s {
-	bool thread_safe;
 	uint32_t alloc_sz;          // number of elements currently allocated
 	uint32_t read_offset;       // head of queue
 	uint32_t write_offset;      // tail of queue - write is always >= read
 	size_t ele_size;            // size of (every) element in bytes
 	pthread_mutex_t lock;       // the lock - used in thread-safe mode
-	pthread_cond_t cond_var;    // the conditional variable
 	uint8_t* elements;          // the elements' bytes
 } queue;
-
-// Returned by queue_push() and/or queue_pop():
-#define QUEUE_EMPTY -2
-#define QUEUE_ERR -1
-#define QUEUE_OK 0
-
-// Possible ms_wait values to pass to queue_pop():
-#define QUEUE_FOREVER -1
-#define QUEUE_NO_WAIT 0
 
 
 //==========================================================
 // Public API.
 //
 
-queue* queue_create(size_t ele_size, bool thread_safe);
+queue* queue_create(size_t ele_size);
 void queue_destroy(queue* q);
 uint32_t queue_sz(queue* q);
-int queue_push(queue* q, const void* ele_ptr);
-int queue_pop(queue* q, void* ele_ptr, int ms_wait);
+bool queue_push(queue* q, const void* ele_ptr);
+bool queue_pop(queue* q, void* ele_ptr);

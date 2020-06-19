@@ -204,7 +204,7 @@ def open_log_file():
     print(Args.log + " is ACT version " + version + "\n")
     numeric_version = float(version)
 
-    if numeric_version < 5.0 or numeric_version >= 6.0:
+    if numeric_version < 6.0 or numeric_version >= 7.0:
         print(Args.log + " ACT version not compatible")
         sys.exit(-1)
 
@@ -255,12 +255,9 @@ def open_log_file():
         print("can't find configuration")
         sys.exit(-1)
 
-    if line.startswith("ACT-STORAGE"):
+    if line.startswith("ACT-STORAGE") or line.startswith("ACT-INDEX"):
         if not Args.histograms:
-            Args.histograms = ["reads", "device-reads"]
-    elif line.startswith("ACT-INDEX"):
-        if not Args.histograms:
-            Args.histograms = ["trans-reads", "device-reads"]
+            Args.histograms = ["reads"]
     else:
         print("can't recognize configuration")
         sys.exit(-1)

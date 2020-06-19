@@ -7,7 +7,7 @@ DIR_BIN = $(DIR_TARGET)/bin
 SRC_DIRS = common index prep storage
 OBJ_DIRS = $(SRC_DIRS:%=$(DIR_OBJ)/src/%)
 
-COMMON_SRC = cfg.c hardware.c histogram.c queue.c random.c trace.c
+COMMON_SRC = cfg.c hardware.c histogram.c io.c queue.c random.c trace.c
 INDEX_SRC = act_index.c cfg_index.c
 STORAGE_SRC = act_storage.c cfg_storage.c
 

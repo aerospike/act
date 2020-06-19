@@ -1,7 +1,7 @@
 /*
  * queue.c
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2011-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -35,7 +35,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 
 
 //==========================================================
@@ -49,8 +48,8 @@
 // Forward Declarations
 //
 
-int q_resize(queue* q, uint new_sz);
-void q_unwrap(queue* q);
+static bool q_resize(queue* q, uint32_t new_sz);
+static void q_unwrap(queue* q);
 
 
 //==========================================================
@@ -70,19 +69,19 @@ void q_unwrap(queue* q);
 // Create a queue.
 //
 queue*
-queue_create(size_t ele_size, bool thread_safe)
+queue_create(size_t ele_size)
 {
 	queue* q = malloc( sizeof(queue));
 
-	if (! q) {
-		fprintf(stdout, "ERROR: creating queue (malloc)\n");
+	if (q == NULL) {
+		printf("ERROR: creating queue (malloc)\n");
 		return NULL;
 	}
 
 	q->elements = malloc(Q_ALLOC_SZ * ele_size);
 
-	if (! q->elements) {
-		fprintf(stdout, "ERROR: creating queue (malloc)\n");
+	if (q->elements == NULL) {
+		printf("ERROR: creating queue (malloc)\n");
 		free(q);
 		return NULL;
 	}
@@ -90,22 +89,9 @@ queue_create(size_t ele_size, bool thread_safe)
 	q->alloc_sz = Q_ALLOC_SZ;
 	q->write_offset = q->read_offset = 0;
 	q->ele_size = ele_size;
-	q->thread_safe = thread_safe;
-
-	if (! q->thread_safe) {
-		return q;
-	}
 
 	if (pthread_mutex_init(&q->lock, NULL) != 0) {
-		fprintf(stdout, "ERROR: creating queue (mutex init)\n");
-		free(q->elements);
-		free(q);
-		return NULL;
-	}
-
-	if (pthread_cond_init(&q->cond_var, NULL) != 0) {
-		fprintf(stdout, "ERROR: creating queue (cond init)\n");
-		pthread_mutex_destroy(&q->lock);
+		printf("ERROR: creating queue (mutex init)\n");
 		free(q->elements);
 		free(q);
 		return NULL;
@@ -120,10 +106,7 @@ queue_create(size_t ele_size, bool thread_safe)
 void
 queue_destroy(queue* q)
 {
-	if (q->thread_safe) {
-		pthread_cond_destroy(&q->cond_var);
-		pthread_mutex_destroy(&q->lock);
-	}
+	pthread_mutex_destroy(&q->lock);
 
 	free(q->elements);
 	free(q);
@@ -135,15 +118,11 @@ queue_destroy(queue* q)
 uint32_t
 queue_sz(queue* q)
 {
-	if (q->thread_safe) {
-		pthread_mutex_lock(&q->lock);
-	}
+	pthread_mutex_lock(&q->lock);
 
 	uint32_t rv = Q_SZ(q);
 
-	if (q->thread_safe) {
-		pthread_mutex_unlock(&q->lock);
-	}
+	pthread_mutex_unlock(&q->lock);
 
 	return rv;
 }
@@ -151,20 +130,15 @@ queue_sz(queue* q)
 //------------------------------------------------
 // Push an element to the tail of the queue.
 //
-int
+bool
 queue_push(queue* q, const void* ele_ptr)
 {
-	if (q->thread_safe) {
-		pthread_mutex_lock(&q->lock);
-	}
+	pthread_mutex_lock(&q->lock);
 
 	if (Q_SZ(q) == q->alloc_sz) {
-		if (q_resize(q, q->alloc_sz * 2) != QUEUE_OK) {
-			if (q->thread_safe) {
-				pthread_mutex_unlock(&q->lock);
-			}
-
-			return QUEUE_ERR;
+		if (! q_resize(q, q->alloc_sz * 2)) {
+			pthread_mutex_unlock(&q->lock);
+			return false;
 		}
 	}
 
@@ -172,70 +146,26 @@ queue_push(queue* q, const void* ele_ptr)
 	q->write_offset++;
 
 	// We're at risk of overflowing the write offset if it's too big.
-	if (q->write_offset & 0xC0000000) {
+	if ((q->write_offset & 0xC0000000) != 0) {
 		q_unwrap(q);
 	}
 
-	if (q->thread_safe) {
-		pthread_cond_signal(&q->cond_var);
-		pthread_mutex_unlock(&q->lock);
-	}
+	pthread_mutex_unlock(&q->lock);
 
-	return QUEUE_OK;
+	return true;
 }
 
 //------------------------------------------------
 // Pop an element from the head of the queue.
 //
-// ms_wait < 0 - wait forever
-// ms_wait = 0 - don't wait at all
-// ms_wait > 0 - wait that number of milliseconds
-//
-int
-queue_pop(queue* q, void* ele_ptr, int ms_wait)
+bool
+queue_pop(queue* q, void* ele_ptr)
 {
-	if (q->thread_safe) {
-		pthread_mutex_lock(&q->lock);
-	}
+	pthread_mutex_lock(&q->lock);
 
-	if (q->thread_safe) {
-		struct timespec tp;
-
-		if (ms_wait > 0) {
-			clock_gettime(CLOCK_REALTIME, &tp);
-			tp.tv_sec += ms_wait / 1000;
-			tp.tv_nsec += (ms_wait % 1000) * 1000000;
-
-			if (tp.tv_nsec > 1000000000) {
-				tp.tv_nsec -= 1000000000;
-				tp.tv_sec++;
-			}
-		}
-
-		// Note that we apparently have to use a while loop. Careful reading of
-		// the pthread_cond_signal() documentation says that AT LEAST ONE
-		// waiting thread will be awakened...
-
-		while (Q_EMPTY(q)) {
-			if (ms_wait == QUEUE_FOREVER) {
-				pthread_cond_wait(&q->cond_var, &q->lock);
-			}
-			else if (ms_wait == QUEUE_NO_WAIT) {
-				pthread_mutex_unlock(&q->lock);
-				return QUEUE_EMPTY;
-			}
-			else {
-				pthread_cond_timedwait(&q->cond_var, &q->lock, &tp);
-
-				if (Q_EMPTY(q)) {
-					pthread_mutex_unlock(&q->lock);
-					return QUEUE_EMPTY;
-				}
-			}
-		}
-	}
-	else if (Q_EMPTY(q)) {
-		return QUEUE_EMPTY;
+	if (Q_EMPTY(q)) {
+		pthread_mutex_unlock(&q->lock);
+		return false;
 	}
 
 	memcpy(ele_ptr, Q_ELE_PTR(q, q->read_offset), q->ele_size);
@@ -245,11 +175,9 @@ queue_pop(queue* q, void* ele_ptr, int ms_wait)
 		q->read_offset = q->write_offset = 0;
 	}
 
-	if (q->thread_safe) {
-		pthread_mutex_unlock(&q->lock);
-	}
+	pthread_mutex_unlock(&q->lock);
 
-	return QUEUE_OK;
+	return true;
 }
 
 
@@ -260,17 +188,16 @@ queue_pop(queue* q, void* ele_ptr, int ms_wait)
 //------------------------------------------------
 // Change allocated capacity - called under lock.
 //
-int
-q_resize(queue* q, uint new_sz)
+static bool
+q_resize(queue* q, uint32_t new_sz)
 {
-	// The rare case where the queue is not fragmented, and none of the offsets
-	// need to move.
 	if (q->read_offset % q->alloc_sz == 0) {
+		// Queue not fragmented - just realloc.
 		q->elements = realloc(q->elements, new_sz * q->ele_size);
 
-		if (! q->elements) {
-			fprintf(stdout, "ERROR: resizing queue (realloc)\n");
-			return QUEUE_ERR;
+		if (q->elements == NULL) {
+			printf("ERROR: resizing queue (realloc)\n");
+			return false;
 		}
 
 		q->read_offset = 0;
@@ -279,12 +206,12 @@ q_resize(queue* q, uint new_sz)
 	else {
 		uint8_t* new_q = malloc(new_sz * q->ele_size);
 
-		if (! new_q) {
-			fprintf(stdout, "ERROR: resizing queue (malloc)\n");
-			return QUEUE_ERR;
+		if (new_q == NULL) {
+			printf("ERROR: resizing queue (malloc)\n");
+			return false;
 		}
 
-		// endsz is used bytes in old queue from insert point to end.
+		// end_size is used bytes in old queue from insert point to end.
 		uint32_t end_size =
 				(q->alloc_sz - (q->read_offset % q->alloc_sz)) * q->ele_size;
 
@@ -301,13 +228,13 @@ q_resize(queue* q, uint new_sz)
 
 	q->alloc_sz = new_sz;
 
-	return QUEUE_OK;
+	return true;
 }
 
 //------------------------------------------------
 // Reset read & write offsets - called under lock.
 //
-void
+static void
 q_unwrap(queue* q)
 {
 	uint32_t sz = Q_SZ(q);

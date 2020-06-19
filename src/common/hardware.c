@@ -1,7 +1,7 @@
 /*
  * hardware.c
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -74,7 +74,7 @@ num_cpus()
 
 	if (read_list("/sys/devices/system/cpu/online", &os_cpus_online) !=
 			FILE_RES_OK) {
-		fprintf(stdout, "ERROR: couldn't read list of online CPUs\n");
+		printf("ERROR: couldn't read list of online CPUs\n");
 		return 0;
 	}
 
@@ -96,7 +96,7 @@ num_cpus()
 		}
 
 		if (res != FILE_RES_OK) {
-			fprintf(stdout, "ERROR: reading OS package index from %s\n", path);
+			printf("ERROR: reading OS package index from %s\n", path);
 			return 0;
 		}
 
@@ -107,11 +107,11 @@ num_cpus()
 	}
 
 	if (n_os_cpus == CPU_SETSIZE) {
-		fprintf(stdout, "ERROR: too many CPUs\n");
+		printf("ERROR: too many CPUs\n");
 		return 0;
 	}
 
-	fprintf(stdout, "detected %" PRIu32 " CPUs\n\n", n_cpus);
+	printf("detected %" PRIu32 " CPUs\n\n", n_cpus);
 
 	return n_cpus;
 }
@@ -133,14 +133,14 @@ set_scheduler(const char* device_name, const char* mode)
 
 	FILE* scheduler_file = fopen(scheduler_file_name, "w");
 
-	if (! scheduler_file) {
-		fprintf(stdout, "ERROR: couldn't open %s errno %d '%s'\n",
-				scheduler_file_name, errno, act_strerror(errno));
+	if (scheduler_file == NULL) {
+		printf("ERROR: couldn't open %s errno %d '%s'\n", scheduler_file_name,
+				errno, act_strerror(errno));
 		return;
 	}
 
 	if (fwrite(mode, strlen(mode), 1, scheduler_file) != 1) {
-		fprintf(stdout, "ERROR: writing %s to %s errno %d '%s'\n", mode,
+		printf("ERROR: writing %s to %s errno %d '%s'\n", mode,
 				scheduler_file_name, errno, act_strerror(errno));
 	}
 
@@ -181,12 +181,12 @@ read_list(const char* path, cpu_set_t* mask)
 			thru = strtoul(at, &delim, 10);
 		}
 		else {
-			fprintf(stdout, "ERROR: invalid list '%s' in %s\n", buf, path);
+			printf("ERROR: invalid list '%s' in %s\n", buf, path);
 			return FILE_RES_ERROR;
 		}
 
 		if (from >= CPU_SETSIZE || thru >= CPU_SETSIZE || from > thru) {
-			fprintf(stdout, "ERROR: invalid list '%s' in %s\n", buf, path);
+			printf("ERROR: invalid list '%s' in %s\n", buf, path);
 			return FILE_RES_ERROR;
 		}
 
@@ -221,7 +221,7 @@ read_index(const char* path, uint16_t* val)
 	uint64_t x = strtoul(buf, &end, 10);
 
 	if (*end != '\0' || x >= CPU_SETSIZE) {
-		fprintf(stdout, "ERROR: invalid index '%s' in %s\n", buf, path);
+		printf("ERROR: invalid index '%s' in %s\n", buf, path);
 		return FILE_RES_ERROR;
 	}
 
@@ -240,8 +240,8 @@ read_file(const char* path, void* buf, size_t* limit)
 			return FILE_RES_NOT_FOUND;
 		}
 
-		fprintf(stdout, "ERROR: couldn't open file %s for reading: %d '%s'\n",
-				path, errno, act_strerror(errno));
+		printf("ERROR: couldn't open file %s for reading: %d '%s'\n", path,
+				errno, act_strerror(errno));
 		return FILE_RES_ERROR;
 	}
 
@@ -251,8 +251,8 @@ read_file(const char* path, void* buf, size_t* limit)
 		ssize_t len = read(fd, (uint8_t*)buf + total, *limit - total);
 
 		if (len < 0) {
-			fprintf(stdout, "ERROR: couldn't read file %s: %d '%s'\n", path,
-					errno, act_strerror(errno));
+			printf("ERROR: couldn't read file %s: %d '%s'\n", path, errno,
+					act_strerror(errno));
 			close(fd);
 			return FILE_RES_ERROR;
 		}
@@ -267,7 +267,7 @@ read_file(const char* path, void* buf, size_t* limit)
 	close(fd);
 
 	if (total == *limit) {
-		fprintf(stdout, "ERROR: read buffer too small for file %s\n", path);
+		printf("ERROR: read buffer too small for file %s\n", path);
 		return FILE_RES_ERROR;
 	}
 

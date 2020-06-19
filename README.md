@@ -70,9 +70,8 @@ For example, a test might indicate that 0.25% of requests failed to complete in
 
 **Methodology for act_storage**
 
-The small read operations model client read requests.  Requests are added at the
-specified rate to transaction queues, each of which is serviced by a number of
-transaction threads.
+The small read operations model client read requests.  Requests are done at the
+specified rate by a number of service threads.
 
 The large-block read and write operations model the Aerospike server's write
 requests and defragmentation process.  The operations occur at a rate determined
@@ -82,10 +81,10 @@ large-block read thread and one dedicated large-block write thread per device.
 **Methodology for act_index**
 
 The 4K device reads model index element access that occurs during client read
-and write requests, and defragmentation.  One device read is executed via
-transaction queues and threads for each client read, and for each client write.
-In addition, more reads are executed in "cache threads" to model index element
-access during defragmentation.
+and write requests, and defragmentation.  One device read is executed on service
+threads for each client read, and for each client write.  In addition, more
+reads are executed in "cache threads" to model index element access during
+defragmentation.
 
 The "cache threads" also execute all the 4k device writes, which model index
 element changes due to client write requests and defragmentation.
@@ -321,10 +320,10 @@ If running ACT from a remote terminal, it is best to run it as a background
 process, or within a "screen".  To verify that ACT is running, tail the output
 text file with the -f option.
 
-Note that if the device(s) being tested performs so badly that ACT's internal
-transaction queues become extremely backed-up, ACT will halt before the
-configured test duration has elapsed.  ACT may also halt prematurely if it
-encounters unexpected device I/O or system errors.
+Note that if the device(s) being tested performs so badly that ACT cannot keep
+up with the specified load, ACT will halt before the configured test duration
+has elapsed.  ACT may also halt prematurely if it encounters unexpected device
+I/O or system errors.
 
 #### 4. Analyze ACT Output
 --------------------------
@@ -471,16 +470,16 @@ Make sure the devices named are entered correctly.
 ### Fields that you will Almost Always Change:
 
 **read-reqs-per-sec**
-Read transactions/second to simulate.  Note that this is not per device, or per
-transaction queue.  For 30 times (30x) the normal load for four devices, this
-value would be 30 x 4 x 2000 = 240000.  Formula: n x number of devices x 2000.
+Read transactions/second to simulate.  Note that this is not per device.
+For 30 times (30x) the normal load for four devices, this value would be
+30 x 4 x 2000 = 240000.  Formula: n x number of devices x 2000.
 
 **write-reqs-per-sec**
 Write transactions/second to simulate.  For act_storage, this value along with
 record-bytes, large-block-op-kbytes, defrag-lwm-pct, and others, determines the
-rate of large-block operations.  Note that this is not per device, or per
-transaction queue.  For 30 times (30x) the normal load for four devices, this
-value would be 30 x 4 x 1000 = 120000.  Formula: n x number of devices x 1000.
+rate of large-block operations.  Note that this is not per device.
+For 30 times (30x) the normal load for four devices, this value would be
+30 x 4 x 1000 = 120000.  Formula: n x number of devices x 1000.
 
 ### Fields that you may Sometimes Change:
 
@@ -491,21 +490,12 @@ number, e.g. use 86400, not 60 x 60 x 24.  The default is one day (24 hours).
 ### Fields that you will Rarely or Never Change:
 
 **service-threads**
-Total number of service threads on which requests are generated and pushed to
-transaction queues.  If a test stops with a message like "... ACT can't do
-requested load ...", it doesn't mean the devices failed, it just means the
-transaction rates specified are too high to achieve with the configured number
-of service threads.  Try testing again with more service threads.  The default
-service-threads is 1.
-
-**num-queues**
-Total number of transaction queues.  Default is number of cores, detected by ACT
-at runtime.
-
-**threads-per-queue**
-Number of threads per transaction queue.  If a device is failing and there is a
-large discrepancy between transaction and device speeds from the ACT test you
-can try increasing the number of threads.  Default is 4 threads/queue.
+Total number of service threads on which requests are generated and done.  If a
+test stops with a message like "... ACT can't do requested load ...", it doesn't
+mean the devices failed, it just means the transaction rates specified are too
+high to achieve with the configured number of service threads.  Try testing
+again with more service threads.  The default service-threads is 5x the number
+of CPUs, detected by ACT at runtime.
 
 **cache-threads (act_index ONLY)**
 Number of threads from which to execute all 4K writes, and 4K reads due to
@@ -617,22 +607,15 @@ tomb-raider is no.
 How long to sleep in each device's tomb raider thread between large-block reads.
 The default tomb-raider-sleep-usec is 1000, or 1 millisecond.
 
-**max-reqs-queued**
-How much the transaction queues are allowed to back up before the ACT test
-fails.  This is a total across all queues.  You may want to try increasing this
-limit if your tests fail this way -- some devices may see the queues
-periodically back up very quickly, but then clear again very quickly.  The
-default max-reqs-queued is 100000.
-
 **max-lag-sec**
 How much the large-block operations (act_storage) or cache-thread operations
 (act_index) are allowed to lag behind their target rates before the ACT test
-fails.  Also, how much the service threads that generate and queue requests are
+fails.  Also, how much the service threads that generate and do requests are
 allowed to lag behind their target rates before the ACT test is stopped. Note
 that this doesn't necessarily mean the devices failed the test - it means the
 transaction rates specified are too high to achieve with the configured number
-of service threads.  (The actual rates generated may be lower than the devices
-are capable of handling.)  The default max-lag-sec is 10.
+of service threads.  Note - max-lag-sec 0 is a special value for which the test
+will not be stopped due to lag.  The default max-lag-sec is 10.
 
 **scheduler-mode**
 Mode in /sys/block/<device>/queue/scheduler for all the devices in the test run.

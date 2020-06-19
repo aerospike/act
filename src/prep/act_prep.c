@@ -1,7 +1,7 @@
 /*
  * act_prep.c
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2011-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -105,7 +105,7 @@ main(int argc, char* argv[])
 	signal_setup();
 
 	if (argc != 2) {
-		fprintf(stdout, "usage: act_prep [device name]\n");
+		printf("usage: act_prep [device name]\n");
 		exit(0);
 	}
 
@@ -123,7 +123,7 @@ main(int argc, char* argv[])
 	//------------------------
 	// Begin zeroing.
 
-	fprintf(stdout, "cleaning device %s\n", g_device_name);
+	printf("cleaning device %s\n", g_device_name);
 
 	if (! create_zero_buffer()) {
 		exit(-1);
@@ -134,7 +134,7 @@ main(int argc, char* argv[])
 	for (uint32_t n = 0; n < NUM_ZERO_THREADS; n++) {
 		if (pthread_create(&zero_threads[n], NULL, run_zero,
 				(void*)(uint64_t)n) != 0) {
-			fprintf(stdout, "ERROR: creating zero thread %" PRIu32 "\n", n);
+			printf("ERROR: creating zero thread %" PRIu32 "\n", n);
 			exit(-1);
 		}
 	}
@@ -148,7 +148,7 @@ main(int argc, char* argv[])
 	//------------------------
 	// Begin salting.
 
-	fprintf(stdout, "salting device %s\n", g_device_name);
+	printf("salting device %s\n", g_device_name);
 
 	rand_seed();
 
@@ -157,7 +157,7 @@ main(int argc, char* argv[])
 	for (uint32_t n = 0; n < NUM_SALT_THREADS; n++) {
 		if (pthread_create(&salt_threads[n], NULL, run_salt,
 				(void*)(uint64_t)n) != 0) {
-			fprintf(stdout, "ERROR: creating salt thread %" PRIu32 "\n", n);
+			printf("ERROR: creating salt thread %" PRIu32 "\n", n);
 			exit(-1);
 		}
 	}
@@ -199,26 +199,26 @@ run_salt(void* pv_n)
 		}
 	}
 
-//	fprintf(stdout, "thread %d: blks-to-salt = %" PRIu64 ", prg-blks = %"
-//			PRIu64 "\n", n, blocks_to_salt, progress_blocks);
+//	printf("thread %d: blks-to-salt = %" PRIu64 ", prg-blks = %" PRIu64 "\n", n,
+//			blocks_to_salt, progress_blocks);
 
 	uint8_t* buf = act_valloc(LARGE_BLOCK_BYTES);
 
 	if (! buf) {
-		fprintf(stdout, "ERROR: valloc in salt thread %" PRIu32 "\n", n);
+		printf("ERROR: valloc in salt thread %" PRIu32 "\n", n);
 		return NULL;
 	}
 
 	int fd = fd_get();
 
 	if (fd == -1) {
-		fprintf(stdout, "ERROR: open in salt thread %" PRIu32 "\n", n);
+		printf("ERROR: open in salt thread %" PRIu32 "\n", n);
 		free(buf);
 		return NULL;
 	}
 
 	if (lseek(fd, offset, SEEK_SET) != offset) {
-		fprintf(stdout, "ERROR: seek in salt thread %" PRIu32 "\n", n);
+		printf("ERROR: seek in salt thread %" PRIu32 "\n", n);
 		close(fd);
 		free(buf);
 		return NULL;
@@ -228,18 +228,18 @@ run_salt(void* pv_n)
 		rand_fill(buf, LARGE_BLOCK_BYTES, 100);
 
 		if (! write_all(fd, buf, LARGE_BLOCK_BYTES)) {
-			fprintf(stdout, "ERROR: write in salt thread %" PRIu32 "\n", n);
+			printf("ERROR: write in salt thread %" PRIu32 "\n", n);
 			break;
 		}
 
 		if (progress_blocks && ! (b % progress_blocks)) {
-			fprintf(stdout, ".");
+			printf(".");
 			fflush(stdout);
 		}
 	}
 
 	if (progress_blocks) {
-		fprintf(stdout, "\n");
+		printf("\n");
 	}
 
 	close(fd);
@@ -271,41 +271,41 @@ run_zero(void* pv_n)
 		}
 	}
 
-//	fprintf(stdout, "thread %d: blks-to-zero = %" PRIu64 ", prg-blks = %"
-//			PRIu64 "\n", n, blocks_to_zero, progress_blocks);
+//	printf("thread %d: blks-to-zero = %" PRIu64 ", prg-blks = %" PRIu64 "\n", n,
+//			blocks_to_zero, progress_blocks);
 
 	int fd = fd_get();
 
 	if (fd == -1) {
-		fprintf(stdout, "ERROR: open in zero thread %" PRIu32 "\n", n);
+		printf("ERROR: open in zero thread %" PRIu32 "\n", n);
 		return NULL;
 	}
 
 	if (lseek(fd, offset, SEEK_SET) != offset) {
-		fprintf(stdout, "ERROR: seek in zero thread %" PRIu32 "\n", n);
+		printf("ERROR: seek in zero thread %" PRIu32 "\n", n);
 		close(fd);
 		return NULL;
 	}
 
 	for (uint64_t b = 0; b < blocks_to_zero; b++) {
 		if (! write_all(fd, g_p_zero_buffer, LARGE_BLOCK_BYTES)) {
-			fprintf(stdout, "ERROR: write in zero thread %" PRIu32 "\n", n);
+			printf("ERROR: write in zero thread %" PRIu32 "\n", n);
 			break;
 		}
 
 		if (progress_blocks && ! (b % progress_blocks)) {
-			fprintf(stdout, ".");
+			printf(".");
 			fflush(stdout);
 		}
 	}
 
 	if (progress_blocks) {
-		fprintf(stdout, "\n");
+		printf("\n");
 	}
 
 	if (last_thread) {
 		if (! write_all(fd, g_p_zero_buffer, g_extra_bytes_to_zero)) {
-			fprintf(stdout, "ERROR: write in zero thread %" PRIu32 "\n", n);
+			printf("ERROR: write in zero thread %" PRIu32 "\n", n);
 		}
 	}
 
@@ -339,7 +339,7 @@ create_zero_buffer()
 	g_p_zero_buffer = act_valloc(LARGE_BLOCK_BYTES);
 
 	if (! g_p_zero_buffer) {
-		fprintf(stdout, "ERROR: zero buffer act_valloc()\n");
+		printf("ERROR: zero buffer act_valloc()\n");
 		return false;
 	}
 
@@ -357,7 +357,7 @@ discover_num_blocks()
 	int fd = fd_get();
 
 	if (fd == -1) {
-		fprintf(stdout, "ERROR: opening device %s\n", g_device_name);
+		printf("ERROR: opening device %s\n", g_device_name);
 		return false;
 	}
 
@@ -375,7 +375,7 @@ discover_num_blocks()
 	g_extra_blocks_to_zero = g_num_large_blocks % NUM_ZERO_THREADS;
 	g_extra_blocks_to_salt = g_num_large_blocks % NUM_SALT_THREADS;
 
-	fprintf(stdout, "%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks\n",
+	printf("%s size = %" PRIu64 " bytes, %" PRIu64 " large blocks\n",
 			g_device_name, device_bytes, g_num_large_blocks);
 
 	return true;
