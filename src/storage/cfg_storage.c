@@ -374,10 +374,13 @@ derive_configuration()
 		g_scfg.large_block_writes_per_sec = g_scfg.large_block_reads_per_sec;
 	}
 
-	// Load must be enough to calculate service thread rates safely.
-	if ((g_scfg.internal_read_reqs_per_sec +
-			g_scfg.internal_write_reqs_per_sec) /
-					g_scfg.service_threads == 0) {
+	// Non-zero load must be enough to calculate service thread rates safely.
+	uint32_t total_reqs_per_sec =
+			g_scfg.internal_read_reqs_per_sec +
+			g_scfg.internal_write_reqs_per_sec;
+
+	if (total_reqs_per_sec != 0 &&
+			total_reqs_per_sec / g_scfg.service_threads == 0) {
 		printf("ERROR: load config too small\n");
 		return false;
 	}
