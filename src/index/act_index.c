@@ -209,10 +209,10 @@ main(int argc, char* argv[])
 		}
 	}
 
-	pthread_t service_tids[g_icfg.service_threads];
+	pthread_t svc_tids[g_icfg.service_threads];
 
 	for (uint32_t k = 0; k < g_icfg.service_threads; k++) {
-		if (pthread_create(&service_tids[k], NULL, run_service, NULL) != 0) {
+		if (pthread_create(&svc_tids[k], NULL, run_service, NULL) != 0) {
 			printf("ERROR: create service thread\n");
 			exit(-1);
 		}
@@ -276,7 +276,7 @@ main(int argc, char* argv[])
 	g_running = false;
 
 	for (uint32_t k = 0; k < g_icfg.service_threads; k++) {
-		pthread_join(service_tids[k], NULL);
+		pthread_join(svc_tids[k], NULL);
 	}
 
 	if (has_write_load) {

@@ -287,12 +287,19 @@ main(int argc, char* argv[])
 		}
 	}
 
-	pthread_t service_tids[g_scfg.service_threads];
+	// Yes, it's ok to run with only large-block operations.
+	bool do_transactions =
+			g_scfg.internal_read_reqs_per_sec +
+			g_scfg.internal_write_reqs_per_sec != 0;
 
-	for (uint32_t k = 0; k < g_scfg.service_threads; k++) {
-		if (pthread_create(&service_tids[k], NULL, run_service, NULL) != 0) {
-			printf("ERROR: create service thread\n");
-			exit(-1);
+	pthread_t svc_tids[g_scfg.service_threads];
+
+	if (do_transactions) {
+		for (uint32_t k = 0; k < g_scfg.service_threads; k++) {
+			if (pthread_create(&svc_tids[k], NULL, run_service, NULL) != 0) {
+				printf("ERROR: create service thread\n");
+				exit(-1);
+			}
 		}
 	}
 
@@ -375,8 +382,10 @@ main(int argc, char* argv[])
 
 	g_running = false;
 
-	for (uint32_t k = 0; k < g_scfg.service_threads; k++) {
-		pthread_join(service_tids[k], NULL);
+	if (do_transactions) {
+		for (uint32_t k = 0; k < g_scfg.service_threads; k++) {
+			pthread_join(svc_tids[k], NULL);
+		}
 	}
 
 	for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
