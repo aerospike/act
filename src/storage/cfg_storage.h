@@ -1,7 +1,7 @@
 /*
  * cfg_storage.h
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,8 +45,6 @@ typedef struct storage_cfg_s {
 	uint32_t num_devices;           // derived by counting device names
 	uint64_t file_size;             // undocumented feature - use files
 	uint32_t service_threads;
-	uint32_t num_queues;
-	uint32_t threads_per_queue;
 	uint64_t run_us;                // converted from literal units in seconds
 	uint64_t report_interval_us;    // converted from literal units in seconds
 	bool us_histograms;
@@ -58,22 +56,20 @@ typedef struct storage_cfg_s {
 	uint32_t replication_factor;
 	uint32_t update_pct;
 	uint32_t defrag_lwm_pct;
+	uint32_t compress_pct;
 	bool disable_odsync;
 	bool commit_to_device;
 	uint32_t commit_min_bytes;
 	bool tomb_raider;
 	uint32_t tomb_raider_sleep_us;
-	uint32_t max_reqs_queued;
 	uint64_t max_lag_usec;          // converted from literal units in seconds
 	const char* scheduler_mode;
 
 	// Derived from literal configuration:
 	uint32_t record_stored_bytes;
 	uint32_t record_stored_bytes_rmx;
-	uint64_t internal_read_reqs_per_sec;
-	uint64_t internal_write_reqs_per_sec;
-	uint32_t read_req_threads;
-	uint32_t write_req_threads;
+	uint32_t internal_read_reqs_per_sec;
+	uint32_t internal_write_reqs_per_sec;
 	double large_block_reads_per_sec;
 	double large_block_writes_per_sec;
 } storage_cfg;

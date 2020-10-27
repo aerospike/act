@@ -6,7 +6,7 @@
  *
  * Kevin Porter & Andrew Gooding, 2018.
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -69,8 +69,8 @@ typedef struct device_s {
 	const char* name;
 	uint64_t n_io_offsets;
 	queue* fd_q;
-	histogram* raw_read_hist;
-	histogram* raw_write_hist;
+	histogram* read_hist;
+	histogram* write_hist;
 	char read_hist_tag[MAX_DEVICE_NAME_SIZE + 1 + 5];
 	char write_hist_tag[MAX_DEVICE_NAME_SIZE + 1 + 6];
 } device;
@@ -78,7 +78,6 @@ typedef struct device_s {
 typedef struct trans_req_s {
 	device* dev;
 	uint64_t offset;
-	uint64_t start_time;
 } trans_req;
 
 #define IO_SIZE 4096
@@ -90,8 +89,7 @@ typedef struct trans_req_s {
 //
 
 static void* run_cache_simulation(void* pv_unused);
-static void* run_generate_read_reqs(void* pv_unused);
-static void* run_transactions(void* pv_req_q);
+static void* run_service(void* pv_unused);
 
 static bool discover_device(device* dev);
 static void fd_close_all(device* dev);
@@ -110,16 +108,12 @@ static uint64_t write_to_device(device* dev, uint64_t offset,
 //
 
 static device* g_devices;
-static queue** g_trans_qs;
 
 static volatile bool g_running;
 static uint64_t g_run_start_us;
 
-static atomic32 g_reqs_queued = 0;
-
-static histogram* g_raw_read_hist;
-static histogram* g_raw_write_hist;
-static histogram* g_trans_read_hist;
+static histogram* g_read_hist;
+static histogram* g_write_hist;
 
 
 //==========================================================
@@ -154,26 +148,23 @@ main(int argc, char* argv[])
 {
 	signal_setup();
 
-	fprintf(stdout, "\nACT version %s\n", VERSION);
-	fprintf(stdout, "Index device IO test\n");
-	fprintf(stdout, "Copyright 2018 by Aerospike. All rights reserved.\n\n");
+	printf("\nACT version %s\n", VERSION);
+	printf("Index device IO test\n");
+	printf("Copyright 2020 by Aerospike. All rights reserved.\n\n");
 
 	if (! index_configure(argc, argv)) {
 		exit(-1);
 	}
 
 	device devices[g_icfg.num_devices];
-	queue* trans_qs[g_icfg.num_queues];
 
 	g_devices = devices;
-	g_trans_qs = trans_qs;
 
 	histogram_scale scale =
 			g_icfg.us_histograms ? HIST_MICROSECONDS : HIST_MILLISECONDS;
 
-	if (! (g_raw_read_hist = histogram_create(scale)) ||
-		! (g_raw_write_hist = histogram_create(scale)) ||
-		! (g_trans_read_hist = histogram_create(scale))) {
+	if (! (g_read_hist = histogram_create(scale)) ||
+		! (g_write_hist = histogram_create(scale))) {
 		exit(-1);
 	}
 
@@ -181,12 +172,15 @@ main(int argc, char* argv[])
 		device* dev = &g_devices[d];
 
 		dev->name = (const char*)g_icfg.device_names[d];
-		set_scheduler(dev->name, g_icfg.scheduler_mode);
 
-		if (! (dev->fd_q = queue_create(sizeof(int), true)) ||
+		if (g_icfg.file_size == 0) { // normally 0
+			set_scheduler(dev->name, g_icfg.scheduler_mode);
+		}
+
+		if (! (dev->fd_q = queue_create(sizeof(int))) ||
 			! discover_device(dev) ||
-			! (dev->raw_read_hist = histogram_create(scale)) ||
-			! (dev->raw_write_hist = histogram_create(scale))) {
+			! (dev->read_hist = histogram_create(scale)) ||
+			! (dev->write_hist = histogram_create(scale))) {
 			exit(-1);
 		}
 
@@ -209,57 +203,38 @@ main(int argc, char* argv[])
 		for (uint32_t n = 0; n < g_icfg.cache_threads; n++) {
 			if (pthread_create(&cache_tids[n], NULL, run_cache_simulation,
 					NULL) != 0) {
-				fprintf(stdout, "ERROR: create cache thread\n");
+				printf("ERROR: create cache thread\n");
 				exit(-1);
 			}
 		}
 	}
 
-	uint32_t n_trans_tids = g_icfg.num_queues * g_icfg.threads_per_queue;
-	pthread_t trans_tids[n_trans_tids];
-
-	for (uint32_t i = 0; i < g_icfg.num_queues; i++) {
-		if (! (g_trans_qs[i] = queue_create(sizeof(trans_req), true))) {
-			exit(-1);
-		}
-
-		for (uint32_t j = 0; j < g_icfg.threads_per_queue; j++) {
-			if (pthread_create(&trans_tids[(i * g_icfg.threads_per_queue) + j],
-					NULL, run_transactions, (void*)g_trans_qs[i]) != 0) {
-				fprintf(stdout, "ERROR: create transaction thread\n");
-				exit(-1);
-			}
-		}
-	}
-
-	pthread_t rw_req_generator_tids[g_icfg.service_threads];
+	pthread_t svc_tids[g_icfg.service_threads];
 
 	for (uint32_t k = 0; k < g_icfg.service_threads; k++) {
-		if (pthread_create(&rw_req_generator_tids[k], NULL,
-				run_generate_read_reqs, NULL) != 0) {
-			fprintf(stdout, "ERROR: create read request thread\n");
+		if (pthread_create(&svc_tids[k], NULL, run_service, NULL) != 0) {
+			printf("ERROR: create service thread\n");
 			exit(-1);
 		}
 	}
 
-	fprintf(stdout, "\nHISTOGRAM NAMES\n");
+	printf("\nHISTOGRAM NAMES\n");
 
-	fprintf(stdout, "trans-reads\n");
-	fprintf(stdout, "device-reads\n");
+	printf("reads\n");
 
 	for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
-		fprintf(stdout, "%s\n", g_devices[d].read_hist_tag);
+		printf("%s\n", g_devices[d].read_hist_tag);
 	}
 
 	if (has_write_load) {
-		fprintf(stdout, "device-writes\n");
+		printf("writes\n");
 
 		for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
-			fprintf(stdout, "%s\n", g_devices[d].write_hist_tag);
+			printf("%s\n", g_devices[d].write_hist_tag);
 		}
 	}
 
-	fprintf(stdout, "\n");
+	printf("\n");
 
 	uint64_t now_us = 0;
 	uint64_t count = 0;
@@ -275,45 +250,33 @@ main(int argc, char* argv[])
 			usleep((uint32_t)sleep_us);
 		}
 
-		fprintf(stdout, "after %" PRIu64 " sec:\n",
+		printf("after %" PRIu64 " sec:\n",
 				(count * g_icfg.report_interval_us) / 1000000);
 
-		fprintf(stdout, "requests-queued: %" PRIu32 "\n",
-				atomic32_get(g_reqs_queued));
-
-		histogram_dump(g_trans_read_hist, "trans-reads");
-		histogram_dump(g_raw_read_hist, "device-reads");
+		histogram_dump(g_read_hist, "reads");
 
 		for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
-			histogram_dump(g_devices[d].raw_read_hist,
+			histogram_dump(g_devices[d].read_hist,
 					g_devices[d].read_hist_tag);
 		}
 
 		if (has_write_load) {
-			histogram_dump(g_raw_write_hist, "device-writes");
+			histogram_dump(g_write_hist, "writes");
 
 			for (uint32_t d = 0; d < g_icfg.num_devices; d++) {
-				histogram_dump(g_devices[d].raw_write_hist,
+				histogram_dump(g_devices[d].write_hist,
 						g_devices[d].write_hist_tag);
 			}
 		}
 
-		fprintf(stdout, "\n");
+		printf("\n");
 		fflush(stdout);
 	}
 
 	g_running = false;
 
 	for (uint32_t k = 0; k < g_icfg.service_threads; k++) {
-		pthread_join(rw_req_generator_tids[k], NULL);
-	}
-
-	for (uint32_t j = 0; j < n_trans_tids; j++) {
-		pthread_join(trans_tids[j], NULL);
-	}
-
-	for (uint32_t i = 0; i < g_icfg.num_queues; i++) {
-		queue_destroy(g_trans_qs[i]);
+		pthread_join(svc_tids[k], NULL);
 	}
 
 	if (has_write_load) {
@@ -327,13 +290,12 @@ main(int argc, char* argv[])
 
 		fd_close_all(dev);
 		queue_destroy(dev->fd_q);
-		free(dev->raw_read_hist);
-		free(dev->raw_write_hist);
+		free(dev->read_hist);
+		free(dev->write_hist);
 	}
 
-	free(g_raw_read_hist);
-	free(g_raw_write_hist);
-	free(g_trans_read_hist);
+	free(g_read_hist);
+	free(g_write_hist);
 
 	return 0;
 }
@@ -346,7 +308,7 @@ main(int argc, char* argv[])
 //------------------------------------------------
 // Runs in every (mmap) cache simulation thread,
 // does all writes, and reads that don't occur in
-// transaction threads, i.e. reads due to defrag.
+// service threads, i.e. reads due to defrag.
 //
 static void*
 run_cache_simulation(void* pv_unused)
@@ -378,9 +340,10 @@ run_cache_simulation(void* pv_unused)
 		if (sleep_us > 0) {
 			usleep((uint32_t)sleep_us);
 		}
-		else if (sleep_us < -(int64_t)g_icfg.max_lag_usec) {
-			fprintf(stdout, "ERROR: cache thread device IO can't keep up\n");
-			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
+		else if (g_icfg.max_lag_usec != 0 &&
+				sleep_us < -(int64_t)g_icfg.max_lag_usec) {
+			printf("ERROR: cache thread device IO can't keep up\n");
+			printf("drive(s) can't keep up - test stopped\n");
 			g_running = false;
 		}
 	}
@@ -389,81 +352,49 @@ run_cache_simulation(void* pv_unused)
 }
 
 //------------------------------------------------
-// Runs in service threads, adds read trans_req
-// objects to transaction queues in round-robin
-// fashion.
+// Service threads - generate and do device reads
+// corresponding to read and write request index
+// lookups.
 //
 static void*
-run_generate_read_reqs(void* pv_unused)
+run_service(void* pv_unused)
 {
 	rand_seed_thread();
 
 	uint64_t count = 0;
-	uint64_t trans_thread_reads_per_sec =
-			g_icfg.trans_thread_reads_per_sec / g_icfg.service_threads;
+	uint64_t reads_per_sec =
+			g_icfg.service_thread_reads_per_sec / g_icfg.service_threads;
 
 	while (g_running) {
-		if (atomic32_incr(&g_reqs_queued) > g_icfg.max_reqs_queued) {
-			fprintf(stdout, "ERROR: too many requests queued\n");
-			fprintf(stdout, "drive(s) can't keep up - test stopped\n");
-			g_running = false;
-			break;
-		}
-
-		uint32_t queue_index = count % g_icfg.num_queues;
 		uint32_t random_dev_index = rand_32() % g_icfg.num_devices;
 		device* random_dev = &g_devices[random_dev_index];
 
 		trans_req read_req = {
 				.dev = random_dev,
-				.offset = random_io_offset(random_dev),
-				.start_time = get_ns()
+				.offset = random_io_offset(random_dev)
 		};
-
-		queue_push(g_trans_qs[queue_index], &read_req);
-
-		count++;
-
-		int64_t sleep_us = (int64_t)
-				(((count * 1000000) / trans_thread_reads_per_sec) -
-						(get_us() - g_run_start_us));
-
-		if (sleep_us > 0) {
-			usleep((uint32_t)sleep_us);
-		}
-		else if (sleep_us < -(int64_t)g_icfg.max_lag_usec) {
-			fprintf(stdout, "ERROR: read request generator can't keep up\n");
-			fprintf(stdout, "ACT can't do requested load - test stopped\n");
-			fprintf(stdout, "try configuring more 'service-threads'\n");
-			g_running = false;
-		}
-	}
-
-	return NULL;
-}
-
-//------------------------------------------------
-// Runs in every transaction thread, pops
-// trans_req objects, does the transaction and
-// reports the duration.
-//
-static void*
-run_transactions(void* pv_req_q)
-{
-	queue* req_q = (queue*)pv_req_q;
-	trans_req read_req;
-
-	while (g_running) {
-		if (queue_pop(req_q, (void*)&read_req, 100) != QUEUE_OK) {
-			continue;
-		}
 
 		uint8_t stack_buffer[IO_SIZE + 4096];
 		uint8_t* buf = align_4096(stack_buffer);
 
 		read_and_report(&read_req, buf);
 
-		atomic32_decr(&g_reqs_queued);
+		count++;
+
+		int64_t sleep_us = (int64_t)
+				(((count * 1000000) / reads_per_sec) -
+						(get_us() - g_run_start_us));
+
+		if (sleep_us > 0) {
+			usleep((uint32_t)sleep_us);
+		}
+		else if (g_icfg.max_lag_usec != 0 &&
+				sleep_us < -(int64_t)g_icfg.max_lag_usec) {
+			printf("ERROR: read request generator can't keep up\n");
+			printf("ACT can't do requested load - test stopped\n");
+			printf("try configuring more 'service-threads'\n");
+			g_running = false;
+		}
 	}
 
 	return NULL;
@@ -488,15 +419,28 @@ discover_device(device* dev)
 
 	uint64_t device_bytes = 0;
 
-	ioctl(fd, BLKGETSIZE64, &device_bytes);
+	if (g_icfg.file_size == 0) {
+		ioctl(fd, BLKGETSIZE64, &device_bytes);
+	}
+	else { // undocumented file mode
+		device_bytes = g_icfg.file_size;
+
+		if (ftruncate(fd, (off_t)device_bytes) != 0) {
+			printf("ERROR: ftruncate file %s errno %d '%s'\n", dev->name, errno,
+					act_strerror(errno));
+			fd_put(dev, fd);
+			return false;
+		}
+	}
+
 	fd_put(dev, fd);
 
 	if (device_bytes == 0) {
-		fprintf(stdout, "ERROR: %s ioctl to discover size\n", dev->name);
+		printf("ERROR: %s ioctl to discover size\n", dev->name);
 		return false;
 	}
 
-	fprintf(stdout, "%s size = %" PRIu64 " bytes\n", dev->name, device_bytes);
+	printf("%s size = %" PRIu64 " bytes\n", dev->name, device_bytes);
 
 	dev->n_io_offsets = device_bytes / IO_SIZE;
 
@@ -511,7 +455,7 @@ fd_close_all(device* dev)
 {
 	int fd;
 
-	while (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) == QUEUE_OK) {
+	while (queue_pop(dev->fd_q, (void*)&fd)) {
 		close(fd);
 	}
 }
@@ -524,13 +468,15 @@ fd_get(device* dev)
 {
 	int fd = -1;
 
-	if (queue_pop(dev->fd_q, (void*)&fd, QUEUE_NO_WAIT) != QUEUE_OK) {
+	if (! queue_pop(dev->fd_q, (void*)&fd)) {
 		int direct_flags = O_DIRECT | (g_icfg.disable_odsync ? 0 : O_DSYNC);
-		fd = open(dev->name, O_RDWR | direct_flags, S_IRUSR | S_IWUSR);
+		int flags = O_RDWR | (g_icfg.file_size == 0 ? direct_flags : O_CREAT);
+
+		fd = open(dev->name, flags, S_IRUSR | S_IWUSR);
 
 		if (fd == -1) {
-			fprintf(stdout, "ERROR: open device %s errno %d '%s'\n", dev->name,
-					errno, act_strerror(errno));
+			printf("ERROR: open device %s errno %d '%s'\n", dev->name, errno,
+					act_strerror(errno));
 		}
 	}
 
@@ -552,16 +498,14 @@ fd_put(device* dev, int fd)
 static void
 read_and_report(trans_req* read_req, uint8_t* buf)
 {
-	uint64_t raw_start_time = get_ns();
+	uint64_t start_time = get_ns();
 	uint64_t stop_time = read_from_device(read_req->dev, read_req->offset, buf);
 
 	if (stop_time != -1) {
-		histogram_insert_data_point(g_raw_read_hist,
-				safe_delta_ns(raw_start_time, stop_time));
-		histogram_insert_data_point(g_trans_read_hist,
-				safe_delta_ns(read_req->start_time, stop_time));
-		histogram_insert_data_point(read_req->dev->raw_read_hist,
-				safe_delta_ns(raw_start_time, stop_time));
+		histogram_insert_data_point(g_read_hist,
+				safe_delta_ns(start_time, stop_time));
+		histogram_insert_data_point(read_req->dev->read_hist,
+				safe_delta_ns(start_time, stop_time));
 	}
 }
 
@@ -575,14 +519,14 @@ read_cache_and_report(uint8_t* buf)
 	device* p_device = &g_devices[random_device_index];
 	uint64_t offset = random_io_offset(p_device);
 
-	uint64_t raw_start_time = get_ns();
+	uint64_t start_time = get_ns();
 	uint64_t stop_time = read_from_device(p_device, offset, buf);
 
 	if (stop_time != -1) {
-		histogram_insert_data_point(g_raw_read_hist,
-				safe_delta_ns(raw_start_time, stop_time));
-		histogram_insert_data_point(p_device->raw_read_hist,
-				safe_delta_ns(raw_start_time, stop_time));
+		histogram_insert_data_point(g_read_hist,
+				safe_delta_ns(start_time, stop_time));
+		histogram_insert_data_point(p_device->read_hist,
+				safe_delta_ns(start_time, stop_time));
 	}
 }
 
@@ -600,7 +544,7 @@ read_from_device(device* dev, uint64_t offset, uint8_t* buf)
 
 	if (! pread_all(fd, buf, IO_SIZE, offset)) {
 		close(fd);
-		fprintf(stdout, "ERROR: reading %s: %d '%s'\n", dev->name, errno,
+		printf("ERROR: reading %s: %d '%s'\n", dev->name, errno,
 				act_strerror(errno));
 		return -1;
 	}
@@ -619,20 +563,20 @@ static void
 write_cache_and_report(uint8_t* buf)
 {
 	// Salt the buffer each time.
-	rand_fill(buf, IO_SIZE);
+	rand_fill(buf, IO_SIZE, 100);
 
 	uint32_t random_device_index = rand_32() % g_icfg.num_devices;
 	device* p_device = &g_devices[random_device_index];
 	uint64_t offset = random_io_offset(p_device);
 
-	uint64_t raw_start_time = get_ns();
+	uint64_t start_time = get_ns();
 	uint64_t stop_time = write_to_device(p_device, offset, buf);
 
 	if (stop_time != -1) {
-		histogram_insert_data_point(g_raw_write_hist,
-				safe_delta_ns(raw_start_time, stop_time));
-		histogram_insert_data_point(p_device->raw_write_hist,
-				safe_delta_ns(raw_start_time, stop_time));
+		histogram_insert_data_point(g_write_hist,
+				safe_delta_ns(start_time, stop_time));
+		histogram_insert_data_point(p_device->write_hist,
+				safe_delta_ns(start_time, stop_time));
 	}
 }
 
@@ -650,7 +594,7 @@ write_to_device(device* dev, uint64_t offset, const uint8_t* buf)
 
 	if (! pwrite_all(fd, buf, IO_SIZE, offset)) {
 		close(fd);
-		fprintf(stdout, "ERROR: writing %s: %d '%s'\n", dev->name, errno,
+		printf("ERROR: writing %s: %d '%s'\n", dev->name, errno,
 				act_strerror(errno));
 		return -1;
 	}

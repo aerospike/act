@@ -1,7 +1,7 @@
 /*
  * random.h
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2011-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,6 @@
 // Includes.
 //
 
-#include <stdbool.h>
 #include <stdint.h>
 
 
@@ -40,4 +39,4 @@ void rand_seed();
 void rand_seed_thread();
 uint32_t rand_32();
 uint64_t rand_64();
-bool rand_fill(uint8_t* p_buffer, uint32_t size);
+void rand_fill(uint8_t* p_buffer, uint32_t size, uint32_t rand_pct);

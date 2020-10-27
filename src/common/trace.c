@@ -1,7 +1,7 @@
 /*
  * trace.c
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@
 
 #include <execinfo.h>
 #include <signal.h>
-#include <stdlib.h>
+#include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -81,18 +81,18 @@ do { \
 				(uint64_t)bt[i]); \
 	} \
 	\
-	fprintf(stdout, "stacktrace: found %d frames:%s offset 0x%lx\n", sz, \
-			trace, (uint64_t)&__executable_start); \
+	printf("stacktrace: found %d frames:%s offset 0x%lx\n", sz, trace, \
+			(uint64_t)&__executable_start); \
 	\
 	char** syms = backtrace_symbols(bt, sz); \
 	\
-	if (syms) { \
+	if (syms != NULL) { \
 		for (int i = 0; i < sz; ++i) { \
-			fprintf(stdout, "stacktrace: frame %d: %s\n", i, syms[i]); \
+			printf("stacktrace: frame %d: %s\n", i, syms[i]); \
 		} \
 	} \
 	else { \
-		fprintf(stdout, "stacktrace: found no symbols\n"); \
+		printf("stacktrace: found no symbols\n"); \
 	} \
 	\
 	fflush(stdout); \
@@ -121,7 +121,7 @@ signal_setup()
 static void
 act_sig_handle_abort(int sig_num, siginfo_t* info, void* ctx)
 {
-	fprintf(stdout, "SIGABRT received\n");
+	printf("SIGABRT received\n");
 	PRINT_BACKTRACE();
 	reraise_signal(sig_num);
 }
@@ -129,7 +129,7 @@ act_sig_handle_abort(int sig_num, siginfo_t* info, void* ctx)
 static void
 act_sig_handle_bus(int sig_num, siginfo_t* info, void* ctx)
 {
-	fprintf(stdout, "SIGBUS received\n");
+	printf("SIGBUS received\n");
 	PRINT_BACKTRACE();
 	reraise_signal(sig_num);
 }
@@ -137,7 +137,7 @@ act_sig_handle_bus(int sig_num, siginfo_t* info, void* ctx)
 static void
 act_sig_handle_fpe(int sig_num, siginfo_t* info, void* ctx)
 {
-	fprintf(stdout, "SIGFPE received\n");
+	printf("SIGFPE received\n");
 	PRINT_BACKTRACE();
 	reraise_signal(sig_num);
 }
@@ -145,7 +145,7 @@ act_sig_handle_fpe(int sig_num, siginfo_t* info, void* ctx)
 static void
 act_sig_handle_ill(int sig_num, siginfo_t* info, void* ctx)
 {
-	fprintf(stdout, "SIGILL received\n");
+	printf("SIGILL received\n");
 	PRINT_BACKTRACE();
 	reraise_signal(sig_num);
 }
@@ -153,7 +153,7 @@ act_sig_handle_ill(int sig_num, siginfo_t* info, void* ctx)
 static void
 act_sig_handle_segv(int sig_num, siginfo_t* info, void* ctx)
 {
-	fprintf(stdout, "SIGSEGV received\n");
+	printf("SIGSEGV received\n");
 	PRINT_BACKTRACE();
 	reraise_signal(sig_num);
 }
@@ -182,8 +182,7 @@ set_action(int sig_num, action_t act)
 	sa.sa_flags = SA_RESTART | SA_SIGINFO;
 
 	if (sigaction(sig_num, &sa, NULL) < 0) {
-		fprintf(stdout, "ERROR: could not register signal handler for %d\n",
-				sig_num);
+		printf("ERROR: could not register signal handler for %d\n", sig_num);
 		fflush(stdout);
 		_exit(-1);
 	}
@@ -201,8 +200,7 @@ set_handler(int sig_num, sighandler_t hand)
 	sa.sa_flags = SA_RESTART;
 
 	if (sigaction(sig_num, &sa, NULL) < 0) {
-		fprintf(stdout, "ERROR: could not register signal handler for %d\n",
-				sig_num);
+		printf("ERROR: could not register signal handler for %d\n", sig_num);
 		fflush(stdout);
 		_exit(-1);
 	}

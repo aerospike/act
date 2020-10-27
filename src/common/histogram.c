@@ -1,7 +1,7 @@
 /*
  * histogram.c
  *
- * Copyright (c) 2008-2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2011-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -94,8 +94,8 @@ histogram_create(histogram_scale scale)
 {
 	histogram* h = malloc(sizeof(histogram));
 
-	if (! h) {
-		fprintf(stdout, "ERROR: creating histogram (malloc)\n");
+	if (h == NULL) {
+		printf("ERROR: creating histogram (malloc)\n");
 		return NULL;
 	}
 
@@ -109,7 +109,7 @@ histogram_create(histogram_scale scale)
 		h->time_div = 1000;
 		break;
 	default:
-		fprintf(stdout, "ERROR: creating histogram (scale parameter)\n");
+		printf("ERROR: creating histogram (scale parameter)\n");
 		free(h);
 		return NULL;
 	}
@@ -126,61 +126,50 @@ histogram_create(histogram_scale scale)
 void
 histogram_dump(histogram* h, const char* tag)
 {
-	int b;
 	uint64_t counts[N_BUCKETS];
+	uint32_t i = N_BUCKETS;
+	uint32_t j = 0;
+	uint64_t total = 0;
 
-	for (b = 0; b < N_BUCKETS; b++) {
+	for (uint32_t b = 0; b < N_BUCKETS; b++) {
 		counts[b] = atomic64_get(h->counts[b]);
-	}
 
-	int i = N_BUCKETS;
-	int j = 0;
-	uint64_t total_count = 0;
-
-	for (b = 0; b < N_BUCKETS; b++) {
 		if (counts[b] != 0) {
 			if (i > b) {
 				i = b;
 			}
 
 			j = b;
-			total_count += counts[b];
+			total += counts[b];
 		}
 	}
 
-	char buf[100];
+	char buf[200];
 	int pos = 0;
-	int k = 0;
+	uint32_t k = 0;
 
 	buf[0] = '\0';
 
-	fprintf(stdout, "%s (%" PRIu64 " total)\n", tag, total_count);
+	printf("%s (%" PRIu64 " total)\n", tag, total);
 
 	for ( ; i <= j; i++) {
 		if (counts[i] == 0) { // print only non-zero columns
 			continue;
 		}
 
-		int bytes = sprintf(buf + pos, " (%02d: %010" PRIu64 ")", i, counts[i]);
-
-		if (bytes <= 0) {
-			fprintf(stdout, "ERROR: printing histogram\n");
-			return;
-		}
-
-		pos += bytes;
+		pos += sprintf(buf + pos, " (%02u: %010" PRIu64 ")", i, counts[i]);
 
 		if ((k & 3) == 3) { // maximum of 4 printed columns per line
-	    	 fprintf(stdout, "%s\n", buf);
-			 pos = 0;
-			 buf[0] = '\0';
+			printf("%s\n", buf);
+			pos = 0;
+			buf[0] = '\0';
 		}
 
 		k++;
 	}
 
 	if (pos > 0) {
-	    fprintf(stdout, "%s\n", buf);
+		printf("%s\n", buf);
 	}
 }
 
@@ -259,6 +248,6 @@ msb(uint64_t n)
 	}
 
 	// Should never get here.
-	fprintf(stdout, "ERROR: msb calculation\n");
+	printf("ERROR: msb calculation\n");
 	return -1;
 }

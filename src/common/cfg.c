@@ -1,7 +1,7 @@
 /*
  * cfg.c
  *
- * Copyright (c) 2018 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -61,7 +61,7 @@ parse_device_names(size_t max_num_devices, char names[][MAX_DEVICE_NAME_SIZE],
 
 	while ((val = strtok(NULL, ",;" WHITE_SPACE)) != NULL) {
 		if (*p_num_devices == max_num_devices) {
-			fprintf(stdout, "ERROR: too many device names\n");
+			printf("ERROR: too many device names\n");
 			*p_num_devices = 0;
 			return;
 		}
@@ -69,7 +69,7 @@ parse_device_names(size_t max_num_devices, char names[][MAX_DEVICE_NAME_SIZE],
 		size_t name_len = strlen(val);
 
 		if (name_len == 0 || name_len >= MAX_DEVICE_NAME_SIZE) {
-			fprintf(stdout, "ERROR: bad device name '%s'\n", val);
+			printf("ERROR: bad device name '%s'\n", val);
 			*p_num_devices = 0;
 			return;
 		}
@@ -84,8 +84,8 @@ parse_scheduler_mode()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
-	if (! val) {
-		fprintf(stdout, "ERROR: missing scheduler mode - using 'noop'\n");
+	if (val == NULL) {
+		printf("ERROR: missing scheduler mode - using 'noop'\n");
 		return "noop";
 	}
 
@@ -95,7 +95,7 @@ parse_scheduler_mode()
 		}
 	}
 
-	fprintf(stdout, "ERROR: unknown scheduler mode '%s' - using 'noop'\n", val);
+	printf("ERROR: unknown scheduler mode '%s' - using 'noop'\n", val);
 
 	return "noop";
 }
@@ -105,15 +105,15 @@ parse_uint32()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
-	if (! val) {
-		fprintf(stdout, "ERROR: missing integer config value\n");
+	if (val == NULL) {
+		printf("ERROR: missing integer config value\n");
 		return 0;
 	}
 
 	uint64_t u64_val = strtoul(val, NULL, 10);
 
 	if (u64_val > UINT32_MAX) {
-		fprintf(stdout, "ERROR: %s overflows unsigned int\n", val);
+		printf("ERROR: %s overflows unsigned int\n", val);
 		return 0;
 	}
 
@@ -125,5 +125,5 @@ parse_yes_no()
 {
 	const char* val = strtok(NULL, WHITE_SPACE);
 
-	return val && *val == 'y';
+	return val != NULL && *val == 'y';
 }
