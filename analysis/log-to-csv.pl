@@ -3,7 +3,7 @@
 # pjensen@aerospike.com
 #
 # Script to convert an ACT log file to .csv format, enabling it to
-#   be read by Excel (e.g. for charts, further analysis, etc.)
+#   be imported into spreadsheets (e.g. for charts, further analysis, etc.)
 #
 # Usage: log-to-csv.pl [-l <act-log-file> [-o]]
 
@@ -26,8 +26,6 @@ if (defined $options{l}) {
     $ofh = *STDOUT;
 }
 
-#exit(0);
-
 while (<$fh>) {
     last if (/^HISTOGRAM NAMES/);
 }
@@ -43,7 +41,6 @@ while (<$fh>) {
     push(@devs, $_);
     print $ofh  "$_,1 ms,2 ms,4 ms,8 ms,16 ms,32 ms,64 ms,";
 }
-print $ofh "\n";
 
 my @prev = (0) x (8 * ($#devs + 1));
 my $n;
