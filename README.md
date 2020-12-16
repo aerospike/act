@@ -272,6 +272,9 @@ The first time you test a device(s), you must prepare the device(s) by first
 cleaning them (writing zeros everywhere) and then "salting" them (writing random
 data everywhere) with act_prep.
 
+##### Partitions
+In some cases, and in particular if you plan to use them while running Aerospike, partitions can increase performance. Some systems perform better with more partitions, possibly due to more threads, so you may want to experiment with adding partitions. As a general rule of thumb, you do not want more partitions than the total number of cores - starting at 4 per drive and pulling that back if drives*partitions is too much; say for a 96 core machine with 8 SSD volumes, you do not want more than 12 partitions. If you use partitions, you can run act_prep on all partitions in parallel or run act_prep before partitioning.
+
 act_prep takes a device name as its only command-line parameter.  For a typical
 240GB SSD, act_prep takes 30-60+ minutes to run.  The time varies depending on
 the device and the capacity.
@@ -413,6 +416,15 @@ load test.
 When doing stress testing at a level ABOVE where the device is certified, a
 device passes the test if ACT runs to completion, regardless of the number of
 errors.
+
+# Break times, testing anomalies
+A drive that has been tested at a much higher rate than it can pass may need a 'break'. For example, if you try to run a 100x test against a drive that only supports 20x - the drive may only pass at 10x. There appears to be some recovery time, perhaps due to the internal garbage collection of the hardware, where the drive has to recover. For this reason you can get more reliable results by testing low and ramping up until failure, but if you experience an ACT failure and wish to lower the test volume be aware that you may need to give the drive a 'break' before performing another test. The time in which a drive takes to recover is dependent on manufacturer and model and can vary by many hours and is not well understood by the ACT community currently.
+To illustrate this behavior, a sequence of tests may go like this:
+100x[PASS] -> 150x[PASS] -> 300x[FAIL] -> 150x[FAIL]. A 150x test could fail in this condition because of this 'break' period needed after a drive is pushed too far.
+Instead, you may have to do this:
+100x[PASS] -> 150x[PASS] -> 300x[FAIL] -> (wait: 8h?) -> 150x[PASS] -> 160x[PASS] ... and so on.
+
+Again, the wait period is not well known and likely varies quite a lot.
 
 ## ACT Configuration Reference
 ------------------------------
