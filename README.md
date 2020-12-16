@@ -273,7 +273,7 @@ cleaning them (writing zeros everywhere) and then "salting" them (writing random
 data everywhere) with act_prep.
 
 ##### Partitions
-In some cases, and in particular if you plan to use them while running Aerospike, partitions can increase performance. Some systems perform better with more partitions, possibly due to more threads, so you may want to experiment with adding partitions. As a general rule of thumb, you do not want more partitions than the total number of cores - starting at 4 per drive and pulling that back if drives*partitions is too much; say for a 96 core machine with 8 SSD volumes, you do not want more than 12 partitions. If you use partitions, you can run act_prep on all partitions in parallel or run act_prep before partitioning. If using partition, be aware of boundaries such that a partition does not span multiple physical sectors. Example partition script: `parted --script /dev/mydrive mklabel gpt mkpart primary 0% 25% mkpart primary 25% 50% mkpart primary 50% 75% mkpart primary 75% 100%`.
+In some cases, and in particular if you plan to use them while running Aerospike, you may want to test with ACT using partitions. Some systems perform better with more partitions, possibly due to more parallelization in some layer, so you may want to experiment with adding partitions. As a general rule of thumb, you do not want more partitions than the total number of cores - you could start at 4 per drive but pull that back if drives*partitions is too much; say for a 96 core machine with 8 SSD volumes, you do not want more than 12 partitions (8*12 = 96, so more partitions wouldn't be good.). If you use partitions, you can run act_prep on all partitions in parallel or run act_prep before partitioning. If using partitions, be aware of boundaries such that a partition does not span multiple physical sectors. Example partition script: `parted --script /dev/mydrive mklabel gpt mkpart primary 0% 25% mkpart primary 25% 50% mkpart primary 50% 75% mkpart primary 75% 100%`.
 
 act_prep takes a device name as its only command-line parameter.  For a typical
 240GB SSD, act_prep takes 30-60+ minutes to run.  The time varies depending on
@@ -425,6 +425,9 @@ Instead, you may have to do this:
 100x[PASS] -> 150x[PASS] -> 300x[FAIL] -> (wait: 8h?) -> 150x[PASS] -> 160x[PASS] ... and so on.
 
 Again, the wait period is not well known and likely varies quite a lot.
+
+##### IRQBalance
+If your system has IRQBalance disabled, you can try to enable it. In some cases this had led to increased performance.
 
 ## ACT Configuration Reference
 ------------------------------
