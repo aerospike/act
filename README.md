@@ -357,31 +357,30 @@ displays latency data at various verification intervals for each slice.
 
 The example output below is for an **act_storage** 12-hour test (each slice is
 an hour), run with options -n 3 (display 3 thresholds) and -e 3 (display every
-3rd threshold).  The **reads** table shows read transaction latency (end to end)
-and the **device-reads** table at the right shows raw device (small) read
-latency.  So for example, in the 5th hour, 1.68% of transactions failed to
-complete in under 1 ms.
+3rd threshold).  The **reads** table shows read latencies accumulated over all
+devices.  So for example, in the 5th hour, 1.68% of reads failed to complete in
+under 1 ms.
 
 ```
-         reads                  device-reads
-         %>(ms)                 %>(ms)
- slice        1      8     64        1      8     64
- -----   ------ ------ ------   ------ ------ ------
-     1     1.67   0.00   0.00     1.63   0.00   0.00
-     2     1.38   0.00   0.00     1.32   0.00   0.00
-     3     1.80   0.14   0.00     1.56   0.08   0.00
-     4     1.43   0.00   0.00     1.39   0.00   0.00
-     5     1.68   0.00   0.00     1.65   0.00   0.00
-     6     1.37   0.00   0.00     1.33   0.00   0.00
-     7     1.44   0.00   0.00     1.41   0.00   0.00
-     8     1.41   0.00   0.00     1.35   0.00   0.00
-     9     2.70   0.73   0.00     1.91   0.08   0.00
-    10     1.54   0.00   0.00     1.51   0.00   0.00
-    11     1.53   0.00   0.00     1.48   0.00   0.00
-    12     1.47   0.00   0.00     1.43   0.00   0.00
- -----   ------ ------ ------   ------ ------ ------
-   avg     1.62   0.07   0.00     1.50   0.01   0.00
-   max     2.70   0.73   0.00     1.91   0.08   0.00
+         reads
+         %>(ms)
+ slice        1      8     64
+ -----   ------ ------ ------
+     1     1.67   0.00   0.00
+     2     1.38   0.00   0.00
+     3     1.80   0.14   0.00
+     4     1.43   0.00   0.00
+     5     1.68   0.00   0.00
+     6     1.37   0.00   0.00
+     7     1.44   0.00   0.00
+     8     1.41   0.00   0.00
+     9     2.70   0.73   0.00
+    10     1.54   0.00   0.00
+    11     1.53   0.00   0.00
+    12     1.47   0.00   0.00
+ -----   ------ ------ ------
+   avg     1.62   0.07   0.00
+   max     2.70   0.73   0.00
 ```
 
 The script will also echo the configuration used to generate the log file, along

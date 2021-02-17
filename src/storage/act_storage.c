@@ -313,7 +313,6 @@ main(int argc, char* argv[])
 
 	if (do_reads) {
 		printf("reads\n");
-		printf("device-reads\n");
 
 		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
 			printf("%s\n", g_devices[d].read_hist_tag);
@@ -327,7 +326,6 @@ main(int argc, char* argv[])
 
 	if (do_commits) {
 		printf("writes\n");
-		printf("device-writes\n");
 
 		for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
 			printf("%s\n", g_devices[d].write_hist_tag);
@@ -357,8 +355,9 @@ main(int argc, char* argv[])
 			histogram_dump(g_read_hist, "reads");
 
 			for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
-				histogram_dump(g_devices[d].read_hist,
-						g_devices[d].read_hist_tag);
+				device* dev = &g_devices[d];
+
+				histogram_dump(dev->read_hist, dev->read_hist_tag);
 			}
 		}
 
@@ -371,8 +370,9 @@ main(int argc, char* argv[])
 			histogram_dump(g_write_hist, "writes");
 
 			for (uint32_t d = 0; d < g_scfg.num_devices; d++) {
-				histogram_dump(g_devices[d].write_hist,
-						g_devices[d].write_hist_tag);
+				device* dev = &g_devices[d];
+
+				histogram_dump(dev->write_hist, dev->write_hist_tag);
 			}
 		}
 
