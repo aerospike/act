@@ -1,8 +1,11 @@
 name: Build ACT
 
 on:
-  workflow_dispatch:
-        
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ naster ]
+    
 jobs:
   build:
 
@@ -12,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
       - name: configure
-        run: sudo apt-get install make gcc libc6-dev zlib1g-dev
+        run: sudo apt-get install make gcc libc6-dev
       - name: build
         run: make
       - name: Upload Artifact 
