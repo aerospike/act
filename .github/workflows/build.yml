@@ -1,0 +1,23 @@
+name: Build ACT
+
+on:
+  workflow_dispatch:
+        
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps: 
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: configure
+        run: sudo apt-get install make gcc libc6-dev zlib1g-dev
+      - name: build
+        run: make
+      - name: Upload Artifact 
+        uses: actions/upload-artifact@v2.2.4
+        with: 
+          name: act
+          path: target/bin/
+          if-no-files-found: error
