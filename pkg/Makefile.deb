@@ -6,7 +6,7 @@ export CL_BASE = $(DEB_BUILD_ROOT)/opt/aerospike
 export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
 
 REV = $(shell build/version)
-#REV = 6.2.0
+REV = 6.2
 OS = $(shell build/os_version)
 MANIFEST_DIR = manifest/TEMP
 
