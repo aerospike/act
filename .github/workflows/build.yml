@@ -24,6 +24,6 @@ jobs:
     - name: Upload Artifact 
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-linux-$GITHUB_REF
-        path: target/bin/
+        name: act-linux-${GITHUB_REF}
+        path: pkg/deb/DEBS
         if-no-files-found: error
