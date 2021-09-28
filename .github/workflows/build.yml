@@ -2,9 +2,9 @@ name: Build ACT
 
 on:
   push:
-    branches: [ master ]
+    branches: [ PROD-2028 ]
   pull_request:
-    branches: [ naster ]
+    branches: [ PROD-2028 ]
     
 jobs:
   build:
@@ -18,9 +18,11 @@ jobs:
         run: sudo apt-get install make gcc libc6-dev
       - name: build
         run: make
+      - name: packaging
+        run: make deb
       - name: Upload Artifact 
         uses: actions/upload-artifact@v2.2.4
         with: 
           name: act
-          path: target/bin/
+          path: pkg/deb/DEBS
           if-no-files-found: error
