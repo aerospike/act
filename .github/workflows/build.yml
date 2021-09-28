@@ -4,23 +4,26 @@ on:
   push:
     branches: [ master ]
   pull_request:
-    branches: [ naster ]
+    branches: [ master ]
     
 jobs:
   build:
-
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+    runs-on: ${{ matrix.os }
 
     steps: 
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: configure
-        run: sudo apt-get install make gcc libc6-dev
-      - name: build
-        run: make
-      - name: Upload Artifact 
-        uses: actions/upload-artifact@v2.2.4
-        with: 
-          name: act
-          path: target/bin/
-          if-no-files-found: error
+    - name: Install Dependencies (Ubuntu)
+      run: sudo apt-get install make gcc libc6-dev
+      if: matrix.os == 'ubuntu-latest'
+    - name: Get Sources
+      uses: actions/checkout@v2
+    - name: build
+      run: make
+    - name: Upload Artifact 
+      uses: actions/upload-artifact@v2.2.4
+      with: 
+        name: act-linux-$GITHUB_REF
+        path: target/bin/
+        if-no-files-found: error
