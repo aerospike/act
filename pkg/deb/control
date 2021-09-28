@@ -1,0 +1,8 @@
+Package: act
+Version: @VERSION@
+Section: Databases
+Priority: optional
+Architecture: amd64
+Depends: libc6 (>= 2.7)
+Maintainer: Aerospike, Inc. <info@aerospike.net>
+Description: Aerospike Certification Tool 

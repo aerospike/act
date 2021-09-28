@@ -1,0 +1,25 @@
+#!/bin/sh
+
+set -e
+
+case "$1" in
+  configure)
+
+  echo Installing /opt/aerospike/bim/act
+  
+  # create aerospike group if it isn't already there
+  if ! getent group aerospike >/dev/null; then
+    groupadd -r aerospike
+  fi
+
+  # create aerospike user if it isn't already there
+  if ! getent passwd aerospike >/dev/null; then
+    useradd -r -d /opt/aerospike -c 'Aerospike server' -g aerospike aerospike
+  fi
+
+  chown -R aerospike:aerospike /opt/aerospike
+
+  ;;
+esac    
+
+exit 0
