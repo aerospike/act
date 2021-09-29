@@ -14,7 +14,8 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: olegtarasov/get-tag@v2.1
+      - name: Get Tag
+        uses: olegtarasov/get-tag@v2.1.1
         id: tagName
         with:
           tagRegex: "(.*)"  # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
