@@ -15,7 +15,7 @@ jobs:
 
     steps: 
     - name: Get Tag
-      uses: olegtarasov/get-tag@2.1
+      uses: olegtarasov/get-tag@v2.1
     - name: Install Dependencies (Ubuntu)
       run: sudo apt-get install make gcc libc6-dev
       if: matrix.os == 'ubuntu-latest'
