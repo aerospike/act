@@ -10,13 +10,16 @@ jobs:
   build:
     strategy:
       matrix:
-        os: ['ubuntu-latest']
+        os: ['ubuntu-latest', 'ubuntu-18.04']
     runs-on: ${{ matrix.os }}
 
     steps:
-    - name: Install Dependencies (Ubuntu)
+    - name: Install Dependencies (Ubuntu-latest)
       run: sudo apt-get install make gcc libc6-dev
       if: matrix.os == 'ubuntu-latest'
+    - name: Install Dependencies (Ubuntu-18.04)
+      run: sudo apt-get install make gcc libc6-dev
+      if: matrix.os == 'ubuntu-18.04'      
     - name: Get Sources
       uses: actions/checkout@v2   
     - name: Get Latest Tag
