@@ -20,9 +20,6 @@ jobs:
         with:
           tagRegex: "(.*)"  # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
           tagRegexGroup: 1 # Optional. Default is 1.
-      - name: Some other step # Output usage example
-        with:
-          tagname: ${{ steps.tagName.outputs.tag }}
       - name: Install Dependencies (Ubuntu)
         run: sudo apt-get install make gcc libc6-dev
         if: matrix.os == 'ubuntu-latest'
