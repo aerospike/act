@@ -32,7 +32,9 @@ jobs:
       env:
         GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}
         OS_VER: ${{ matrix.os }}      
-      run: make all deb REV=$GIT_TAG_NAME OS=$OS_VER
+      run: |
+        echo $GIT_TAG_NAME $OS_VER
+        make all deb REV=$GIT_TAG_NAME OS=$OS_VER
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
