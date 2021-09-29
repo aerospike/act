@@ -5,10 +5,7 @@ export DEB_BUILD_ROOT = $(DEB_SOURCE_ROOT)/BUILD
 export CL_BASE = $(DEB_BUILD_ROOT)/opt/aerospike
 export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
 
-#REV = $(shell build/version)
-#REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
-REV = 6.2
-OS = $(shell build/os_version)
+REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 MANIFEST_DIR = manifest/TEMP
 
 .PHONY: default
