@@ -5,7 +5,7 @@ set -e
 case "$1" in
   configure)
 
-  echo Installing /opt/aerospike/bim/act
+  echo Installing /opt/aerospike/bin/act
   
   # create aerospike group if it isn't already there
   if ! getent group aerospike >/dev/null; then
