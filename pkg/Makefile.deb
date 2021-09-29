@@ -18,6 +18,8 @@ default: dist
 dist:
 
 	# Build tools package.
+	@echo $(REV)
+	@echo $(OS)
 	rm -rf $(DEB_BUILD_ROOT)/*
 	mkdir -p $(DEB_BUILD_ROOT)/DEBIAN
 	mkdir -p $(DEB_BUILD_ROOT)/usr/bin
