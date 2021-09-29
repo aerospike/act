@@ -30,11 +30,12 @@ jobs:
         fallback: 6.3     
     - name: build
       env:
-        GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}      
-      run: make all deb REV=$GIT_TAG_NAME
+        GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}
+        OS_VER: ${{ matrix.os }}      
+      run: make all deb REV=$GIT_TAG_NAME OS=$OS_VER
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
         name: act-${{ matrix.os }}-${{ steps.previoustag.outputs.tag }}
-        path: pkg/deb/DEBS
+        path: pkg/packages
         if-no-files-found: error
