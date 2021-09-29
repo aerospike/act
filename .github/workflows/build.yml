@@ -30,10 +30,10 @@ jobs:
         GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}      
       run: |
         echo $GIT_TAG_NAME
-        make all deb REV=${{ steps.previoustag.outputs.tag }}
+        make all deb REV=$GIT_TAG_NAME
     - name: Upload Artifact 
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-linux-$GIT_TAG_NAME
+        name: act-linux-${{ steps.previoustag.outputs.tag }}        
         path: pkg/deb/DEBS
         if-no-files-found: error
