@@ -12,8 +12,7 @@ jobs:
       matrix:
         os: ['ubuntu-latest']
     runs-on: ${{ matrix.os }}
-    env:
-      GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}
+
     steps:
     - name: Install Dependencies (Ubuntu)
       run: sudo apt-get install make gcc libc6-dev
@@ -27,12 +26,14 @@ jobs:
         # Fallback tag to use when no previous tag can be found
         fallback: 6.3     
     - name: build
+      env:
+        GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}      
       run: |
         echo $GIT_TAG_NAME
         make all deb REV=${{ steps.previoustag.outputs.tag }}
     - name: Upload Artifact 
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-linux-${{ steps.previoustag.outputs.tag }}
+        name: act-linux-$GIT_TAG_NAME
         path: pkg/deb/DEBS
         if-no-files-found: error
