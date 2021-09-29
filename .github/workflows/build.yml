@@ -14,22 +14,22 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
-      - name: Get Tag
-        uses: olegtarasov/get-tag@v2.1.1
-        id: tagName
-        with:
-          tagRegex: "(.*)"  # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
-          tagRegexGroup: 1 # Optional. Default is 1.
-      - name: Install Dependencies (Ubuntu)
-        run: sudo apt-get install make gcc libc6-dev
-        if: matrix.os == 'ubuntu-latest'
-      - name: Get Sources
-        uses: actions/checkout@v2
-      - name: build
-        run: make all deb
-      - name: Upload Artifact 
-        uses: actions/upload-artifact@v2.2.4
-        with: 
-          name: act-linux-${{ steps.tagName.outputs.tag }}
-          path: pkg/deb/DEBS
-          if-no-files-found: error
+    - name: Install Dependencies (Ubuntu)
+      run: sudo apt-get install make gcc libc6-dev
+      if: matrix.os == 'ubuntu-latest'
+    - name: Get Sources
+      uses: actions/checkout@v2   
+    - name: Get Latest Tag
+      uses: WyriHaximus/github-action-get-previous-tag@v1
+      with:
+        # Fallback tag to use when no previous tag can be found
+        fallback: 6.3     
+    - name: build
+      run: make all deb
+    - name: Upload Artifact 
+      id: tagName
+      uses: actions/upload-artifact@v2.2.4
+      with: 
+        name: act-linux-${{ steps.tagName.outputs.tag }}
+        path: pkg/deb/DEBS
+        if-no-files-found: error
