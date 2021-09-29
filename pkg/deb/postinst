@@ -5,7 +5,7 @@ set -e
 case "$1" in
   configure)
 
-  echo Installing /opt/aerospike/bin/act
+  echo "Installing Aerospike Certification Tool"
   
   # create aerospike group if it isn't already there
   if ! getent group aerospike >/dev/null; then

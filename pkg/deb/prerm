@@ -5,8 +5,8 @@ set -e
 case "$1" in
   remove)
   
-  echo Removing /opt/aerospike/bin/act 
-  rm -f /opt/aerospike/bin/act_*
+  echo "Removing Aerospike Certification Tool"
+#  rm -f /opt/aerospike/bin/act_*
   ;;
 esac
 
