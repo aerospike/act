@@ -26,3 +26,8 @@ jobs:
           name: act-ubuntu
           path: pkg/deb/DEBS
           if-no-files-found: error
+      - name: Download Package
+        uses: actions/download-artifact@v2.0.10
+        with:
+          name: act-ubuntu
+          path: target/pkg
