@@ -22,7 +22,7 @@ jobs:
     - name: Get Sources
       uses: actions/checkout@v2
     - name: build
-      run: make deb
+      run: make all deb
     - name: Upload Artifact 
       uses: actions/upload-artifact@v2.2.4
       with: 
