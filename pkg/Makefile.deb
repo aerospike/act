@@ -23,7 +23,7 @@ dist:
 	rm -rf $(DEB_BUILD_ROOT)/*
 	mkdir -p $(DEB_BUILD_ROOT)/DEBIAN
 	mkdir -p $(DEB_BUILD_ROOT)/usr/bin
-	mkdir -p pkg/deb/DEBS
+	mkdir -p pkg/packages
 	install -m 755 pkg/deb/postinst $(DEB_BUILD_ROOT)/DEBIAN/postinst
 	install -m 755 pkg/deb/prerm $(DEB_BUILD_ROOT)/DEBIAN/prerm
 	install -m 644 pkg/deb/control $(DEB_BUILD_ROOT)/DEBIAN/control
