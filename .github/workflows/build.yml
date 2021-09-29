@@ -13,20 +13,25 @@ jobs:
         os: ['ubuntu-latest']
     runs-on: ${{ matrix.os }}
 
-    steps: 
-    - name: Get Tag
-      uses: olegtarasov/get-tag@v2.1
-      id: tagName
-    - name: Install Dependencies (Ubuntu)
-      run: sudo apt-get install make gcc libc6-dev
-      if: matrix.os == 'ubuntu-latest'
-    - name: Get Sources
-      uses: actions/checkout@v2
-    - name: build
-      run: make all deb
-    - name: Upload Artifact 
-      uses: actions/upload-artifact@v2.2.4
-      with: 
-        name: act-linux-${{ steps.tagName.outputs.tag }}
-        path: pkg/deb/DEBS
-        if-no-files-found: error
+    steps:
+      - uses: olegtarasov/get-tag@v2.1
+        id: tagName
+        with:
+          tagRegex: "(.*)"  # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
+          tagRegexGroup: 1 # Optional. Default is 1.
+      - name: Some other step # Output usage example
+        with:
+          tagname: ${{ steps.tagName.outputs.tag }}
+      - name: Install Dependencies (Ubuntu)
+        run: sudo apt-get install make gcc libc6-dev
+        if: matrix.os == 'ubuntu-latest'
+      - name: Get Sources
+        uses: actions/checkout@v2
+      - name: build
+        run: make all deb
+      - name: Upload Artifact 
+        uses: actions/upload-artifact@v2.2.4
+        with: 
+          name: act-linux-$GIT_TAG_NAME
+          path: pkg/deb/DEBS
+          if-no-files-found: error
