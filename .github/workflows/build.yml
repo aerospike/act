@@ -30,14 +30,10 @@ jobs:
       with:
         fallback: 0.0
     - name: build
-      env:
-        GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}
-      run: |
-        echo $GIT_TAG_NAME
-        make all deb
+      run: make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-${{ env.GIT_TAG_NAME }}-${{ matrix.os }}
+        name: act-${{ steps.previoustag.outputs.tag }}-${{ matrix.os }}
         path: pkg/packages
         if-no-files-found: error
