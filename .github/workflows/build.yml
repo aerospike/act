@@ -41,6 +41,6 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-${{ env.REV }}-${{ matrix.os }}
+        name: act-${{ env.REV }}-${{ env.OS }}
         path: pkg/packages
         if-no-files-found: error
