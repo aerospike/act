@@ -33,13 +33,12 @@ jobs:
       uses: olegtarasov/get-tag@v2.1
       id: tagName
       with:
-        tagRegex: "(.*)"  # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
         tagRegexGroup: 1
     - name: build
       env:
         GIT_TAG_NAME: ${{ steps.tagName.outputs.tag }}
       run: |
-        echo $GIT_TAG_NAME ${{ steps.tagName.outputs.tag }}
+        echo $GIT_TAG_NAME
         make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
