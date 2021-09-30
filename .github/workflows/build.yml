@@ -40,6 +40,6 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-${{ steps.previoustag.outputs.tag }}-${{ matrix.os }}
+        name: act-$GIT_TAG_NAME-$OS_VER
         path: pkg/packages
         if-no-files-found: error
