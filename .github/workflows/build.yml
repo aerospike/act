@@ -25,13 +25,15 @@ jobs:
     - name: Fetch repo history
       run: git fetch --prune --unshallow
     - name: Get Latest Tag
-      id: tagName
-      uses: olegtarasov/get-tag@v2.1
+      id: previoustag
+      uses: WyriHaximus/github-action-get-previous-tag@v1.1.0
+      with:
+        fallback: 0.0
     - name: build
       run: make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-${{ steps.tagName.outputs.tag }}-${{ matrix.os }}
+        name: act-${{ steps.previoustag.outputs.tag }}-${{ matrix.os }}
         path: pkg/packages
         if-no-files-found: error
