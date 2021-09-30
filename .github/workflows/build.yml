@@ -2,7 +2,16 @@ name: Build ACT
 
 on:
   workflow_dispatch:
- 
+    inputs:
+      name:
+        description: 'Person to greet'
+        required: true
+        default: 'Aerospike'
+      home:
+        description: 'location'
+        required: false
+        default: 'The Aerospike'
+        
 jobs:
   build:
     strategy:
