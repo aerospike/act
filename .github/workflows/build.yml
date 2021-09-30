@@ -26,7 +26,7 @@ jobs:
       run: git fetch --prune --unshallow
     - name: Get Latest Tag
       id: previoustag
-      uses: "WyriHaximus/github-action-get-previous-tag@v1"
+      uses: "WyriHaximus/github-action-get-previous-tag@v1.1.0"
       with:
         fallback: 6.3
     - name: build
