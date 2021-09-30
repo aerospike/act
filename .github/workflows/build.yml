@@ -26,18 +26,17 @@ jobs:
       run: git fetch --prune --unshallow
     - name: Get Latest Tag
       id: previoustag
-      uses: "WyriHaximus/github-action-get-previous-tag@v1.1.0"
-      with:
-        fallback: 6.3
+      uses: nimblehq/branch-tag-action@v1.2
     - name: build
       env:
-        GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}
+        GIT_TAG_NAME: ${{ steps.previoustag.outputs.branch_tag }}
       run: |
         echo $GIT_TAG_NAME
+        echo "or ${{ env.BRANCH_TAG }}"
         make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-${{ steps.previoustag.outputs.tag }}-${{ matrix.os }}
+        name: act-${{ steps.previoustag.outputs.branch_tag }}-${{ matrix.os }}
         path: pkg/packages
         if-no-files-found: error
