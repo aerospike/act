@@ -27,8 +27,6 @@ jobs:
     - name: Get Latest Tag
       id: tagName
       uses: olegtarasov/get-tag@v2.1
-      with:
-        tagRegexGroup: 0
     - name: build
       run: make all deb
     - name: Upload Artifact
