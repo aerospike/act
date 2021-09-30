@@ -1,11 +1,8 @@
 name: Build ACT
 
 on:
-  push:
-    branches: [ PROD-2028 ]
-  pull_request:
-    branches: [ PROD-2028 ]
-    
+  workflow_dispatch:
+ 
 jobs:
   build:
     strategy:
