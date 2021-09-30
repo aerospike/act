@@ -29,7 +29,7 @@ jobs:
         echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
         echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
     - name: build
-      run: make all deb
+      run: make all deb REV=6.2
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
