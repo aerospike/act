@@ -31,24 +31,16 @@ jobs:
         fallback: 0.0
     - name: Set env
       run: |
-        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
         echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
         echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
-    - name: Test
-      run: |
-        echo $GITHUB_SHA_SHORT
-        echo $REV
-        echo $OS
     - name: build
       run: |
-        echo $GITHUB_SHA_SHORT
-        echo $GITHUB_SHA
         echo $REV
         echo $OS
         make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-$REV-${{ matrix.os }}
+        name: act-${{ env.REV }}-${{ matrix.os }}
         path: pkg/packages
         if-no-files-found: error
