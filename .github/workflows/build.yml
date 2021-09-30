@@ -26,9 +26,10 @@ jobs:
       run: git fetch --prune --unshallow
     - name: Get Latest Tag
       id: previoustag
-      uses: WyriHaximus/github-action-get-previous-tag@v1.1.0
+      uses: olegtarasov/get-tag@v2.1
       with:
-        fallback: 0.0
+        tagRegex: "(.*)-(.*)-.*"
+        tagRegexGroup: 2
     - name: build
       run: make all deb
     - name: Upload Artifact
