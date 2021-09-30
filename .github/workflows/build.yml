@@ -29,17 +29,18 @@ jobs:
       uses: "WyriHaximus/github-action-get-previous-tag@v1"
       with:
         fallback: 6.3
+    - uses: olegtarasov/get-tag@v2.1
+      id: tagName
+      with:
+        tagRegex: "(.*)"  # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
+        tagRegexGroup: 1
     - name: build
-      env:
-        GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}
-        OS_VER: ${{ matrix.os }}      
       run: |
-        echo $GIT_TAG_NAME 
-        echo $OS_VER
+        echo "tag: $GIT_TAG_NAME" 
         make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-$(GIT_TAG_NAME)-$(OS_VER)
+        name: act-${{ steps.previoustag.outputs.tag }}-${{ matrix.os }}
         path: pkg/packages
         if-no-files-found: error
