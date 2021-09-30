@@ -30,7 +30,10 @@ jobs:
       with:
         fallback: 0.0
     - name: build
-      run: make all deb
+      run: |
+        make all deb
+        echo $REV
+        echo $OS
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 

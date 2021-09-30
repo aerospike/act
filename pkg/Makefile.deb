@@ -6,8 +6,8 @@ export CL_BASE = $(DEB_BUILD_ROOT)/opt/aerospike
 export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
 
 #REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
-REV = $(shell build/version)
-OS = $(shell build/os_version)
+export REV = $(shell build/version)
+export OS = $(shell build/os_version)
 
 MANIFEST_DIR = manifest/TEMP
 
