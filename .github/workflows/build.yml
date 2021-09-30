@@ -29,7 +29,8 @@ jobs:
       uses: "WyriHaximus/github-action-get-previous-tag@v1"
       with:
         fallback: 6.3
-    - uses: olegtarasov/get-tag@v2.1
+    - name: Get tag
+      uses: olegtarasov/get-tag@v2.1
       id: tagName
       with:
         tagRegex: "(.*)"  # Optional. Returns specified group text as tag name. Full tag string is returned if regex is not defined.
@@ -38,7 +39,7 @@ jobs:
       env:
         GIT_TAG_NAME: ${{ steps.tagName.outputs.tag }}
       run: |
-        echo $GIT_TAG_NAME 
+        echo $GIT_TAG_NAME ${{ steps.tagName.outputs.tag }}
         make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
