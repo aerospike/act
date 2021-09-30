@@ -30,10 +30,13 @@ jobs:
       with:
         fallback: 0.0
     - name: build
+      env:
+        REV: make -f pkg/Makefile print-REV
+        OS: make -f pkg/Makefile print-OS
       run: |
-        make all deb
         echo $REV
         echo $OS
+        make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
