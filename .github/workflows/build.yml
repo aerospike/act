@@ -21,7 +21,8 @@ jobs:
       run: sudo apt-get install make gcc libc6-dev
       if: matrix.os == 'ubuntu-18.04'      
     - name: Get Sources
-      uses: actions/checkout@v2   
+      uses: actions/checkout@v2  
+    - run: git fetch --prune --unshallow
     - name: Get Latest Tag
       id: previoustag
       uses: "WyriHaximus/github-action-get-previous-tag@v1"
