@@ -29,13 +29,14 @@ jobs:
       uses: WyriHaximus/github-action-get-previous-tag@v1.1.0
       with:
         fallback: 0.0
+    - name: Set env
+      run: echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+    - name: Test
+      run: echo $GITHUB_SHA_SHORT
     - name: build
-      env:
-        REV: make -f pkg/Makefile print-REV
-        OS: make -f pkg/Makefile print-OS
       run: |
-        echo $REV
-        echo $OS
+        echo $GITHUB_SHA_SHORT
+        echo $GITHUB_SHA
         make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
