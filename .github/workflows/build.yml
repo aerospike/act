@@ -28,8 +28,7 @@ jobs:
       id: previoustag
       uses: olegtarasov/get-tag@v2.1
       with:
-        tagRegex: "(.*)-(.*)-.*"
-        tagRegexGroup: 2
+        tagRegexGroup: 0
     - name: build
       run: make all deb
     - name: Upload Artifact
