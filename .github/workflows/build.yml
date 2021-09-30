@@ -36,7 +36,7 @@ jobs:
       run: |
         echo $GIT_TAG_NAME 
         echo $OS_VER
-        make all deb REV=$GIT_TAG_NAME OS=$OS_VER
+        make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
