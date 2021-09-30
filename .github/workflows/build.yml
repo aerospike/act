@@ -29,14 +29,9 @@ jobs:
       uses: "WyriHaximus/github-action-get-previous-tag@v1"
       with:
         fallback: 6.3
-    - name: Get tag
-      uses: olegtarasov/get-tag@v2.1
-      id: tagName
-      with:
-        tagRegexGroup: 1
     - name: build
       env:
-        GIT_TAG_NAME: ${{ steps.tagName.outputs.tag }}
+        GIT_TAG_NAME: ${{ steps.previoustag.outputs.tag }}
       run: |
         echo $GIT_TAG_NAME
         make all deb
