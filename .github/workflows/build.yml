@@ -23,12 +23,12 @@ jobs:
     - name: Config Build Package (Ubuntu-latest)
       run: |
         sudo apt-get install make gcc libc6-dev
-        make all deb
+        make all deb rpm
       if: matrix.os == 'ubuntu-20.04'
     - name: Config Build Package (Ubuntu-18.04)
       run: |
         sudo apt-get install make gcc libc6-dev
-        make all deb
+        make all deb rpm
       if: matrix.os == 'ubuntu-18.04'
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
