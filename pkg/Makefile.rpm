@@ -9,6 +9,7 @@ MANIFEST_DIR = manifest/TEMP
 #REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 REV = $(shell build/version)
 OS = $(shell build/os_version)
+OS = linux
 
 .PHONY: default
 default: dist
