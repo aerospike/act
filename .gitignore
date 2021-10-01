@@ -1,0 +1,6 @@
+bin
+obj
+target
+dist
+act_v.spec
+pkg/packages

@@ -5,6 +5,7 @@ DIR_OBJ = $(DIR_TARGET)/obj
 DIR_BIN = $(DIR_TARGET)/bin
 DIR_RPM = pkg/rpm/RPMS
 DIR_DEB = pkg/deb/DEBS
+DIR_PKG = pkg/packages
 
 SRC_DIRS = common index prep storage
 OBJ_DIRS = $(SRC_DIRS:%=$(DIR_OBJ)/src/%)
@@ -68,6 +69,8 @@ clean:
 	/bin/rm -rf $(DIR_TARGET)
 	/bin/rm -rf $(DIR_RPM)
 	/bin/rm -rf $(DIR_DEB)
+	/bin/rm -rf $(DIR_PKG)
+	/bin/rm -rf dist
 
 -include $(ALL_DEPENDENCIES)
 
