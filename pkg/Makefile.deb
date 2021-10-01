@@ -17,7 +17,7 @@ default: dist
 .PHONY: dist
 dist:
 
-	# Build tools package.
+	# Build act package.
 	@echo $(REV)
 	@echo $(OS)
 	rm -rf $(DEB_BUILD_ROOT)/*
@@ -54,5 +54,6 @@ dist:
 distclean:
 	rm -rf $(DEB_SOURCE_ROOT)
 	rm -rf pkg/deb/DEBS
+	rm -rf pkg/packages
 
 print-% : ; @echo $($*)

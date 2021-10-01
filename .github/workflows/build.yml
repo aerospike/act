@@ -1,16 +1,8 @@
 name: Build ACT
 
 on:
-  workflow_dispatch:
-    inputs:
-      name:
-        description: 'Person to greet'
-        required: true
-        default: 'Aerospike'
-      home:
-        description: 'location'
-        required: false
-        default: 'The Aerospike'
+  push:
+    branch: [ PROD-2028 ]
         
 jobs:
   build:
