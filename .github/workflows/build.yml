@@ -25,7 +25,7 @@ jobs:
       if: |
         matrix.container == 'debian:8' || matrix.container == 'debian:9' || matrix.container == 'debian:10'
     - name: Clone Source
-      run: git clone --branch OPS-2028 https://github.com/aerospike/act.git
+      run: git clone --branch PROD-2028 https://github.com/aerospike/act.git
     - name: buils act (centos)
       working-directory: ./act
       if: matrix.container == 'centos:7' || matrix.container == 'centos:8'
