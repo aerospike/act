@@ -5,7 +5,9 @@ export DEB_BUILD_ROOT = $(DEB_SOURCE_ROOT)/BUILD
 export CL_BASE = $(DEB_BUILD_ROOT)/opt/aerospike
 export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
 
+
 #REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
+DIR_PKG = target/packages
 REV = $(shell build/version)
 OS = $(shell build/os_version)
 
@@ -23,7 +25,7 @@ dist:
 	rm -rf $(DEB_BUILD_ROOT)/*
 	mkdir -p $(DEB_BUILD_ROOT)/DEBIAN
 	mkdir -p $(DEB_BUILD_ROOT)/usr/bin
-	mkdir -p pkg/packages
+	mkdir -p $(DIR_PKG)
 	install -m 755 pkg/deb/postinst $(DEB_BUILD_ROOT)/DEBIAN/postinst
 	install -m 755 pkg/deb/prerm $(DEB_BUILD_ROOT)/DEBIAN/prerm
 	install -m 644 pkg/deb/control $(DEB_BUILD_ROOT)/DEBIAN/control
@@ -48,7 +50,7 @@ dist:
 
 	sed 's/@VERSION@/'$(REV)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
 
-	fakeroot dpkg-deb --build $(DEB_BUILD_ROOT) target/packages/act-$(REV).$(OS).x86_64.deb
+	fakeroot dpkg-deb --build $(DEB_BUILD_ROOT) $(DIR_PKG)/act-$(REV).$(OS).x86_64.deb
 	rm -rf dist
 
 distclean:

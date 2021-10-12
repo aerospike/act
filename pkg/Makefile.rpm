@@ -6,14 +6,14 @@ export CL_BASE = $(RPM_BUILD_ROOT)/opt/aerospike
 export ETC_BASE = $(RPM_BUILD_ROOT)/etc/aerospike
 
 MANIFEST_DIR = manifest/TEMP
+DIR_PKG = target/packages
 #REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 REV = $(shell build/version)
 OS = $(shell build/os_version)
-OS = linux
 
 .PHONY: default
 default: dist
-	mkdir -p pkg/packages
+	mkdir -p $(DIR_PKG)
 	mkdir -p $(RPM_BUILD_ROOT)
 	mkdir -p $(RPM_SOURCE_ROOT)/RPMS/x86_64
 	mkdir -p $(RPM_BUILD_ROOT)/usr/bin
@@ -22,7 +22,7 @@ default: dist
 	sed -i 's/@RELEASE@/'$(OS)'/g' pkg/act_v.spec
 
 	rpmbuild -bb -vv --define "dist .$(OS)" --buildroot $(RPM_BUILD_ROOT) pkg/act_v.spec
-	find $(RPM_SOURCE_ROOT)/RPMS -type f -exec mv {} target/packages \;
+	find $(RPM_SOURCE_ROOT)/RPMS -type f -exec mv {} $(DIR_PKG) \;
 	rm -rf pkg/act_v.spec dist
 
 distclean:

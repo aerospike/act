@@ -69,7 +69,6 @@ clean:
 	/bin/rm -rf $(DIR_TARGET)
 	/bin/rm -rf $(DIR_RPM)
 	/bin/rm -rf $(DIR_DEB)
-	/bin/rm -rf $(DIR_PKG)
 	/bin/rm -rf dist
 
 -include $(ALL_DEPENDENCIES)
