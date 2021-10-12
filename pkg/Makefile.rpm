@@ -22,12 +22,12 @@ default: dist
 	sed -i 's/@RELEASE@/'$(OS)'/g' pkg/act_v.spec
 
 	rpmbuild -bb -vv --define "dist .$(OS)" --buildroot $(RPM_BUILD_ROOT) pkg/act_v.spec
-	find $(RPM_SOURCE_ROOT)/RPMS -type f -exec mv {} pkg/packages \;
+	find $(RPM_SOURCE_ROOT)/RPMS -type f -exec mv {} target/packages \;
 	rm -rf pkg/act_v.spec dist
 
 distclean:
 	rm -rf $(RPM_BUILD_ROOT)
-	rm -rf pkg/packages:
+	rm -rf target/packages:
 
 .PHONY: dist
 dist:

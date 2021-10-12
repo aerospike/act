@@ -48,12 +48,11 @@ dist:
 
 	sed 's/@VERSION@/'$(REV)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
 
-	fakeroot dpkg-deb --build $(DEB_BUILD_ROOT) pkg/packages/act-$(REV).$(OS).x86_64.deb
+	fakeroot dpkg-deb --build $(DEB_BUILD_ROOT) target/packages/act-$(REV).$(OS).x86_64.deb
 	rm -rf dist
 
 distclean:
 	rm -rf $(DEB_SOURCE_ROOT)
-	rm -rf pkg/deb/DEBS
-	rm -rf pkg/packages
+	rm -rf target/packages
 
 print-% : ; @echo $($*)

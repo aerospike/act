@@ -33,7 +33,7 @@ jobs:
         echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
         echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
         echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
-        make act rpm
+        make all rpm
     - name: build act (debian)
       working-directory: ./act
       if: |
@@ -42,7 +42,7 @@ jobs:
         echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
         echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
         echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
-        make act deb      
+        make all deb      
     - name: Upload Artifacts
       uses: actions/upload-artifact@v2.2.4
       with:
@@ -69,7 +69,7 @@ jobs:
         echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
         ls -la
     - name: build
-      run: make act deb
+      run: make all deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
