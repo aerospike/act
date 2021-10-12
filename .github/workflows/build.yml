@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        container: [ 'centos:7', 'centos:8', 'debian:8', 'debian:9', 'debian:10' ]
+        container: [ 'centos:7', 'centos:8', 'debian:9', 'debian:10', 'debian:11' ]
     container:
       image: ${{ matrix.container }}
       options: "--entrypoint /bin/bash"
@@ -23,7 +23,7 @@ jobs:
         apt-get -y update
         apt-get -y install make gcc libc6-dev git build-essential
       if: |
-        matrix.container == 'debian:8' || matrix.container == 'debian:9' || matrix.container == 'debian:10'
+        matrix.container == 'debian:9' || matrix.container == 'debian:10' || matrix.container == 'debian:11'
     - name: Clone Source
       run: git clone --branch PROD-2028 https://github.com/aerospike/act.git
     - name: buils act (centos)
@@ -37,7 +37,7 @@ jobs:
     - name: build act (debian)
       working-directory: ./act
       if: |
-        matrix.container == 'debian:8' || matrix.container == 'debian:9' || matrix.container == 'debian:10' 
+        matrix.container == 'debian:9' || matrix.container == 'debian:10' || matrix.container == 'debian:11' 
       run: |
         echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
         echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
@@ -49,12 +49,12 @@ jobs:
         name: act-${{ env.REV }}-${{ env.OS }}-${{ env.GITHUB_SHA_SHORT }}
         path: /__w/act/act/act/target/packages/act-*
         if-no-files-found: error
+ 
   build:
     strategy:
       matrix:
         os: [ 'ubuntu-20.04', 'ubuntu-18.04' ]
     runs-on: ${{ matrix.os }}
-
     steps:
     - name: Install Dependencies
       run: sudo apt-get install make gcc libc6-dev
