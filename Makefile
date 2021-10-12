@@ -3,9 +3,9 @@
 DIR_TARGET = target
 DIR_OBJ = $(DIR_TARGET)/obj
 DIR_BIN = $(DIR_TARGET)/bin
+DIR_PKG = $(DIR_TARGET)/packages
 DIR_RPM = pkg/rpm/RPMS
 DIR_DEB = pkg/deb/DEBS
-DIR_PKG = pkg/packages
 
 SRC_DIRS = common index prep storage
 OBJ_DIRS = $(SRC_DIRS:%=$(DIR_OBJ)/src/%)
