@@ -2,37 +2,77 @@ name: Build ACT
 
 on:
   push:
-    branch: [ PROD-2028 ]
+    branches: [ PROD-2028 ]
         
 jobs:
+  buils_atl:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        container: [ 'centos:7', 'centos:8', 'debian:8', 'debian:9', 'debian:10' ]
+    container:
+      image: ${{ matrix.container }}
+      options: "--entrypoint /bin/bash"
+    steps:
+    - name: Install Dependencies (centos)
+      run: |
+        yum install -y make gcc git rpm-build
+      if: matrix.container == 'centos:7' || matrix.container == 'centos:8'
+    - name: Install Dependencies (Debian)
+      run: |
+        apt-get -y update
+        apt-get -y install make gcc libc6-dev git build-essential
+      if: |
+        matrix.container == 'debian:8' || matrix.container == 'debian:9' || matrix.container == 'debian:10'
+    - name: Clone Source
+      run: git clone --branch OPS-2028 https://github.com/aerospike/act.git
+    - name: buils act (centos)
+      working-directory: ./act
+      if: matrix.container == 'centos:7' || matrix.container == 'centos:8'
+      run: |
+        echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
+        echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
+        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+        make act rpm
+    - name: build act (debian)
+      working-directory: ./act
+      if: |
+        matrix.container == 'debian:8' || matrix.container == 'debian:9' || matrix.container == 'debian:10' 
+      run: |
+        echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
+        echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
+        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+        make act deb      
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v2.2.4
+      with:
+        name: act-${{ env.REV }}-${{ env.OS }}-${{ env.GITHUB_SHA_SHORT }}
+        path: /__w/act/act/act/target/packages/act-*
+        if-no-files-found: error
   build:
     strategy:
       matrix:
-        os: ['ubuntu-20.04', 'ubuntu-18.04']
+        os: [ 'ubuntu-20.04', 'ubuntu-18.04' ]
     runs-on: ${{ matrix.os }}
 
     steps:
+    - name: Install Dependencies
+      run: sudo apt-get install make gcc libc6-dev
     - name: Get Sources
       uses: actions/checkout@v2
-    - name: Fetch repo history
-      run: git fetch --prune --unshallow
+      with:
+        fetch-depth: 0
     - name: Set env
       run: |
         echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
         echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
-    - name: Config Build Package (Ubuntu-latest)
-      run: |
-        sudo apt-get install make gcc libc6-dev
-        make all deb rpm
-      if: matrix.os == 'ubuntu-20.04'
-    - name: Config Build Package (Ubuntu-18.04)
-      run: |
-        sudo apt-get install make gcc libc6-dev
-        make all deb
-      if: matrix.os == 'ubuntu-18.04'
+        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+        ls -la
+    - name: build
+      run: make act deb
     - name: Upload Artifact
       uses: actions/upload-artifact@v2.2.4
       with: 
-        name: act-${{ env.REV }}-${{ env.OS }}
-        path: pkg/packages
+        name: act-${{ env.REV }}-${{ env.OS }}-${{ env.GITHUB_SHA_SHORT }}
+        path: target/packages
         if-no-files-found: error
