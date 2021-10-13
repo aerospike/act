@@ -14,7 +14,7 @@ jobs:
       image: ${{ matrix.container }}
       options: "--entrypoint /bin/bash"
     steps:
-    - name: Install Dependencies (centos)
+    - name: Install Dependencies (centos 7 & 8)
       run: |
         yum install -y make gcc git rpm-build
       if: matrix.container == 'centos:7' || matrix.container == 'centos:8'
