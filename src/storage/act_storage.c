@@ -47,7 +47,6 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
-#include "common/atomic.h"
 #include "common/cfg.h"
 #include "common/clock.h"
 #include "common/hardware.h"
