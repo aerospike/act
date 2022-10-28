@@ -30,8 +30,6 @@
 
 #include <stdint.h>
 
-#include "atomic.h"
-
 
 //==========================================================
 // Typedefs & constants.
@@ -47,7 +45,7 @@ typedef enum {
 
 typedef struct histogram_s {
 	uint32_t time_div;
-	atomic64 counts[N_BUCKETS];
+	uint64_t counts[N_BUCKETS];
 } histogram;
 
 

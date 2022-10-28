@@ -35,8 +35,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "atomic.h"
-
 
 //==========================================================
 // Typedefs & constants.
@@ -132,7 +130,7 @@ histogram_dump(histogram* h, const char* tag)
 	uint64_t total = 0;
 
 	for (uint32_t b = 0; b < N_BUCKETS; b++) {
-		counts[b] = atomic64_get(h->counts[b]);
+		counts[b] = __atomic_load_n(&h->counts[b], __ATOMIC_RELAXED);
 
 		if (counts[b] != 0) {
 			if (i > b) {
@@ -209,7 +207,7 @@ histogram_insert_data_point(histogram* h, uint64_t delta_ns)
 		bucket = msb(delta_t);
 	}
 
-	atomic64_incr(&h->counts[bucket]);
+	__atomic_fetch_add(&h->counts[bucket], 1, __ATOMIC_RELAXED);
 }
 
 

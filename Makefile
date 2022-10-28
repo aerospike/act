@@ -1,5 +1,15 @@
 # Make all or any of: act_storage, act_index, act_prep.
 
+ARCH = $(shell uname -m)
+
+ifeq ($(ARCH), x86_64)
+	CFLAGS = -march=nocona
+else ifeq ($(ARCH), aarch64)
+	CFLAGS = -mcpu=neoverse-n1
+else
+	$(error unhandled arch "$(ARCH)")
+endif
+
 DIR_TARGET = target
 DIR_OBJ = $(DIR_TARGET)/obj
 DIR_BIN = $(DIR_TARGET)/bin
@@ -26,8 +36,7 @@ STORAGE_BINARY = $(DIR_BIN)/act_storage
 ALL_OBJECTS = $(INDEX_OBJECTS) $(PREP_OBJECTS) $(STORAGE_OBJECTS)
 ALL_DEPENDENCIES = $(ALL_OBJECTS:%.o=%.d)
 
-CC = gcc
-CFLAGS = -g -fno-common -std=gnu99 -Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64
+CFLAGS += -g -fno-common -std=gnu99 -Wall -D_REENTRANT -D_FILE_OFFSET_BITS=64
 CFLAGS += -D_GNU_SOURCE -MMD
 LDFLAGS = $(CFLAGS)
 INCLUDES = -Isrc -I/usr/include
