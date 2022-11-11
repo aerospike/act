@@ -65,10 +65,6 @@ act_storage: target_dir $(STORAGE_OBJECTS)
 	echo "Linking $@"
 	$(CC) $(LDFLAGS) -o $(STORAGE_BINARY) $(STORAGE_OBJECTS) $(LIBRARIES)
 
-# For now we only clean everything.
-clean:
-	/bin/rm -rf $(DIR_TARGET)
-
 -include $(ALL_DEPENDENCIES)
 
 $(DIR_OBJ)/%.o: %.c
@@ -90,10 +86,3 @@ clean:
 	/bin/rm -rf $(DIR_RPM)
 	/bin/rm -rf $(DIR_DEB)
 	/bin/rm -rf dist
-
--include $(ALL_DEPENDENCIES)
-
-$(DIR_OBJ)/%.o: %.c
-        echo "Building $@"
-        $(CC) $(CFLAGS) -o $@ -c $(INCLUDES) $<
-

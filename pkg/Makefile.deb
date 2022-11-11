@@ -57,7 +57,7 @@ dist:
 
 
 	sed 's/@VERSION@/'$(REV)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
-	sed 's/@ARCH@/'$(ARCH)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
+	sed 's/@ARCH@/'$(ARCH)'/g' $(DEB_BUILD_ROOT)/DEBIAN/control
 	fakeroot dpkg-deb --build $(DEB_BUILD_ROOT) $(DIR_PKG)/act_$(REV)$(OS)_$(ARCH).deb
 	rm -rf dist
 
