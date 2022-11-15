@@ -9,6 +9,7 @@ export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
 #REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 DIR_PKG = target/packages
 REV = $(shell build/version)
+REV=6.3
 OS = $(shell build/os_version)
 ARCH=$(shell uname -m)
 MANIFEST_DIR = manifest/TEMP
