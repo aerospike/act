@@ -26,22 +26,20 @@ jobs:
         matrix.container == 'debian:10' || matrix.container == 'debian:11'
     - name: Clone Source
       run: git clone --branch ARM-SUPPORT https://github.com/aerospike/act.git
-    - name: Set env
+      
+    - name: build act (debian)
+      working-directory: ./act
       run: |
         echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
         echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
         echo "ARCH=$(make -f pkg/Makefile.deb print-ARCH)" >> $GITHUB_ENV
-        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV      
-    - name: build act (debian)
-      working-directory: ./act
-      if: |
-        matrix.container == 'debian:10' || matrix.container == 'debian:11' 
-      run: make all deb      
+        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV        
+        make all deb      
     - name: Upload Artifacts
       uses: actions/upload-artifact@v3
       with:
         name: act_${{ env.REV }}-1${{ env.OS }}_${{ env.ARCH }}.deb
-        path: /__w/act/act/act/target/packages/act_${{ env.REV }}-1${{ env.OS }}_${{ env.ARCH }}.deb
+        path: /__w/act/act/act/target/packages/act_*
         if-no-files-found: error
  
   build_ubuntu_x86_64:
