@@ -19,7 +19,7 @@ container:
 build:
   - name: default
     script:
-      - make
+      - make all
       - make $PKG
     artifact:
       - target/bin/*
