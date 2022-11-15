@@ -14,6 +14,10 @@ DIR_TARGET = target
 DIR_OBJ = $(DIR_TARGET)/obj
 DIR_BIN = $(DIR_TARGET)/bin
 
+DIR_PKG = $(DIR_TARGET)/packages
+DIR_RPM = pkg/rpm/RPMS
+DIR_DEB = pkg/deb/DEBS
+
 SRC_DIRS = common index prep storage
 OBJ_DIRS = $(SRC_DIRS:%=$(DIR_OBJ)/src/%)
 
@@ -47,7 +51,7 @@ default: all
 all: act_index act_prep act_storage
 
 target_dir:
-	/bin/mkdir -p $(DIR_BIN) $(OBJ_DIRS)
+	/bin/mkdir -p $(DIR_BIN) $(OBJ_DIRS) $(DIR_PKG)
 
 act_index: target_dir $(INDEX_OBJECTS)
 	echo "Linking $@"
@@ -61,12 +65,24 @@ act_storage: target_dir $(STORAGE_OBJECTS)
 	echo "Linking $@"
 	$(CC) $(LDFLAGS) -o $(STORAGE_BINARY) $(STORAGE_OBJECTS) $(LIBRARIES)
 
-# For now we only clean everything.
-clean:
-	/bin/rm -rf $(DIR_TARGET)
-
 -include $(ALL_DEPENDENCIES)
 
 $(DIR_OBJ)/%.o: %.c
 	echo "Building $@"
 	$(CC) $(CFLAGS) -o $@ -c $(INCLUDES) $<
+
+.PHONY: rpm
+rpm:
+	$(MAKE) -f pkg/Makefile.rpm
+
+.PHONY: deb
+deb:
+	$(MAKE) -f pkg/Makefile.deb
+
+# For now we only clean everything.
+.PHONY: clean
+clean:
+	/bin/rm -rf $(DIR_TARGET)
+	/bin/rm -rf $(DIR_RPM)
+	/bin/rm -rf $(DIR_DEB)
+	/bin/rm -rf dist

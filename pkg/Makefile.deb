@@ -1,0 +1,68 @@
+# Build act distribution.
+
+export DEB_SOURCE_ROOT = $(shell echo `pwd`/dist)
+export DEB_BUILD_ROOT = $(DEB_SOURCE_ROOT)/BUILD
+export CL_BASE = $(DEB_BUILD_ROOT)/opt/aerospike
+export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
+
+
+#REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
+DIR_PKG = target/packages
+REV = $(shell build/version)
+OS = $(shell build/os_version)
+ARCH=$(shell uname -m)
+MANIFEST_DIR = manifest/TEMP
+
+ifeq ($(ARCH), x86_64)
+        ARCH=amd64
+endif
+
+ifeq ($(ARCH), aarch64)
+        ARCH=arm64
+endif
+
+.PHONY: default
+default: dist
+
+.PHONY: dist
+dist:
+
+	# Build act package.
+	@echo $(REV)
+	@echo $(OS)
+	rm -rf $(DEB_BUILD_ROOT)/*
+	mkdir -p $(DEB_BUILD_ROOT)/DEBIAN
+	mkdir -p $(DEB_BUILD_ROOT)/usr/bin
+	mkdir -p $(DIR_PKG)
+	install -m 755 pkg/deb/postinst $(DEB_BUILD_ROOT)/DEBIAN/postinst
+	install -m 755 pkg/deb/prerm $(DEB_BUILD_ROOT)/DEBIAN/prerm
+	install -m 644 pkg/deb/control $(DEB_BUILD_ROOT)/DEBIAN/control
+
+	mkdir -p $(CL_BASE)
+	mkdir -p $(ETC_BASE)
+	mkdir -p $(CL_BASE)/bin
+
+        # act
+	install -m 755 target/bin/act_* $(CL_BASE)/bin/
+	install -m 755 analysis/act_latency.py $(CL_BASE)/bin/
+	install -m 755 config/act_index.conf $(ETC_BASE)/
+	install -m 755 config/act_storage.conf $(ETC_BASE)/
+
+	# Create symlinks to /usr/bin
+	mkdir -p $(DEB_BUILD_ROOT)/usr/bin
+	ln -sf /opt/aerospike/bin/act_index $(DEB_BUILD_ROOT)/usr/bin/act_index
+	ln -sf /opt/aerospike/bin/act_prep $(DEB_BUILD_ROOT)/usr/bin/act_prep
+	ln -sf /opt/aerospike/bin/act_storage $(DEB_BUILD_ROOT)/usr/bin/act_storage
+	ln -sf /opt/aerospike/bin/act_latency.py $(DEB_BUILD_ROOT)/usr/bin/act_latency.py
+
+
+	sed 's/@VERSION@/'$(REV)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
+	sed -i 's/@ARCH@/'$(ARCH)'/g' $(DEB_BUILD_ROOT)/DEBIAN/control
+	fakeroot dpkg-deb --build $(DEB_BUILD_ROOT) $(DIR_PKG)/act_$(REV)-1$(OS)_$(ARCH).deb
+	rm -rf dist
+
+distclean:
+	rm -rf $(DEB_SOURCE_ROOT)
+	rm -rf target/packages
+
+print-% : ; @echo $($*)
