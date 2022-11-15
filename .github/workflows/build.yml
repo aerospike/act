@@ -3,27 +3,72 @@ name: Build ACT
 on:
   push:
     branches: [ master ]
+    tags:
+      - '*'
   pull_request:
     branches: [ master ]
-    
+        
 jobs:
-  build:
+  buils_debian_x86_64:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: ['ubuntu-latest']
-    runs-on: ${{ matrix.os }}
+        container: [ 'debian:10', 'debian:11' ]
+    container:
+      image: ${{ matrix.container }}
+      options: "--entrypoint /bin/bash"
+    steps:
+    - name: Install Dependencies (Debian)
+      run: |
+        apt-get -y update
+        apt-get -y install make gcc libc6-dev git build-essential
 
-    steps: 
-    - name: Install Dependencies (Ubuntu)
+    - name: Clone Source
+      run: git clone  https://github.com/aerospike/act.git
+      
+    - name: build act (debian)
+      working-directory: ./act
+      run: |
+        echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
+        echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
+        echo "ARCH=$(make -f pkg/Makefile.deb print-ARCH)" >> $GITHUB_ENV
+        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV        
+        make all deb      
+
+    - name: Upload Artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: act_${{ env.REV }}-1${{ env.OS }}_${{ env.ARCH }}.deb
+        path: /__w/act/act/act/target/packages/act_*
+        if-no-files-found: error
+ 
+  build_ubuntu_x86_64:
+    strategy:
+      matrix:
+        os: [ 'ubuntu-20.04', 'ubuntu-18.04' ]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Install Dependencies
       run: sudo apt-get install make gcc libc6-dev
-      if: matrix.os == 'ubuntu-latest'
+
     - name: Get Sources
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Set env
+      run: |
+        echo "REV=$(make -f pkg/Makefile.deb print-REV)" >> $GITHUB_ENV
+        echo "OS=$(make -f pkg/Makefile.deb print-OS)" >> $GITHUB_ENV
+        echo "ARCH=$(make -f pkg/Makefile.deb print-ARCH)" >> $GITHUB_ENV
+        echo "GITHUB_SHA_SHORT=$(echo $GITHUB_SHA | cut -c 1-6)" >> $GITHUB_ENV
+
     - name: build
-      run: make
-    - name: Upload Artifact 
-      uses: actions/upload-artifact@v2.2.4
+      run: make all deb
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
       with: 
-        name: act-linux-$GITHUB_REF
-        path: target/bin/
+        name: act_${{ env.REV }}-1${{ env.OS }}_${{ env.ARCH }}.deb
+        path: target/packages
         if-no-files-found: error
