@@ -9,6 +9,7 @@ MANIFEST_DIR = manifest/TEMP
 DIR_PKG = target/packages
 #REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 REV = $(shell build/version)
+REV=6.3
 OS = $(shell build/os_version)
 ARCH=$(shell uname -m)
 
