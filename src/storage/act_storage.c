@@ -260,8 +260,9 @@ main(int argc, char* argv[])
 		for (uint32_t n = 0; n < g_scfg.num_devices; n++) {
 			device* dev = &g_devices[n];
 
-			if (pthread_create(&dev->large_block_read_thread, NULL,
-					run_large_block_reads, (void*)dev) != 0) {
+			if (! g_scfg.no_defrag_reads &&
+					pthread_create(&dev->large_block_read_thread, NULL,
+							run_large_block_reads, (void*)dev) != 0) {
 				printf("ERROR: create large op read thread\n");
 				exit(-1);
 			}
@@ -767,37 +768,32 @@ discover_read_pattern(device* dev)
 static void
 discover_write_pattern(device* dev)
 {
-	// Use the larger of min-op bytes and configured commit-min-bytes.
-	dev->min_commit_bytes = dev->min_op_bytes > g_scfg.commit_min_bytes ?
-			dev->min_op_bytes : g_scfg.commit_min_bytes;
-
-	// Total number of "min-commit"-sized blocks on the device. (Excluding
+	// Total number of "min-op"-sized blocks on the device. (Excluding
 	// fractional large block at end of device, if such.)
-	uint64_t n_min_commit_blocks =
+	uint64_t n_min_op_blocks =
 			(dev->n_large_blocks * g_scfg.large_block_ops_bytes) /
-					dev->min_commit_bytes;
+					dev->min_op_bytes;
 
-	// Number of "min-commit"-sized blocks per (smallest) write request.
-	uint32_t write_req_min_commit_blocks =
-			(g_scfg.record_stored_bytes + dev->min_commit_bytes - 1) /
-					dev->min_commit_bytes;
+	// Number of "min-op"-sized blocks per (smallest) write request.
+	uint32_t write_req_min_op_blocks =
+			(g_scfg.record_stored_bytes + dev->min_op_bytes - 1) /
+					dev->min_op_bytes;
 
 	// Size in bytes per (smallest) write request.
-	dev->write_bytes = write_req_min_commit_blocks * dev->min_commit_bytes;
+	dev->write_bytes = write_req_min_op_blocks * dev->min_op_bytes;
 
-	// Number of "min-commit"-sized blocks per (largest) write request.
-	uint32_t write_req_min_commit_blocks_rmx =
-			(g_scfg.record_stored_bytes_rmx + dev->min_commit_bytes - 1) /
-					dev->min_commit_bytes;
+	// Number of "min-op"-sized blocks per (largest) write request.
+	uint32_t write_req_min_op_blocks_rmx =
+			(g_scfg.record_stored_bytes_rmx + dev->min_op_bytes - 1) /
+					dev->min_op_bytes;
 
 	// Number of write request sizes in configured range.
 	dev->n_write_sizes =
-			write_req_min_commit_blocks_rmx - write_req_min_commit_blocks + 1;
+			write_req_min_op_blocks_rmx - write_req_min_op_blocks + 1;
 
 	// Total number of sites on device to write to. (Make sure the last site
 	// has room for largest possible write request.)
-	dev->n_write_offsets =
-			n_min_commit_blocks - write_req_min_commit_blocks_rmx + 1;
+	dev->n_write_offsets = n_min_op_blocks - write_req_min_op_blocks_rmx + 1;
 }
 
 //------------------------------------------------

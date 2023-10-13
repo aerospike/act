@@ -566,6 +566,13 @@ storage write rate, which (for act_storage) is manifest as the large-block read
 and write rates.  For act_index, defragmentation generates an extra internal
 index device read and write load. The default defrag-lwm-pct is 50.
 
+**no-defrag-reads (act_storage ONLY)**
+Flag to model Aerospike 7.0+ storage-engine memory with device/file backing.
+This models defrag for a given write load as usual, but without the large-block
+reads.  To simulate storage-engine memory with device backing, in addition to
+setting this flag, do not specify a read load (read-reqs-per-sec), and do not
+set the tomb-raider flag.  The default no-defrag-reads is no.
+
 **compress-pct (act_storage ONLY)**
 Generate compressible data when writing to devices.  With compress-pct 100, the
 data is fully random (not compressible).  Lower values cause runs of zeros to
@@ -585,14 +592,6 @@ synchronously, instead of flushing large blocks full of records.  This causes a
 device I/O load with many small, variable-sized writes.  Large block writes (and
 reads) still occur to model defragmentation, but the rate of these is reduced.
 The default commit-to-device is no.
-
-**commit-min-bytes (act_storage ONLY)**
-Minimum size of a write in commit-to-device mode. Must be a power of 2. Each
-write rounds the record size up to a multiple of commit-min-bytes. If
-commit-min-bytes is configured smaller than the minimum I/O size allowed on the
-device, the record size will be rounded up to a multiple of the minimum I/O
-size.  The default commit-min-bytes is 0, meaning writes will round up to a
-multiple of the minimum I/O size.
 
 **tomb-raider (act_storage ONLY)**
 Flag to model the Aerospike tomb raider.  This simply spawns a thread per device

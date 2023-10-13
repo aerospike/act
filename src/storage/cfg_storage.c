@@ -59,10 +59,10 @@ static const char TAG_LARGE_BLOCK_OP_KBYTES[]   = "large-block-op-kbytes";
 static const char TAG_REPLICATION_FACTOR[]      = "replication-factor";
 static const char TAG_UPDATE_PCT[]              = "update-pct";
 static const char TAG_DEFRAG_LWM_PCT[]          = "defrag-lwm-pct";
+static const char TAG_NO_DEFRAG_READS[]         = "no-defrag-reads";
 static const char TAG_COMPRESS_PCT[]            = "compress-pct";
 static const char TAG_DISABLE_ODSYNC[]          = "disable-odsync";
 static const char TAG_COMMIT_TO_DEVICE[]        = "commit-to-device";
-static const char TAG_COMMIT_MIN_BYTES[]        = "commit-min-bytes";
 static const char TAG_TOMB_RAIDER[]             = "tomb-raider";
 static const char TAG_TOMB_RAIDER_SLEEP_USEC[]  = "tomb-raider-sleep-usec";
 static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
@@ -192,6 +192,9 @@ storage_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_DEFRAG_LWM_PCT) == 0) {
 			g_scfg.defrag_lwm_pct = parse_uint32();
 		}
+		else if (strcmp(tag, TAG_NO_DEFRAG_READS) == 0) {
+			g_scfg.no_defrag_reads = parse_yes_no();
+		}
 		else if (strcmp(tag, TAG_COMPRESS_PCT) == 0) {
 			g_scfg.compress_pct = parse_uint32();
 		}
@@ -200,9 +203,6 @@ storage_configure(int argc, char* argv[])
 		}
 		else if (strcmp(tag, TAG_COMMIT_TO_DEVICE) == 0) {
 			g_scfg.commit_to_device = parse_yes_no();
-		}
-		else if (strcmp(tag, TAG_COMMIT_MIN_BYTES) == 0) {
-			g_scfg.commit_min_bytes = parse_uint32();
 		}
 		else if (strcmp(tag, TAG_TOMB_RAIDER) == 0) {
 			g_scfg.tomb_raider = parse_yes_no();
@@ -305,13 +305,6 @@ check_configuration()
 		return false;
 	}
 
-	if (g_scfg.commit_min_bytes != 0 &&
-			(g_scfg.commit_min_bytes > g_scfg.large_block_ops_bytes ||
-			! is_power_of_2(g_scfg.commit_min_bytes))) {
-		configuration_error(TAG_COMMIT_MIN_BYTES);
-		return false;
-	}
-
 	return true;
 }
 
@@ -374,6 +367,11 @@ derive_configuration()
 		g_scfg.large_block_writes_per_sec = g_scfg.large_block_reads_per_sec;
 	}
 
+	// To simulate the new storage-engine memory where defrag reads from RAM.
+	if (g_scfg.no_defrag_reads) {
+		g_scfg.large_block_reads_per_sec = 0;
+	}
+
 	// Non-zero load must be enough to calculate service thread rates safely.
 	uint32_t total_reqs_per_sec =
 			g_scfg.internal_read_reqs_per_sec +
@@ -430,14 +428,14 @@ echo_configuration()
 			g_scfg.update_pct);
 	printf("%s: %" PRIu32 "\n", TAG_DEFRAG_LWM_PCT,
 			g_scfg.defrag_lwm_pct);
+	printf("%s: %s\n", TAG_NO_DEFRAG_READS,
+			g_scfg.no_defrag_reads ? "yes" : "no");
 	printf("%s: %" PRIu32 "\n", TAG_COMPRESS_PCT,
 			g_scfg.compress_pct);
 	printf("%s: %s\n", TAG_DISABLE_ODSYNC,
 			g_scfg.disable_odsync ? "yes" : "no");
 	printf("%s: %s\n", TAG_COMMIT_TO_DEVICE,
 			g_scfg.commit_to_device ? "yes" : "no");
-	printf("%s: %" PRIu32 "\n", TAG_COMMIT_MIN_BYTES,
-			g_scfg.commit_min_bytes);
 	printf("%s: %s\n", TAG_TOMB_RAIDER,
 			g_scfg.tomb_raider ? "yes" : "no");
 	printf("%s: %" PRIu32 "\n", TAG_TOMB_RAIDER_SLEEP_USEC,
