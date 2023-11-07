@@ -57,7 +57,7 @@ main() {
     *'centos'* )
       distro_id='centos'
       ;;
-    *'redhat'* | *'rhel'* )
+    *'redhat'* | *'rhel'* | *'red hat'* )
       distro_id='rhel'
       ;;
     *'debian'* )
@@ -78,7 +78,7 @@ main() {
         release=$(cat /etc/redhat-release | tr '[:upper:]' '[:lower:]')
       fi
       release_version=${release##*release}
-      distro_version=${release_version%.*}
+      distro_version=${release_version%%.*}
       ;;
     'debian' )
       debian_version=$(cat /etc/debian_version | tr '[:upper:]' '[:lower:]')
@@ -93,6 +93,25 @@ main() {
 
   distro_id=${distro_id//[[:space:]]/}
   distro_version=${distro_version//[[:space:]]/}
+
+  # Second chance for pre-release versions.
+	if [ -z "$distro_version" ]
+	then
+	    case "$distro_id" in
+	    'debian' )
+		debian_version=$(cat /etc/debian_version | tr '[:upper:]' '[:lower:]')
+		if [[ "$debian_version" = "buster"* ]]
+		then
+			debian_version=10
+		fi
+		if [[ "$debian_version" = "bullseye"* ]]
+		then
+			debian_version=11
+		fi
+		distro_version=${debian_version%%.*}
+		;;
+	    esac
+	fi
 
   case "$distro_id" in
   'centos' )
@@ -116,10 +135,6 @@ main() {
     fi
     distro_long="centos${distro_version}"
     distro_short="el${distro_version}"
-    ;;
-  'amzn' )
-    distro_long="ami"
-    distro_short="ami"
     ;;
   * )
     distro_long="${distro_id}${distro_version}"
