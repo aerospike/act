@@ -108,7 +108,12 @@ main() {
 		then
 			debian_version=11
 		fi
+		if [[ "$debian_version" = "bookworm"* ]]
+		then
+			debian_version=12
+		fi
 		distro_version=${debian_version%%.*}
+		
 		;;
 	    esac
 	fi
