@@ -1,6 +1,6 @@
 ## New Features
 
-* [TOOLS-2730] - (ACT) Add support for Amazon2023.
+* [TOOLS-2730] - (ACT) Add support for Amazon Linux 2023.
 * [TOOLS-2731] - (ACT) Add support for Debian 12.
 * [TOOLS-2729] - (ACT) Add support for RedHat 9.
 * [TOOLS-2732] - (ACT) Add support for Ubuntu 22.04.
