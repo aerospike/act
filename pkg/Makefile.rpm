@@ -7,8 +7,8 @@ export ETC_BASE = $(RPM_BUILD_ROOT)/etc/aerospike
 
 MANIFEST_DIR = manifest/TEMP
 DIR_PKG = target/packages
-#REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
-REV = $(shell build/version)
+REV = $(shell grep VERSION src/common/version.h | tr -s ' ' | cut -d' ' -f3 | tr -d '"')
+BLD_ID = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 OS = $(shell build/os_version)
 ARCH=$(shell uname -m)
 

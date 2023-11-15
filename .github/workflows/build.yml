@@ -1,12 +1,7 @@
 name: Build ACT
 
 on:
-  push:
-    branches: [ master ]
-    tags:
-      - '*'
-  pull_request:
-    branches: [ master ]
+  workflow_dispatch:
         
 jobs:
   buils_debian_x86_64:

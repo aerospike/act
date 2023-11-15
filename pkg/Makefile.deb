@@ -6,9 +6,9 @@ export CL_BASE = $(DEB_BUILD_ROOT)/opt/aerospike
 export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
 
 
-#REV = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 DIR_PKG = target/packages
-REV = $(shell build/version)
+REV = $(shell grep VERSION src/common/version.h | tr -s ' ' | cut -d' ' -f3 | tr -d '"')
+BLD_ID = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 OS = $(shell build/os_version)
 ARCH=$(shell uname -m)
 MANIFEST_DIR = manifest/TEMP
@@ -58,7 +58,7 @@ dist:
 
 	sed 's/@VERSION@/'$(REV)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
 	sed -i 's/@ARCH@/'$(ARCH)'/g' $(DEB_BUILD_ROOT)/DEBIAN/control
-	fakeroot dpkg-deb --build $(DEB_BUILD_ROOT) $(DIR_PKG)/act_$(REV)-1$(OS)_$(ARCH).deb
+	fakeroot dpkg-deb -Z xz --build $(DEB_BUILD_ROOT) $(DIR_PKG)/act_$(REV)-1$(OS)_$(ARCH).deb
 	rm -rf dist
 
 distclean:
