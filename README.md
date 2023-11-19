@@ -272,6 +272,9 @@ The first time you test a device(s), you must prepare the device(s) by first
 cleaning them (writing zeros everywhere) and then "salting" them (writing random
 data everywhere) with act_prep.
 
+##### Partitions
+In some cases, and in particular if you plan to use them while running Aerospike, you may want to test with ACT using partitions. Some systems perform better with more partitions, possibly due to more parallelization in some layer, so you may want to experiment with adding partitions. As a general rule of thumb, you do not want more partitions than the total number of cores - you could start at 4 per drive but pull that back if drives*partitions is too much; say for a 96 core machine with 8 SSD volumes, you do not want more than 12 partitions (8*12 = 96, so more partitions wouldn't be good.). If you use partitions, you can run act_prep on all partitions in parallel or run act_prep before partitioning. If using partitions, be aware of boundaries such that a partition does not span multiple physical sectors. Example partition script: `parted --script /dev/mydrive mklabel gpt mkpart primary 0% 25% mkpart primary 25% 50% mkpart primary 50% 75% mkpart primary 75% 100%`.
+
 act_prep takes a device name as its only command-line parameter.  For a typical
 240GB SSD, act_prep takes 30-60+ minutes to run.  The time varies depending on
 the device and the capacity.
@@ -413,6 +416,18 @@ load test.
 When doing stress testing at a level ABOVE where the device is certified, a
 device passes the test if ACT runs to completion, regardless of the number of
 errors.
+
+# Break times, testing anomalies
+A drive that has been tested at a much higher rate than it can pass may need a 'break'. For example, if you try to run a 100x test against a drive that only supports 20x - the drive may only pass at 10x until the drive has some time to catch up. There appears to be some recovery time, perhaps due to the internal garbage collection of the hardware, where the drive has to recover. For this reason you can get more reliable results by testing low and ramping up until failure, but if you experience an ACT failure and wish to lower the test volume be aware that you may need to give the drive a 'break' before performing another test. The time in which a drive takes to recover is dependent on manufacturer and model and can vary by many hours.
+To illustrate this behavior, a sequence of tests may go like this:
+100x[PASS] -> 150x[PASS] -> 300x[FAIL] -> 150x[FAIL]. A 150x test could fail in this condition because of this 'break' period needed after a drive is pushed too far.
+Instead, you may have to do this:
+100x[PASS] -> 150x[PASS] -> 300x[FAIL] -> (wait: 8h?) -> 150x[PASS] -> 160x[PASS] ... and so on.
+
+Again, the wait period is not well known and likely varies quite a lot.
+
+##### IRQBalance
+If your system has IRQBalance disabled, you can try to enable it. In some cases this had led to increased performance.
 
 ## ACT Configuration Reference
 ------------------------------
