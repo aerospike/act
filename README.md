@@ -524,19 +524,18 @@ is 1000, and large-block-op-kbytes is 128, we write (1504 x 1000) bytes per
 second, or (1504 x 1000) / (128 x 1024) = 11.4746 large blocks per second.  With
 defrag-lwm-pct 50, we double this to simulate defragmentation where blocks
 depleted to 50%-used are re-packed, yielding a large-block write (and read) rate
-of 22.949 blocks per second.
+of 22.949 blocks per second.  May not be larger than 8Mbytes.
 
 **record-bytes-range-max (act_storage ONLY)**
 If set, simulate a range of record sizes from record-bytes up to
-record-bytes-range-max.  Therefore if set, it must be larger than record-bytes
-and smaller than or equal to large-block-op-kbytes.  The simulation models a
-linear distribution of sizes within the range.  The default
-record-bytes-range-max is 0, meaning no range -- model all records with size
-record-bytes.
+record-bytes-range-max.  Therefore if set, it must be larger than record-bytes.
+The simulation models a linear distribution of sizes within the range.  The
+default record-bytes-range-max is 0, meaning no range -- model all records with
+size record-bytes.  May not be larger than 8Mbytes.
 
 **large-block-op-kbytes (act_storage ONLY)**
 Size written and read in each large-block write and large-block read operation
-respectively, in Kbytes.
+respectively, in Kbytes.  May not be larger than 8192 (8Mbytes).
 
 **replication-factor**
 Simulate the device load you would see if this node was in a cluster with the
@@ -614,10 +613,3 @@ that this doesn't necessarily mean the devices failed the test - it means the
 transaction rates specified are too high to achieve with the configured number
 of service threads.  Note - max-lag-sec 0 is a special value for which the test
 will not be stopped due to lag.  The default max-lag-sec is 10.
-
-**scheduler-mode**
-Mode in /sys/block/<device>/queue/scheduler for all the devices in the test run.
-noop means no special scheduling is done for device I/O operations, cfq means
-operations may be reordered to optimize for physical constraints imposed by
-rotating disc devices (which likely means it hurts performance for ssds).  If
-the field is left out, the default is noop.

@@ -66,9 +66,10 @@ static const char TAG_COMMIT_TO_DEVICE[]        = "commit-to-device";
 static const char TAG_TOMB_RAIDER[]             = "tomb-raider";
 static const char TAG_TOMB_RAIDER_SLEEP_USEC[]  = "tomb-raider-sleep-usec";
 static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
-static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
 
-#define RBLOCK_SIZE 16 // must be power of 2
+// As in Aerospike server.
+#define RBLOCK_SIZE 16
+#define WBLOCK_SIZE (8 * 1024 * 1024)
 
 
 //==========================================================
@@ -92,8 +93,7 @@ storage_cfg g_scfg = {
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
 		.compress_pct = 100,
-		.max_lag_usec = 1000000 * 10,
-		.scheduler_mode = "noop"
+		.max_lag_usec = 1000000 * 10
 };
 
 
@@ -213,9 +213,6 @@ storage_configure(int argc, char* argv[])
 		else if (strcmp(tag, TAG_MAX_LAG_SEC) == 0) {
 			g_scfg.max_lag_usec = (uint64_t)parse_uint32() * 1000000;
 		}
-		else if (strcmp(tag, TAG_SCHEDULER_MODE) == 0) {
-			g_scfg.scheduler_mode = parse_scheduler_mode();
-		}
 		else {
 			printf("ERROR: ignoring unknown config item '%s'\n", tag);
 			return false;
@@ -262,19 +259,19 @@ check_configuration()
 		return false;
 	}
 
-	if (g_scfg.record_bytes == 0) {
+	if (g_scfg.record_bytes == 0 || g_scfg.record_bytes > WBLOCK_SIZE) {
 		configuration_error(TAG_RECORD_BYTES);
 		return false;
 	}
 
 	if (g_scfg.record_bytes_rmx != 0 &&
-			g_scfg.record_bytes_rmx <= g_scfg.record_bytes) {
+			(g_scfg.record_bytes_rmx <= g_scfg.record_bytes ||
+					g_scfg.record_bytes_rmx > WBLOCK_SIZE)) {
 		configuration_error(TAG_RECORD_BYTES_RANGE_MAX);
 		return false;
 	}
 
-	if (g_scfg.large_block_ops_bytes < g_scfg.record_bytes ||
-			g_scfg.large_block_ops_bytes < g_scfg.record_bytes_rmx ||
+	if (g_scfg.large_block_ops_bytes > WBLOCK_SIZE ||
 			! is_power_of_2(g_scfg.large_block_ops_bytes)) {
 		configuration_error(TAG_LARGE_BLOCK_OP_KBYTES);
 		return false;
@@ -442,8 +439,6 @@ echo_configuration()
 			g_scfg.tomb_raider_sleep_us);
 	printf("%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
 			g_scfg.max_lag_usec / 1000000);
-	printf("%s: %s\n", TAG_SCHEDULER_MODE,
-			g_scfg.scheduler_mode);
 
 	printf("\nDERIVED CONFIGURATION\n");
 

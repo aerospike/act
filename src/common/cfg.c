@@ -37,19 +37,6 @@
 
 
 //==========================================================
-// Typedefs & constants.
-//
-
-static const char* const SCHEDULER_MODES[] = {
-	"noop", // default
-	"cfq"
-};
-
-static const uint32_t N_SCHEDULER_MODES =
-		(uint32_t)(sizeof(SCHEDULER_MODES) / sizeof(const char*));
-
-
-//==========================================================
 // Public API.
 //
 
@@ -77,27 +64,6 @@ parse_device_names(size_t max_num_devices, char names[][MAX_DEVICE_NAME_SIZE],
 		strcpy(names[*p_num_devices], val);
 		(*p_num_devices)++;
 	}
-}
-
-const char*
-parse_scheduler_mode()
-{
-	const char* val = strtok(NULL, WHITE_SPACE);
-
-	if (val == NULL) {
-		printf("ERROR: missing scheduler mode - using 'noop'\n");
-		return "noop";
-	}
-
-	for (uint32_t m = 0; m < N_SCHEDULER_MODES; m++) {
-		if (strcmp(val, SCHEDULER_MODES[m]) == 0) {
-			return SCHEDULER_MODES[m];
-		}
-	}
-
-	printf("ERROR: unknown scheduler mode '%s' - using 'noop'\n", val);
-
-	return "noop";
 }
 
 uint32_t

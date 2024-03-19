@@ -233,10 +233,6 @@ main(int argc, char* argv[])
 
 		dev->name = (const char*)g_scfg.device_names[n];
 
-		if (g_scfg.file_size == 0) { // normally 0
-			set_scheduler(dev->name, g_scfg.scheduler_mode);
-		}
-
 		if (! (dev->fd_q = queue_create(sizeof(int))) ||
 			! discover_device(dev) ||
 			! (dev->read_hist = histogram_create(scale)) ||

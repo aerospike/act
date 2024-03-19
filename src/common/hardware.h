@@ -36,4 +36,3 @@
 //
 
 uint32_t num_cpus();
-void set_scheduler(const char* device_name, const char* mode);

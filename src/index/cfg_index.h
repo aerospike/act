@@ -55,7 +55,6 @@ typedef struct index_cfg_s {
 	uint32_t defrag_lwm_pct;
 	bool disable_odsync;
 	uint64_t max_lag_usec;          // converted from literal units in seconds
-	const char* scheduler_mode;
 
 	// Derived from literal configuration:
 	uint64_t service_thread_reads_per_sec;

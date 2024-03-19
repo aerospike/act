@@ -58,7 +58,6 @@ static const char TAG_REPLICATION_FACTOR[]      = "replication-factor";
 static const char TAG_DEFRAG_LWM_PCT[]          = "defrag-lwm-pct";
 static const char TAG_DISABLE_ODSYNC[]          = "disable-odsync";
 static const char TAG_MAX_LAG_SEC[]             = "max-lag-sec";
-static const char TAG_SCHEDULER_MODE[]          = "scheduler-mode";
 
 
 //==========================================================
@@ -80,8 +79,7 @@ index_cfg g_icfg = {
 		.report_interval_us = 1000000,
 		.replication_factor = 1,
 		.defrag_lwm_pct = 50,
-		.max_lag_usec = 1000000 * 10,
-		.scheduler_mode = "noop"
+		.max_lag_usec = 1000000 * 10
 };
 
 
@@ -159,9 +157,6 @@ index_configure(int argc, char* argv[])
 		}
 		else if (strcmp(tag, TAG_MAX_LAG_SEC) == 0) {
 			g_icfg.max_lag_usec = (uint64_t)parse_uint32() * 1000000;
-		}
-		else if (strcmp(tag, TAG_SCHEDULER_MODE) == 0) {
-			g_icfg.scheduler_mode = parse_scheduler_mode();
 		}
 		else {
 			printf("ERROR: ignoring unknown config item '%s'\n", tag);
@@ -309,8 +304,6 @@ echo_configuration()
 			g_icfg.disable_odsync ? "yes" : "no");
 	printf("%s: %" PRIu64 "\n", TAG_MAX_LAG_SEC,
 			g_icfg.max_lag_usec / 1000000);
-	printf("%s: %s\n", TAG_SCHEDULER_MODE,
-			g_icfg.scheduler_mode);
 
 	printf("\nDERIVED CONFIGURATION\n");
 

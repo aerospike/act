@@ -114,8 +114,6 @@ main(int argc, char* argv[])
 	strcpy(device_name, argv[1]);
 	g_device_name = device_name;
 
-	set_scheduler(g_device_name, "noop");
-
 	if (! discover_num_blocks()) {
 		exit(-1);
 	}

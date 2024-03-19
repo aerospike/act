@@ -63,7 +63,6 @@ typedef struct storage_cfg_s {
 	bool tomb_raider;
 	uint32_t tomb_raider_sleep_us;
 	uint64_t max_lag_usec;          // converted from literal units in seconds
-	const char* scheduler_mode;
 
 	// Derived from literal configuration:
 	uint32_t record_stored_bytes;
