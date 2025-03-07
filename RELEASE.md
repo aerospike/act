@@ -1,2 +1,2 @@
-## Updates
-* Removed `scheduler-mode` configuration, relaxed record size and range upper limits to 8M.
+## Improvements
+* [TOOLS-2914] - (ACT) Add support for Ubuntu 24.04 LTS.
