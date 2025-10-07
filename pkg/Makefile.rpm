@@ -23,7 +23,7 @@ default: dist
 	sed -i 's/@RELEASE@/'$(OS)'/g' pkg/act_v.spec
 	sed -i 's/@ARCH@/'$(ARCH)'/g' pkg/act_v.spec
 
-	rpmbuild -bb -vv --define "dist .$(OS)" --buildroot $(RPM_BUILD_ROOT) pkg/act_v.spec
+	rpmbuild --noclean -bb -vv --define "dist .$(OS)" --buildroot $(RPM_BUILD_ROOT) pkg/act_v.spec
 	find $(RPM_SOURCE_ROOT)/RPMS -type f -exec mv {} $(DIR_PKG) \;
 	rm -rf pkg/act_v.spec dist
 
