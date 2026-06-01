@@ -13,6 +13,11 @@ jobs:
       image: ${{ matrix.container }}
       options: "--entrypoint /bin/bash"
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+      with:
+        egress-policy: audit
+
     - name: Install Dependencies (Debian)
       run: |
         apt-get -y update
@@ -31,7 +36,7 @@ jobs:
         make all deb      
 
     - name: Upload Artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
       with:
         name: act_${{ env.REV }}-1${{ env.OS }}_${{ env.ARCH }}.deb
         path: /__w/act/act/act/target/packages/act_*
@@ -43,11 +48,16 @@ jobs:
         os: [ 'ubuntu-20.04', 'ubuntu-18.04' ]
     runs-on: ${{ matrix.os }}
     steps:
+    - name: Harden the runner (Audit all outbound calls)
+      uses: step-security/harden-runner@df199fb7be9f65074067a9eb93f12bb4c5547cf2 # v2.13.3
+      with:
+        egress-policy: audit
+
     - name: Install Dependencies
       run: sudo apt-get install make gcc libc6-dev
 
     - name: Get Sources
-      uses: actions/checkout@v3
+      uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
       with:
         fetch-depth: 0
 
@@ -62,7 +72,7 @@ jobs:
       run: make all deb
 
     - name: Upload Artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3.2.1
       with: 
         name: act_${{ env.REV }}-1${{ env.OS }}_${{ env.ARCH }}.deb
         path: target/packages
