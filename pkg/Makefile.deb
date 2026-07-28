@@ -7,7 +7,13 @@ export ETC_BASE = $(DEB_BUILD_ROOT)/etc/aerospike
 
 
 DIR_PKG = target/packages
-REV = $(shell grep VERSION src/common/version.h | tr -s ' ' | cut -d' ' -f3 | tr -d '"')
+# Package version from git tags (build/version is the single source of truth):
+# master -> x.y; dev branches -> x.y-<n>-g<sha> (full git describe).
+REV = $(shell build/version -v)
+# Build number from build/version -r (1-based: tagged release and dev builds are 1);
+# forms the debian revision (with the OS) so successive master builds are orderable.
+BUILD_NUMBER = $(shell build/version -r)
+DEB_REVISION = $(BUILD_NUMBER)$(OS)
 BLD_ID = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 OS = $(shell build/os_version)
 ARCH=$(shell uname -m)
@@ -56,9 +62,9 @@ dist:
 	ln -sf /opt/aerospike/bin/act_latency.py $(DEB_BUILD_ROOT)/usr/bin/act_latency.py
 
 
-	sed 's/@VERSION@/'$(REV)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
+	sed 's/@VERSION@/'$(REV)-$(DEB_REVISION)'/g' <pkg/deb/control >$(DEB_BUILD_ROOT)/DEBIAN/control
 	sed -i 's/@ARCH@/'$(ARCH)'/g' $(DEB_BUILD_ROOT)/DEBIAN/control
-	fakeroot dpkg-deb -Z xz --build $(DEB_BUILD_ROOT) $(DIR_PKG)/act_$(REV)-1$(OS)_$(ARCH).deb
+	fakeroot dpkg-deb -Z xz --build $(DEB_BUILD_ROOT) $(DIR_PKG)/act_$(REV)-$(DEB_REVISION)_$(ARCH).deb
 	rm -rf dist
 
 distclean:

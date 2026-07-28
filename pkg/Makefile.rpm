@@ -7,7 +7,15 @@ export ETC_BASE = $(RPM_BUILD_ROOT)/etc/aerospike
 
 MANIFEST_DIR = manifest/TEMP
 DIR_PKG = target/packages
-REV = $(shell grep VERSION src/common/version.h | tr -s ' ' | cut -d' ' -f3 | tr -d '"')
+# Package version from git tags (build/version is the single source of truth):
+# master -> x.y; dev branches -> x.y-<n>-g<sha>. rpm forbids '-' in Version, so map
+# the dev describe suffix's hyphens to underscores.
+REV = $(shell build/version -v)
+RPM_VERSION = $(subst -,_,$(REV))
+# Build number from build/version -r (1-based: tagged release and dev builds are 1);
+# becomes the rpm Release so successive master builds are orderable.
+BUILD_NUMBER = $(shell build/version -r)
+RPM_RELEASE = $(BUILD_NUMBER)
 BLD_ID = $(shell git describe 2>/dev/null; if [ $${?} != 0 ]; then echo 'unknown'; fi)
 OS = $(shell build/os_version)
 ARCH=$(shell uname -m)
@@ -19,8 +27,8 @@ default: dist
 	mkdir -p $(RPM_SOURCE_ROOT)/RPMS/x86_64
 	mkdir -p $(RPM_BUILD_ROOT)/usr/bin
 
-	sed 's/@VERSION@/'$(REV)'/g' <pkg/rpm/act.spec >pkg/act_v.spec
-	sed -i 's/@RELEASE@/'$(OS)'/g' pkg/act_v.spec
+	sed 's/@VERSION@/'$(RPM_VERSION)'/g' <pkg/rpm/act.spec >pkg/act_v.spec
+	sed -i 's/@RELEASE@/'$(RPM_RELEASE)'/g' pkg/act_v.spec
 	sed -i 's/@ARCH@/'$(ARCH)'/g' pkg/act_v.spec
 
 	rpmbuild --noclean -bb -vv --define "dist .$(OS)" --buildroot $(RPM_BUILD_ROOT) pkg/act_v.spec
