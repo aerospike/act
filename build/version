@@ -19,13 +19,14 @@
 #   v-prefixed tag is consulted only for the build-number anchor, never emitted).
 #   It never emits a leading 'v', which the Debian Version: field rejects.
 # - master: strip the describe --long suffix to x.y; default appends -n
-#   (omitted when n is 0, i.e. HEAD is exactly on the release tag, so official
-#   release builds stay bare x.y).
+#   (omitted when n is 0, e.g. HEAD is exactly on the release tag or no tag is
+#   reachable, so official release builds stay bare x.y).
 # - Dev branches: keep the full describe output (-<n>-g<sha>); build number is 1.
 #
 # _build_number counts first-parent commits since the anchoring x.y tag (0 when
-# HEAD is exactly on the tag). Non-master branches always return 1. The -r output
-# adds 1 on release lines so the tagged release is build number 1.
+# HEAD is exactly on the tag, or no tag is reachable). Non-master branches always
+# return 1. The -r output adds 1 on release lines so the tagged release is build
+# number 1.
 # --first-parent requires git >= 2.20 (debian:10+; ubuntu-18.04/git 2.17 is below).
 #
 # Package version is always derived from git tags via git-describe (through make
@@ -167,7 +168,8 @@ _build_number() {
     if [[ -n "$base_tag" ]]; then
         git rev-list --first-parent --count "${base_tag}..HEAD"
     else
-        # 0 so -r's +1 yields 1 (do not copy asmt's fallback of 1, which becomes 2).
+        # 0 so -r's +1 yields 1 (not asmt's 1, which becomes 2) and so full mode
+        # omits -n, leaving the bare-SHA fallback unsuffixed.
         echo "0"
     fi
 }
@@ -181,7 +183,8 @@ _emit_release_version() {
     full)
         local bn
         bn="$(_build_number "$branch")"
-        # Omit -n when n is 0 (HEAD exactly on the release tag).
+        # Omit -n when n is 0 (HEAD exactly on the release tag, or no tag
+        # reachable — then rev is already a bare SHA).
         if [[ "$bn" == "0" ]]; then
             echo "$rev"
         else
