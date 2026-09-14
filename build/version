@@ -1,35 +1,60 @@
 #!/usr/bin/env bash
 #
-# Unified version/build-number script for act, mirroring the aerospike-server
-# resolver (see build/README-VERSIONING.md in that repo). All three outputs:
+# Unified version/build-number script for act. All three outputs are available:
 #
 # Usage:
 #   build/version              -> master: x.y-n; dev branches: git describe with SHA
 #   build/version -v           -> master: x.y (bare);
 #                                 dev branches: git describe with SHA (same as default)
-#   build/version -r           -> master: build number (first-parent commits since
-#                                 the tag + 1, so the tagged release is 1); dev: 1
+#   build/version -r           -> master: build number (tagged release = 1); dev: 1
 #
-# Consumed by pkg/Makefile.{deb,rpm}: REV = `build/version -v`,
-# BUILD_NUMBER = `build/version -r`. The build number is 1-based: unlike
-# aerospike-server (which tags a line-open marker and counts from 0), act tags the
-# release commit directly, so the tagged release and dev builds are build number 1
-# and each subsequent master commit increments.
+# Consumed by pkg/Makefile.rpm and pkg/Makefile.deb: REV = `build/version -v`
+# (bare x.y; the rpm Makefile maps '-' to '_') for the package Version, and the
+# build number `build/version -r` (1-based: tagged release and dev builds are 1)
+# feeds the RPM Release / DEB revision.
 #
 # Resolution rules:
-# - Always anchors on the bare x.y release tag via --match '[0-9]*.[0-9]*' (never a
-#   v-prefixed ship tag, which would emit a leading 'v' the Debian Version: field
-#   rejects). Falls back to the short SHA when no bare tag is reachable, never v...
-# - master: strip the describe --long suffix to x.y; default appends -n.
-# - Dev branches: keep the full describe output (-<n>-g<sha>) as the version itself,
-#   so dev packages carry the commit descriptor; build number is 1.
-# - --first-parent requires git >= 2.20 (debian:10+; ubuntu-18.04/git 2.17 is below).
+# - Always anchors on the bare x.y release tag via --match '[0-9]*.[0-9]*'; if
+#   none is reachable the emitted version falls back to the short SHA (a
+#   v-prefixed tag is consulted only for the build-number anchor, never emitted).
+#   It never emits a leading 'v', which the Debian Version: field rejects.
+# - master: strip the describe --long suffix to x.y; default appends -n
+#   (omitted when n is 0, e.g. HEAD is exactly on the release tag or no tag is
+#   reachable, so official release builds stay bare x.y).
+# - Dev branches: keep the full describe output (-<n>-g<sha>); build number is 1.
+#
+# _build_number counts first-parent commits since the anchoring x.y tag (0 when
+# HEAD is exactly on the tag, or no tag is reachable). Non-master branches always
+# return 1. The -r output adds 1 on release lines so the tagged release is build
+# number 1.
+# --first-parent requires git >= 2.20 (debian:10+; ubuntu-18.04/git 2.17 is below).
+#
+# Package version is always derived from git tags via git-describe (through make
+# print-REV). src/common/version.h is not consumed here; it still drives the
+# compiled binary's reported version (ACT version …).
+
+# Fail on unset variables and pipeline errors. Intentionally omit -e so git
+# commands that legitimately fail (no matching tag) can fall through with || true.
+set -uo pipefail
 
 mode=full # full (default): x.y-n; version_only: x.y; build_only: n
 while [[ $# -gt 0 ]]; do
     case "$1" in
-    -v) mode=version_only ;;
-    -r) mode=build_only ;;
+    -v)
+        # Reject combining -v and -r.
+        if [[ "$mode" != "full" ]]; then
+            echo "Usage: $(basename "$0") [-v|-r]" >&2
+            exit 1
+        fi
+        mode=version_only
+        ;;
+    -r)
+        if [[ "$mode" != "full" ]]; then
+            echo "Usage: $(basename "$0") [-v|-r]" >&2
+            exit 1
+        fi
+        mode=build_only
+        ;;
     *)
         echo "Usage: $(basename "$0") [-v|-r]" >&2
         exit 1
@@ -45,9 +70,86 @@ done
 TAG_MATCH='[0-9]*.[0-9]*'
 VTAG_MATCH="v${TAG_MATCH}"
 
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
 # Centralizes the release-branch check (act ships from master only).
 _is_release_branch() {
     [[ "$1" == "master" ]]
+}
+
+# Strip git describe --long suffix (-<n>-g<sha>) leaving bare x.y.
+# Uses [0-9]+ (one or more digits) so we do not over-match on unusual tag names.
+_strip_describe_suffix() {
+    sed -E 's/-[0-9]+-g[0-9a-f]+$//'
+}
+
+# Shared tag lookup for _build_number. Most recent reachable x.y tag;
+# v-prefixed tags are used only for lookup, never emitted (Debian Version:
+# must start with a digit).
+_anchor_tag() {
+    local tag=""
+    tag=$(git describe --first-parent --tags --abbrev=0 \
+        --match "$TAG_MATCH" 2>/dev/null) || true
+    if [[ -z "$tag" ]]; then
+        tag=$(git describe --first-parent --tags --abbrev=0 \
+            --match "$VTAG_MATCH" 2>/dev/null) || true
+    fi
+    echo "$tag"
+}
+
+# Run git describe for version resolution. On failure (unsupported git, missing
+# tags in a shallow clone, etc.) warn to stderr before falling back to bare SHA
+# so mis-provisioned runners are visible instead of silently SHA-versioned packages.
+_describe_rev() {
+    local strip_suffix="${1:-false}"
+    local rev err
+
+    err="$(mktemp)"
+    rev="$(git describe --first-parent --tags --always --abbrev=9 --long \
+        --match "$TAG_MATCH" 2>"$err")" || rev=""
+    if [[ -z "$rev" ]]; then
+        echo "warning: git describe failed ($(tr -d '\n' < "$err")): falling back to commit SHA" >&2
+        rev="$(git rev-parse --short=9 HEAD)"
+    fi
+    rm -f "$err"
+
+    if [[ "$strip_suffix" == true ]]; then
+        rev="$(echo "$rev" | _strip_describe_suffix)"
+    fi
+    echo "$rev"
+}
+
+# Determine branch name. Tries, in order: local branch name, common CI env vars
+# (covers detached HEAD checkouts), then the first remote branch containing HEAD.
+_resolve_branch() {
+    local branch=""
+
+    branch="$(git branch --show-current 2>/dev/null || true)"
+    if [[ -n "$branch" ]]; then
+        echo "$branch"
+        return
+    fi
+
+    if [[ -n "${GITHUB_HEAD_REF:-}" ]]; then
+        echo "$GITHUB_HEAD_REF"
+        return
+    fi
+    if [[ -n "${GITHUB_REF:-}" && "$GITHUB_REF" == refs/heads/* ]]; then
+        echo "${GITHUB_REF#refs/heads/}"
+        return
+    fi
+    if [[ -n "${CI_COMMIT_REF_NAME:-}" ]]; then
+        echo "$CI_COMMIT_REF_NAME"
+        return
+    fi
+
+    # grep -Ev '/HEAD ->' avoids matching symbolic HEAD refs; strip remote prefix.
+    branch="$(git branch -r --contains HEAD 2>/dev/null |
+        grep -Ev '/HEAD ->' | head -1 |
+        sed -e 's|^[^/]*/||' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' || true)"
+    echo "$branch"
 }
 
 # ---------------------------------------------------------------------------
@@ -56,89 +158,77 @@ _is_release_branch() {
 _build_number() {
     local bn_branch="$1"
 
-    # Dev branches are build number 1; the -<n>-g<sha> describe suffix that -v keeps
-    # on dev branches is what actually distinguishes those builds.
     if ! _is_release_branch "$bn_branch"; then
         echo "1"
         return
     fi
 
     local base_tag
-    base_tag=$(git describe --first-parent --tags --abbrev=0 \
-        --match "$TAG_MATCH" 2>/dev/null) || true
-    if [[ -z "$base_tag" ]]; then
-        base_tag=$(git describe --first-parent --tags --abbrev=0 \
-            --match "$VTAG_MATCH" 2>/dev/null) || true
-    fi
-
-    # +1 so the tagged release (0 commits past the tag) is build number 1.
+    base_tag="$(_anchor_tag)"
     if [[ -n "$base_tag" ]]; then
-        echo "$(( $(git rev-list --first-parent --count "${base_tag}..HEAD") + 1 ))"
+        git rev-list --first-parent --count "${base_tag}..HEAD"
     else
-        echo "1"
+        # 0 so -r's +1 yields 1 (not asmt's 1, which becomes 2) and so full mode
+        # omits -n, leaving the bare-SHA fallback unsuffixed.
+        echo "0"
     fi
 }
 
-# ---------------------------------------------------------------------------
-# Determine branch. Tries, in order: local branch name, common CI env vars (covers
-# the detached-HEAD checkout in act's actions/checkout jobs), then the first remote
-# branch containing HEAD.
-# ---------------------------------------------------------------------------
-_resolve_branch() {
-    local branch
-    branch="$(git branch --show-current 2>/dev/null || true)"
-    if [[ -n "$branch" ]]; then echo "$branch"; return; fi
+# Shared release-line output for version_only and full modes on master.
+_emit_release_version() {
+    local rev="$1" branch="$2" output_mode="$3"
 
-    if [[ -n "${GITHUB_HEAD_REF:-}" ]]; then echo "$GITHUB_HEAD_REF"; return; fi
-    if [[ -n "${GITHUB_REF:-}" && "$GITHUB_REF" == refs/heads/* ]]; then
-        echo "${GITHUB_REF#refs/heads/}"; return
-    fi
-    if [[ -n "${CI_COMMIT_REF_NAME:-}" ]]; then echo "$CI_COMMIT_REF_NAME"; return; fi
-
-    # grep -Ev '/HEAD ->' avoids the symbolic HEAD ref; strip the remote prefix.
-    git branch -r --contains HEAD 2>/dev/null | grep -Ev '/HEAD ->' | head -1 |
-        sed -e 's|^[^/]*/||' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' || true
+    case "$output_mode" in
+    version_only) echo "$rev" ;;
+    full)
+        local bn
+        bn="$(_build_number "$branch")"
+        # Omit -n when n is 0 (HEAD exactly on the release tag, or no tag
+        # reachable — then rev is already a bare SHA).
+        if [[ "$bn" == "0" ]]; then
+            echo "$rev"
+        else
+            echo "${rev}-${bn}"
+        fi
+        ;;
+    esac
 }
 
-# git describe anchored on the bare x.y tag. On failure (unsupported git, shallow
-# clone with no tags, ...) warn to stderr before falling back to the short SHA, so
-# mis-provisioned runners are visible instead of silently SHA-versioned packages.
-_describe() {
-    local strip_suffix="$1" rev
-    rev="$(git describe --first-parent --tags --always --abbrev=9 --long \
-        --match "$TAG_MATCH" 2>/dev/null)"
-    if [[ -z "$rev" ]]; then
-        echo "warning: git describe failed; falling back to commit SHA" >&2
-        rev="$(git rev-parse --short=9 HEAD)"
-    fi
-    if [[ "$strip_suffix" == true ]]; then
-        rev="$(echo "$rev" | sed -E 's/-[0-9]+-g[0-9a-f]+$//')"
-    fi
-    echo "$rev"
+_require_git_repo() {
+    git rev-parse --git-dir >/dev/null 2>&1 || {
+        echo "error: not a git repository" >&2
+        exit 1
+    }
 }
 
 # ---------------------------------------------------------------------------
-# Resolve
+# Determine branch / release-line flag
 # ---------------------------------------------------------------------------
-git rev-parse --git-dir >/dev/null 2>&1 || {
-    echo "error: not a git repository" >&2
-    exit 1
-}
+_require_git_repo
 
+is_release_line=false
 branch="$(_resolve_branch)"
 
+if _is_release_branch "$branch"; then
+    is_release_line=true
+fi
+
 if [[ "$mode" == "build_only" ]]; then # -r
-    _build_number "$branch"
+    # 1-based build number so the tagged release is 1 (dev branches are already 1);
+    # feeds the RPM Release / DEB revision directly (no +1 in the Makefiles).
+    if [[ "$is_release_line" == true ]]; then
+        echo "$(( $(_build_number "$branch") + 1 ))"
+    else
+        _build_number "$branch"
+    fi
     exit 0
 fi
 
-if _is_release_branch "$branch"; then
-    rev="$(_describe true)"
-    case "$mode" in
-    version_only) echo "$rev" ;;
-    full) echo "${rev}-$(_build_number "$branch")" ;;
-    esac
+# Anchor on the bare x.y tag only (never a leading-v ship tag).
+if [[ "$is_release_line" == true ]]; then
+    rev="$(_describe_rev true)"
+    _emit_release_version "$rev" "$branch" "$mode"
 else
-    # Dev branch: emit the full describe (-<n>-g<sha>) for both -v and default.
-    _describe false
+    rev="$(_describe_rev false)"
+    echo "$rev"
 fi
