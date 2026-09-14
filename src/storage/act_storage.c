@@ -6,7 +6,7 @@
  *
  * Joey Shurtleff & Andrew Gooding, 2011.
  *
- * Copyright (c) 2011-2020 Aerospike, Inc. All rights reserved.
+ * Copyright (c) 2011-2026 Aerospike, Inc. All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -208,7 +208,7 @@ main(int argc, char* argv[])
 
 	printf("\nACT version %s\n", VERSION);
 	printf("Storage device IO test\n");
-	printf("Copyright 2020 by Aerospike. All rights reserved.\n\n");
+	printf("Copyright 2020-2026 by Aerospike. All rights reserved.\n\n");
 
 	if (! storage_configure(argc, argv)) {
 		exit(-1);
