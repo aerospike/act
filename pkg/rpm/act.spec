@@ -1,6 +1,6 @@
 Name: act
 Version: @VERSION@
-Release: 1%{?dist}
+Release: @RELEASE@%{?dist}
 Summary: The Aerospike Certification Tool
 License: Apache 2.0 license
 Group: Application
